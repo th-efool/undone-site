@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { feedRepository } from '@/src/client/repositories/feedRepository';
 import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
 import type { PlayerTool, TimelineMarker } from '../types/play';
 import { ChannelId } from '@/src/shared/curriculum/pedagogicalVector.types';
 import { resolveMediaSource } from '../utils/mediaSource';
+import { homeStorageAdapter } from '@/src/client/repositories/homeStorageAdapter';
 
 function useSafeSession() {
   try {
@@ -26,7 +26,7 @@ declare global {
 
 type ChannelCache = {
   items: FeedItem[];
-  pageIndex: number;
+  servedChunkIds: string[];
   isFetching: boolean;
   currentIndex: number;
   hasError: boolean;
@@ -38,16 +38,16 @@ type ChannelCache = {
 };
 
 const INITIAL_CACHES: Record<ChannelId, ChannelCache> = {
-  default: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
-  spark: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
-  explore: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
-  build: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
-  listen: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
-  deep_dive: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
-  quick: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  default: { items: [], servedChunkIds: [], isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  spark: { items: [], servedChunkIds: [], isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  explore: { items: [], servedChunkIds: [], isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  build: { items: [], servedChunkIds: [], isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  listen: { items: [], servedChunkIds: [], isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  deep_dive: { items: [], servedChunkIds: [], isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  quick: { items: [], servedChunkIds: [], isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
 };
 
-const FEED_CACHE_STORAGE_PREFIX = 'sidequest_feed_cache_v1:';
+const FEED_CACHE_STORAGE_PREFIX = 'sidequest_feed_cache_v2:';
 const FEED_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24; // 24h persistent cache with background revalidation
 const FEED_CACHE_FRESH_TTL_MS = 45_000; // 45s fresh TTL before silent background revalidation
 
@@ -71,7 +71,7 @@ function loadStoredChannelCaches(selectionKey: string): Record<ChannelId, Channe
         hasAnyItems = true;
         hydrated[k] = {
           items: entry.items,
-          pageIndex: typeof entry.pageIndex === 'number' ? entry.pageIndex : 0,
+          servedChunkIds: entry.items.map((it: FeedItem) => it.chunkId).filter(Boolean),
           isFetching: false,
           currentIndex:
             typeof entry.currentIndex === 'number' && entry.currentIndex >= 0 && entry.currentIndex < entry.items.length
@@ -133,7 +133,6 @@ function saveStoredChannelCaches(selectionKey: string, caches: Record<ChannelId,
         hasItems = true;
         compact[k] = {
           items: ch.items.slice(0, 15),
-          pageIndex: ch.pageIndex,
           currentIndex: Math.min(ch.currentIndex, Math.max(0, Math.min(ch.items.length, 15) - 1)),
           prefs: ch.prefs,
           query: ch.query,
@@ -155,7 +154,8 @@ function saveStoredChannelCaches(selectionKey: string, caches: Record<ChannelId,
 export async function prefetchDefaultFeed(userId?: string | null): Promise<void> {
   if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
   const selectionKey = `${userId || 'anon'}:||`;
-  const storedChannel = (localStorage.getItem('sidequest_active_channel') as ChannelId) || 'default';
+  const config = homeStorageAdapter.getStoredChannelConfig(userId);
+  const storedChannel = config.activeChannel || 'default';
   const channel: ChannelId = INITIAL_CACHES[storedChannel] ? storedChannel : 'default';
 
   if (persistedCachesBySelection?.key === selectionKey) {
@@ -166,9 +166,20 @@ export async function prefetchDefaultFeed(userId?: string | null): Promise<void>
   }
 
   try {
-    const rawPrefs = localStorage.getItem('sidequest_channel_prefs') || '';
-    const prefsQuery = rawPrefs ? `&prefs=${encodeURIComponent(rawPrefs)}` : '';
-    const res = await fetch(`/api/feed?channel=${channel}&pageIndex=0${prefsQuery}`);
+    const parsedPrefs = config.prefs;
+    const rawPrefs = JSON.stringify(parsedPrefs);
+
+    const res = await fetch('/api/feed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channel,
+        limit: 5,
+        excludeChunkIds: [],
+        prefs: parsedPrefs,
+        timezoneOffset: new Date().getTimezoneOffset(),
+      }),
+    });
     if (!res.ok) return;
     const data = await res.json();
     const items: FeedItem[] = Array.isArray(data?.items) ? data.items : [];
@@ -183,11 +194,11 @@ export async function prefetchDefaultFeed(userId?: string | null): Promise<void>
       ...baseCaches,
       [channel]: {
         items,
-        pageIndex: 0,
+        servedChunkIds: items.map((it: FeedItem) => it.chunkId).filter(Boolean),
         currentIndex: 0,
         isFetching: false,
         hasError: false,
-        exhausted: items.length === 0,
+        exhausted: !data.hasMore,
         prefs: rawPrefs,
         query: '',
         stale: false,
@@ -280,10 +291,10 @@ export function usePlayback() {
   );
   const [searchQuery, setSearchQueryState] = useState<string>(initialQuery);
   
-  // 6. Wasted Fetch on Initial Load - Lazy init for activeChannel
+  // 6. Wasted Fetch on Initial Load - Lazy init for activeChannel from canonical store
   const [activeChannel, setActiveChannelState] = useState<ChannelId>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('sidequest_active_channel') as ChannelId;
+      const stored = homeStorageAdapter.getSelectedChannel(userId);
       return stored && INITIAL_CACHES[stored] ? stored : 'default';
     }
     return 'default';
@@ -291,6 +302,9 @@ export function usePlayback() {
 
   const isMountedRef = useRef(true);
   const controllersRef = useRef<Partial<Record<ChannelId, AbortController | null>>>({});
+  const [completionPending, setCompletionPending] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const completing = useRef(false);
 
   const setActiveChannel = useCallback((ch: ChannelId) => {
     setActiveChannelState(prevCh => {
@@ -299,8 +313,9 @@ export function usePlayback() {
       }
       return ch;
     });
-    if (typeof window !== 'undefined') localStorage.setItem('sidequest_active_channel', ch);
-  }, []);
+    setCompletionError(null);
+    homeStorageAdapter.saveSelectedChannel(ch, userId);
+  }, [userId]);
   
   const currentCache = channelCaches[activeChannel];
   const feedItems = currentCache.items;
@@ -321,9 +336,6 @@ export function usePlayback() {
   const [ytApiError, setYtApiError] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
-  const [completionPending, setCompletionPending] = useState(false);
-  const [completionError, setCompletionError] = useState<string | null>(null);
-  const completing = useRef(false);
   const [dailyGoalPercent, setDailyGoalPercent] = useState(0);
   const [stats, setStats] = useState({ cohortsCovered: 0, chunksRemaining: 0, estimatedMinutes: 0 });
 
@@ -357,164 +369,203 @@ export function usePlayback() {
   mutedRef.current = muted;
   playbackSpeedRef.current = playbackSpeed;
 
-  // Fetch feed items via API (Prefetch Engine)
-  const fetchChannelFeed = useCallback(async (channelId: ChannelId, pageIndex: number, overrideQuery?: string) => {
-    if (!Number.isInteger(pageIndex) || pageIndex < 0 || pageIndex > 50) {
-      setChannelCaches(prev => {
-        const cur = prev[channelId];
-        if (!cur || (cur.exhausted && !cur.isFetching)) return prev;
-        return {
-          ...prev,
-          [channelId]: { ...cur, isFetching: false, exhausted: true }
-        };
-      });
-      return;
-    }
+  // Fetch feed items via API (Prefetch Engine with bounded exclusion continuation)
+  const fetchChannelFeed = useCallback(
+    async (
+      channelId: ChannelId,
+      continuationOrPage: boolean | number = false,
+      overrideQuery?: string
+    ) => {
+      const isContinuation =
+        typeof continuationOrPage === 'boolean'
+          ? continuationOrPage
+          : continuationOrPage > 0;
 
-    const prevController = controllersRef.current[channelId];
-    if (prevController) {
-      prevController.abort();
-    }
-    const abortController = new AbortController();
-    controllersRef.current[channelId] = abortController;
-
-    setChannelCaches(prev => {
-      const cur = prev[channelId];
-      if (!cur || (cur.isFetching && pageIndex !== 0)) return prev;
-      return {
-        ...prev,
-        [channelId]: { ...cur, isFetching: true, ...(pageIndex === 0 ? { hasError: false } : {}) }
-      };
-    });
-
-    try {
-      let rawPrefs = '';
-      let prefsQuery = '';
-      if (typeof window !== 'undefined') {
-        rawPrefs = localStorage.getItem('sidequest_channel_prefs') || '';
-        if (rawPrefs) {
-          prefsQuery = `&prefs=${encodeURIComponent(rawPrefs)}`;
-        }
+      const currentCache = channelCaches[channelId];
+      if (isContinuation && currentCache?.exhausted) {
+        return;
       }
-      
-      const qVal = overrideQuery !== undefined ? overrideQuery : searchQueryRef.current;
-      const selection = new URLSearchParams();
-      if (requestedCohortId) selection.set('cohort', requestedCohortId);
-      if (requestedLessonId) selection.set('lesson', requestedLessonId);
-      if (requestedChunkId) selection.set('chunk', requestedChunkId);
-      if (qVal.trim()) selection.set('q', qVal.trim());
-      const res = await fetch(`/api/feed?channel=${channelId}&pageIndex=${pageIndex}${prefsQuery}&${selection}`, {
-        signal: abortController.signal
-      });
-      if (!res.ok) throw new Error('Failed to fetch feed');
-      if (abortController.signal.aborted || !isMountedRef.current) return;
-      if (controllersRef.current[channelId] !== abortController) return;
-      const data = await res.json();
-      if (abortController.signal.aborted || !isMountedRef.current) return;
-      if (controllersRef.current[channelId] !== abortController) return;
 
-      controllersRef.current[channelId] = null;
-      const incomingItems: FeedItem[] = Array.isArray(data?.items) ? data.items : [];
-      
-      setChannelCaches(prev => {
-        const existingItems = pageIndex === 0 ? [] : prev[channelId].items;
-        const existingIds = new Set(existingItems.map(it => it.chunkId).filter(Boolean));
-        const uniqueNewItems = pageIndex === 0
-          ? incomingItems
-          : incomingItems.filter(it => !it.chunkId || !existingIds.has(it.chunkId));
-        const allItems = pageIndex === 0 ? incomingItems : [...existingItems, ...uniqueNewItems];
-        const isExhausted =
-          incomingItems.length === 0 ||
-          (pageIndex > 0 && uniqueNewItems.length === 0);
+      const prevController = controllersRef.current[channelId];
+      if (prevController) {
+        prevController.abort();
+      }
+      const abortController = new AbortController();
+      controllersRef.current[channelId] = abortController;
 
-        let nextIndex = prev[channelId].currentIndex;
-        if (pageIndex === 0) {
-          if ((requestedLessonId || requestedChunkId) && allItems.length > 0) {
-            const matched = allItems.findIndex(item =>
-              (requestedChunkId && item.chunkId === requestedChunkId) ||
-              (requestedLessonId && (
-                item.lessonId === requestedLessonId ||
-                (item.lessonOrder !== undefined && (
-                  String(item.lessonOrder) === requestedLessonId ||
-                  String(item.lessonOrder + 1) === requestedLessonId
-                ))
-              ))
-            );
-            nextIndex = matched !== -1 ? matched : 0;
-          } else {
-            const prevActiveChunkId = prev[channelId].items[prev[channelId].currentIndex]?.chunkId;
-            if (prevActiveChunkId && allItems.length > 0) {
-              const preserved = allItems.findIndex(item => item.chunkId === prevActiveChunkId);
-              nextIndex = preserved !== -1 ? preserved : 0;
-            } else {
-              nextIndex = 0;
-            }
-          }
-        }
+      setChannelCaches((prev) => {
+        const cur = prev[channelId];
+        if (!cur || (cur.isFetching && isContinuation)) return prev;
         return {
           ...prev,
           [channelId]: {
-            ...prev[channelId],
-            items: allItems,
-            pageIndex: pageIndex,
-            currentIndex: nextIndex,
-            isFetching: false,
-            hasError: false,
-            exhausted: isExhausted,
-            prefs: rawPrefs,
-            query: qVal,
-            stale: false,
-            updatedAt: Date.now(),
-          }
+            ...cur,
+            isFetching: true,
+            ...(!isContinuation ? { hasError: false } : {}),
+          },
         };
       });
-    } catch (error: any) {
-      if (!isMountedRef.current) return;
-      // If superseded by a newer request for this channel, do not touch state
-      if (controllersRef.current[channelId] !== abortController) {
-        return;
-      }
-      controllersRef.current[channelId] = null;
 
-      if (error.name === 'AbortError' || abortController.signal.aborted) {
-        setChannelCaches(prev => {
+      try {
+        const channelConfig = homeStorageAdapter.getStoredChannelConfig(userId);
+        const parsedPrefs = channelConfig.prefs;
+        const rawPrefs = JSON.stringify(parsedPrefs);
+
+        const qVal = overrideQuery !== undefined ? overrideQuery : searchQueryRef.current;
+        const currentServed = isContinuation && currentCache?.servedChunkIds ? currentCache.servedChunkIds : [];
+
+        // shortcut: move to durable server-side session continuation cursor if a user session exceeds 5000 chunks without reload
+        if (currentServed.length >= 5000) {
+          setChannelCaches((prev) => ({
+            ...prev,
+            [channelId]: {
+              ...prev[channelId],
+              isFetching: false,
+              exhausted: true,
+            },
+          }));
+          return;
+        }
+
+        const payload = {
+          channel: channelId,
+          limit: 5,
+          excludeChunkIds: isContinuation ? currentServed.slice(0, 5000) : [],
+          ...(requestedCohortId ? { cohort: requestedCohortId } : {}),
+          ...(requestedLessonId ? { lesson: requestedLessonId } : {}),
+          ...(requestedChunkId ? { chunk: requestedChunkId } : {}),
+          ...(qVal?.trim() ? { q: qVal.trim() } : {}),
+          ...(parsedPrefs ? { prefs: parsedPrefs } : {}),
+          timezoneOffset: new Date().getTimezoneOffset(),
+        };
+
+        const res = await fetch('/api/feed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: abortController.signal,
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch feed');
+        if (abortController.signal.aborted || !isMountedRef.current) return;
+        if (controllersRef.current[channelId] !== abortController) return;
+        const data = await res.json();
+        if (abortController.signal.aborted || !isMountedRef.current) return;
+        if (controllersRef.current[channelId] !== abortController) return;
+
+        controllersRef.current[channelId] = null;
+        const incomingItems: FeedItem[] = Array.isArray(data?.items) ? data.items : [];
+        const incomingIds = incomingItems.map((it) => it.chunkId).filter(Boolean);
+
+        setChannelCaches((prev) => {
           const cur = prev[channelId];
-          if (!cur || !cur.isFetching) return prev;
+          const existingItems = !isContinuation ? [] : cur.items;
+          const existingIds = new Set(existingItems.map((it) => it.chunkId).filter(Boolean));
+          const uniqueNewItems = !isContinuation
+            ? incomingItems
+            : incomingItems.filter((it) => !it.chunkId || !existingIds.has(it.chunkId));
+          const allItems = !isContinuation ? incomingItems : [...existingItems, ...uniqueNewItems];
+
+          const combinedServedSet = new Set(!isContinuation ? [] : (cur.servedChunkIds || []));
+          for (const id of incomingIds) {
+            combinedServedSet.add(id);
+          }
+          const nextServed = Array.from(combinedServedSet);
+
+          const isExhausted =
+            data?.hasMore === false ||
+            incomingItems.length === 0 ||
+            (isContinuation && uniqueNewItems.length === 0);
+
+          let nextIndex = cur.currentIndex;
+          if (!isContinuation) {
+            if ((requestedLessonId || requestedChunkId) && allItems.length > 0) {
+              const matched = allItems.findIndex(
+                (item) =>
+                  (requestedChunkId && item.chunkId === requestedChunkId) ||
+                  (requestedLessonId &&
+                    (item.lessonId === requestedLessonId ||
+                      (item.lessonOrder !== undefined &&
+                        (String(item.lessonOrder) === requestedLessonId ||
+                          String(item.lessonOrder + 1) === requestedLessonId))))
+              );
+              nextIndex = matched !== -1 ? matched : 0;
+            } else {
+              const prevActiveChunkId = cur.items[cur.currentIndex]?.chunkId;
+              if (prevActiveChunkId && allItems.length > 0) {
+                const preserved = allItems.findIndex((item) => item.chunkId === prevActiveChunkId);
+                nextIndex = preserved !== -1 ? preserved : 0;
+              } else {
+                nextIndex = 0;
+              }
+            }
+          }
+
           return {
             ...prev,
-            [channelId]: { ...cur, isFetching: false }
+            [channelId]: {
+              ...cur,
+              items: allItems,
+              servedChunkIds: nextServed,
+              currentIndex: nextIndex,
+              isFetching: false,
+              hasError: false,
+              exhausted: isExhausted,
+              prefs: rawPrefs,
+              query: qVal,
+              stale: false,
+              updatedAt: Date.now(),
+            },
           };
         });
-        return;
+      } catch (error: any) {
+        if (!isMountedRef.current) return;
+        if (controllersRef.current[channelId] !== abortController) {
+          return;
+        }
+        controllersRef.current[channelId] = null;
+
+        if (error.name === 'AbortError' || abortController.signal.aborted) {
+          setChannelCaches((prev) => {
+            const cur = prev[channelId];
+            if (!cur || !cur.isFetching) return prev;
+            return {
+              ...prev,
+              [channelId]: { ...cur, isFetching: false },
+            };
+          });
+          return;
+        }
+        console.error('Prefetch error:', error);
+        setChannelCaches((prev) => {
+          const cur = prev[channelId];
+          if (!cur || (!cur.isFetching && cur.hasError)) return prev;
+          return {
+            ...prev,
+            [channelId]: { ...cur, isFetching: false, hasError: true },
+          };
+        });
       }
-      console.error('Prefetch error:', error);
-      // 2. Infinite API Loop on Prefetch Failure - setting hasError true
-      setChannelCaches(prev => {
-        const cur = prev[channelId];
-        if (!cur || (!cur.isFetching && cur.hasError)) return prev;
-        return {
-          ...prev,
-          [channelId]: { ...cur, isFetching: false, hasError: true }
-        };
-      });
-    }
-  }, [requestedCohortId, requestedLessonId, requestedChunkId, setChannelCaches]);
+    },
+    [requestedCohortId, requestedLessonId, requestedChunkId, setChannelCaches, channelCaches]
+  );
 
   const completeActiveChunk = useCallback(async () => {
     if (!activeItem || completing.current) return false;
     completing.current = true;
+    setCompletionPending(true);
     setCompletionError(null);
 
     const targetItem = activeItem;
     const targetChunkId = targetItem.chunkId;
     const targetChannel = activeChannel;
-    const duration = Math.max(1, targetItem.endSeconds - targetItem.startSeconds);
+    const start = Number.isFinite(targetItem.startSeconds) ? targetItem.startSeconds : 0;
+    const end = Number.isFinite(targetItem.endSeconds) ? targetItem.endSeconds : (start + parseDurationToSeconds(targetItem.chunkDuration));
+    const duration = Math.max(1, Math.round(end - start) || 180);
 
     // 1. Optimistic transition: mark reported and advance queue immediately (<16ms)
     reportedChunksRef.current.add(targetChunkId);
 
-    let shouldPrefetch = false;
-    let nextPage = 0;
     let autoAdvancedChunkId: string | null = null;
     const currentChannelCache = channelCaches[targetChannel];
     const rollbackSnapshot = currentChannelCache
@@ -537,11 +588,6 @@ export function usePlayback() {
 
       autoAdvancedChunkId = nextItems[nextIndex]?.chunkId ?? null;
 
-      if (nextItems.length < 3 && !ch.isFetching && !ch.exhausted && !ch.hasError) {
-        shouldPrefetch = true;
-        nextPage = ch.pageIndex + 1;
-      }
-
       return {
         ...previous,
         [targetChannel]: {
@@ -551,10 +597,6 @@ export function usePlayback() {
         }
       };
     });
-
-    if (shouldPrefetch) {
-      void fetchChannelFeed(targetChannel, nextPage);
-    }
 
     // 2. Background sync
     try {
@@ -571,9 +613,47 @@ export function usePlayback() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(response.status === 401 ? 'Sign in to save completion.' : 'Completion could not be saved. Retry.');
+      if (response.status === 401) {
+        throw new Error('Sign in to save completion.');
       }
+
+      let saved: any;
+      try {
+        saved = await response.json();
+      } catch {
+        throw new Error('Completion could not be saved. Retry.');
+      }
+
+      if (
+        !response.ok ||
+        saved?.success !== true ||
+        saved?.progress?.chunkId !== targetChunkId ||
+        saved?.progress?.status !== 'COMPLETED'
+      ) {
+        throw new Error('Completion could not be saved. Retry.');
+      }
+
+      // Durably acknowledged: clear channel exhaustion and request continuation if remaining queue < 3
+      let shouldContinue = false;
+      setChannelCaches(prev => {
+        const ch = prev[targetChannel];
+        if (!ch) return prev;
+        if (ch.items.length < 3 && !ch.isFetching && !ch.hasError) {
+          shouldContinue = true;
+        }
+        return {
+          ...prev,
+          [targetChannel]: {
+            ...ch,
+            exhausted: false,
+          }
+        };
+      });
+
+      if (shouldContinue) {
+        void fetchChannelFeed(targetChannel, true);
+      }
+
       return true;
     } catch (error) {
       // 3. Rollback on failure
@@ -628,21 +708,18 @@ export function usePlayback() {
   const activeIsFetching = activeCache?.isFetching ?? false;
   const activeHasError = activeCache?.hasError ?? false;
   const activeIsExhausted = activeCache?.exhausted ?? false;
-  const activePageIndex = activeCache?.pageIndex ?? 0;
   const activeIsStale = activeCache?.stale ?? false;
 
   // Initial Load & Channel Switch Logic (with stale-while-revalidate background refresh)
   useEffect(() => {
-    let currentPrefs = '';
-    if (typeof window !== 'undefined') {
-      currentPrefs = localStorage.getItem('sidequest_channel_prefs') || '';
-    }
+    const config = homeStorageAdapter.getStoredChannelConfig(userId);
+    const currentPrefs = JSON.stringify(config.prefs);
     const isCacheStale = activeIsStale || (activePrefs !== undefined && activePrefs !== currentPrefs);
     
     if (((activeItemsCount === 0 && activePrefs === undefined) || isCacheStale) && !activeIsFetching && !activeHasError) {
       void fetchChannelFeed(activeChannel, 0);
     }
-  }, [activeChannel, activeItemsCount, activePrefs, activeIsFetching, activeHasError, activeIsStale, fetchChannelFeed]);
+  }, [activeChannel, activeItemsCount, activePrefs, activeIsFetching, activeHasError, activeIsStale, fetchChannelFeed, userId]);
 
   // Synchronize playback position with requested URL params (?lessonId=, ?lesson=, ?chunk=)
   useEffect(() => {
@@ -680,18 +757,17 @@ export function usePlayback() {
   useEffect(() => {
     if (!activeChunkId && feedItems.length === 0) return;
     
-    // We fetch 5 items at a time. If we are near the end of loaded items, prefetch next page once.
+    // If we are near the end of loaded items, prefetch continuation once.
     if (
       currentIndex >= feedItems.length - 2 && 
       !activeIsFetching &&
       !activeIsExhausted &&
-      !activeHasError && // 2. Infinite API Loop on Prefetch Failure
-      feedItems.length > 0 &&
-      activePageIndex < 50
+      !activeHasError &&
+      feedItems.length > 0
     ) {
-      void fetchChannelFeed(activeChannel, activePageIndex + 1);
+      void fetchChannelFeed(activeChannel, true);
     }
-  }, [currentIndex, feedItems.length, activeChannel, activeIsFetching, activeIsExhausted, activeHasError, activePageIndex, fetchChannelFeed, activeChunkId]);
+  }, [currentIndex, feedItems.length, activeChannel, activeIsFetching, activeIsExhausted, activeHasError, fetchChannelFeed, activeChunkId]);
 
   // Dynamic Player Stats & Daily Goal Calculation
   useEffect(() => {
@@ -778,12 +854,14 @@ export function usePlayback() {
       setNotesText(prev => (prev === '' ? prev : ''));
       setBookmarkedState(prev => (prev === false ? prev : false));
       setMediaError(prev => (prev === null ? prev : null));
+      setCompletionError(null);
       return;
     }
     const dur = curItem.endSeconds - curItem.startSeconds || parseDurationToSeconds(curItem.chunkDuration);
     setChunkDurationSeconds(prev => (prev === dur ? prev : dur));
     setCurrentTimeSeconds(prev => (prev === 0 ? prev : 0));
     setMediaError(prev => (prev === null ? prev : null));
+    setCompletionError(null);
 
     if (activeMediaSource.isDirectVideo && videoRef.current) {
       if (curItem.startSeconds && curItem.startSeconds > 0) {
@@ -887,8 +965,8 @@ export function usePlayback() {
           onReady: (evt: any) => {
             isPlayerReadyRef.current = true;
             setIsPlayerReady(true);
-            evt.target.setVolume(volume);
-            evt.target.setPlaybackRate(playbackSpeed);
+            evt.target.setVolume(volumeRef.current);
+            evt.target.setPlaybackRate(playbackSpeedRef.current);
             evt.target.seekTo(startSecs, true);
             evt.target.playVideo();
             setIsPlaying(true);
@@ -1028,24 +1106,26 @@ export function usePlayback() {
 
   const goToIndex = useCallback((targetIndex: number) => {
     if (targetIndex < 0) return;
-    setChannelCaches(prev => {
-      const ch = prev[activeChannel];
-      if (targetIndex >= ch.items.length) {
-        if (!ch.isFetching && !ch.hasError && !ch.exhausted) {
-          setTimeout(() => void fetchChannelFeed(activeChannel, ch.pageIndex + 1), 0);
-        }
-        return prev;
+    const ch = channelCaches[activeChannel];
+    if (ch && targetIndex >= ch.items.length) {
+      if (!ch.isFetching && !ch.hasError && !ch.exhausted) {
+        void fetchChannelFeed(activeChannel, true);
       }
-      if (ch.currentIndex === targetIndex) return prev;
+      return;
+    }
+    setChannelCaches(prev => {
+      const currentCh = prev[activeChannel];
+      if (!currentCh) return prev;
+      if (targetIndex >= currentCh.items.length || currentCh.currentIndex === targetIndex) return prev;
       return {
         ...prev,
         [activeChannel]: {
-          ...ch,
+          ...currentCh,
           currentIndex: targetIndex
         }
       };
     });
-  }, [activeChannel, fetchChannelFeed, setChannelCaches]);
+  }, [activeChannel, channelCaches, fetchChannelFeed, setChannelCaches]);
 
   const nextChunk = useCallback(() => goToIndex(currentIndex + 1), [goToIndex, currentIndex]);
   const previousChunk = useCallback(() => goToIndex(currentIndex - 1), [goToIndex, currentIndex]);

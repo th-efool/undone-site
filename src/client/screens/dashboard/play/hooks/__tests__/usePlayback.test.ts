@@ -296,7 +296,7 @@ describe('completeActiveChunk feed advance (ISSUE-2)', () => {
 
     fetchMock.mockImplementation(async (url: string) => {
       if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
-        return { ok: true, json: async () => ({ success: true }) };
+        return { ok: true, json: async () => ({ success: true, progress: { chunkId: 'chunk-A', status: 'COMPLETED' } }) };
       }
       if (typeof url === 'string' && url.includes('/api/feed')) {
         return { ok: true, json: async () => ({ items: [chunkA, chunkB, chunkC, chunkD] }) };
@@ -349,15 +349,26 @@ describe('completeActiveChunk feed advance (ISSUE-2)', () => {
       endSeconds: 60,
     };
 
-    fetchMock.mockImplementation(async (url: string) => {
+    fetchMock.mockImplementation(async (url: string, options?: any) => {
       if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
-        return { ok: true, json: async () => ({ success: true }) };
+        let chunkId = 'chunk-solo';
+        try {
+          const body = typeof options?.body === 'string' ? JSON.parse(options.body) : options?.body;
+          chunkId = body?.chunkId ?? body?.id ?? chunkId;
+        } catch {}
+        return { ok: true, json: async () => ({ success: true, progress: { chunkId, status: 'COMPLETED' } }) };
       }
-      if (typeof url === 'string' && url.includes('pageIndex=0')) {
-        return { ok: true, json: async () => ({ items: [chunkLast] }) };
-      }
-      if (typeof url === 'string' && url.includes('pageIndex=1')) {
-        return { ok: true, json: async () => ({ items: [chunkNextPage] }) };
+      if (typeof url === 'string' && url.includes('/api/feed')) {
+        let body: any = {};
+        try {
+          body = typeof options?.body === 'string' ? JSON.parse(options.body) : options?.body;
+        } catch {}
+        const isContinuation = (body?.excludeChunkIds && body.excludeChunkIds.length > 0) || url.includes('pageIndex=1');
+        if (!isContinuation) {
+          return { ok: true, json: async () => ({ items: [chunkLast], hasMore: true }) };
+        } else {
+          return { ok: true, json: async () => ({ items: [chunkNextPage], hasMore: false }) };
+        }
       }
       return { ok: true, json: async () => ({ items: [] }) };
     });
@@ -372,12 +383,12 @@ describe('completeActiveChunk feed advance (ISSUE-2)', () => {
 
     expect(success).toBe(true);
 
-    // Wait for the background prefetch of page 1 to resolve and append
+    // Wait for the background continuation prefetch to resolve and append
     await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-next-page'));
     expect(result.current.feedItems.map(it => it.chunkId)).toContain('chunk-next-page');
 
     const feedCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/feed'));
-    expect(feedCalls.some((c: any[]) => c[0].includes('pageIndex=1'))).toBe(true);
+    expect(feedCalls.length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -445,11 +456,23 @@ describe('dynamic player stats and daily goal (ISSUE-3)', () => {
       endSeconds: 240,
     };
 
-    fetchMock.mockImplementation(async (url: string) => {
+    fetchMock.mockImplementation(async (url: string, options?: any) => {
       if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
-        return { ok: true, json: async () => ({ success: true }) };
+        let chunkId = 'c1';
+        try {
+          const body = typeof options?.body === 'string' ? JSON.parse(options.body) : options?.body;
+          chunkId = body?.chunkId ?? body?.id ?? chunkId;
+        } catch {}
+        return { ok: true, json: async () => ({ success: true, progress: { chunkId, status: 'COMPLETED' } }) };
       }
-      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+      if (typeof url === 'string' && (url.includes('pageIndex=0') || url.includes('/api/feed'))) {
+        let body: any = {};
+        try {
+          body = typeof options?.body === 'string' ? JSON.parse(options.body) : options?.body;
+        } catch {}
+        if (body?.excludeChunkIds && body.excludeChunkIds.length > 0) {
+          return { ok: true, json: async () => ({ items: [], hasMore: false }) };
+        }
         return { ok: true, json: async () => ({ items: [chunk1, chunk2] }) };
       }
       return { ok: true, json: async () => ({ items: [] }) };
@@ -499,7 +522,7 @@ describe('persisted player notes and bookmarks (ISSUE-4)', () => {
       if (typeof url === 'string' && url.includes('/api/workspace/notes')) {
         return { ok: true, json: async () => ({ success: true }) };
       }
-      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+      if (typeof url === 'string' && (url.includes('pageIndex=0') || url.includes('/api/feed'))) {
         return { ok: true, json: async () => ({ items: [chunkA, chunkB] }) };
       }
       return { ok: true, json: async () => ({ items: [] }) };
@@ -539,7 +562,7 @@ describe('persisted player notes and bookmarks (ISSUE-4)', () => {
 
   it('persists bookmarks across chunk navigation', async () => {
     fetchMock.mockImplementation(async (url: string) => {
-      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+      if (typeof url === 'string' && (url.includes('pageIndex=0') || url.includes('/api/feed'))) {
         return { ok: true, json: async () => ({ items: [chunkA, chunkB] }) };
       }
       return { ok: true, json: async () => ({ items: [] }) };
@@ -752,12 +775,25 @@ describe('playback foundations: exact navigation, media controls, and completion
       resolveCompletion = resolve;
     });
 
-    fetchMock.mockImplementation(async (url: string) => {
+    fetchMock.mockImplementation(async (url: string, options?: any) => {
       if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
         await completionPromise;
-        return { ok: true, json: async () => ({ ok: true }) };
+        let chunkId = 'c0';
+        try {
+          const body = typeof options?.body === 'string' ? JSON.parse(options.body) : options?.body;
+          chunkId = body?.chunkId ?? body?.id ?? chunkId;
+        } catch {}
+        return { ok: true, json: async () => ({ success: true, progress: { chunkId, status: 'COMPLETED' } }) };
       }
-      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+      if (typeof url === 'string' && (url.includes('pageIndex=0') || url.includes('/api/feed'))) {
+        let body: any = {};
+        try {
+          body = typeof options?.body === 'string' ? JSON.parse(options.body) : options?.body;
+        } catch {}
+        if (body?.excludeChunkIds && body.excludeChunkIds.length > 0) {
+          const excluded = new Set(body.excludeChunkIds);
+          return { ok: true, json: async () => ({ items: testItems.filter(it => !excluded.has(it.chunkId)), hasMore: false }) };
+        }
         return { ok: true, json: async () => ({ items: testItems }) };
       }
       return { ok: true, json: async () => ({ items: [] }) };
@@ -820,6 +856,53 @@ describe('playback foundations: exact navigation, media controls, and completion
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('rolls back optimistic completion when server returns HTTP 200 with null progress', async () => {
+    const chunkA = {
+      chunkId: 'chunk-A',
+      lessonId: 'lesson-1',
+      cohortId: 'cohort-1',
+      title: 'Intro to Algorithms',
+      description: 'First part of the lecture',
+      mediaSource: 'https://cdn.example.com/a.mp4',
+      lessonTitle: 'Algorithms 101',
+      cohortTitle: 'CS Basics',
+      lessonOrder: 1,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 0,
+      endSeconds: 60,
+    };
+    const chunkB = {
+      ...chunkA,
+      chunkId: 'chunk-B',
+      startSeconds: 60,
+      endSeconds: 120,
+    };
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: true, json: async () => ({ success: true, progress: null }) };
+      }
+      if (typeof url === 'string' && url.includes('/api/feed')) {
+        return { ok: true, json: async () => ({ items: [chunkA, chunkB] }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.completeActiveChunk();
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.completionError).toBe('Completion could not be saved. Retry.');
+    expect(result.current.activeItem?.chunkId).toBe('chunk-A');
+    expect(result.current.feedItems.map(it => it.chunkId)).toContain('chunk-A');
   });
 });
 

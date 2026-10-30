@@ -2,13 +2,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-const f = vi.hoisted(() => ({
-  auth: vi.fn(),
-  lessonFindFirst: vi.fn(),
-  lessonFindMany: vi.fn(),
-  recordProgress: vi.fn(),
-  recordProgressBatch: vi.fn(),
-}));
+const f = vi.hoisted(() => {
+  class ProgressStorageError extends Error {
+    constructor(message = 'Progress storage is unavailable') {
+      super(message);
+      this.name = 'ProgressStorageError';
+    }
+  }
+
+  return {
+    auth: vi.fn(),
+    lessonFindFirst: vi.fn(),
+    lessonFindMany: vi.fn(),
+    recordProgress: vi.fn(),
+    recordProgressBatch: vi.fn(),
+    ProgressStorageError,
+  };
+});
+
+const ProgressStorageError = f.ProgressStorageError;
 
 vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({
   auth: () => f.auth(),
@@ -24,6 +36,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
 }));
 
 vi.mock('@/src/server/domain/progress/chunkProgress.service', () => ({
+  ProgressStorageError: f.ProgressStorageError,
   ChunkProgressService: {
     recordProgress: (...args: unknown[]) => f.recordProgress(...args),
     recordProgressBatch: (...args: unknown[]) => f.recordProgressBatch(...args),
@@ -165,7 +178,7 @@ describe('POST /api/progress/chunk', () => {
       ]);
     });
 
-    it('filters batch items to accessible cohorts and valid chunks', async () => {
+    it('rejects batch with 404 and performs no writes if any item is inaccessible or nonexistent', async () => {
       // Cohort database only returns l1 in co1 with c1
       // c2 is not in lesson chunks, and l2 is in an inaccessible cohort
       f.lessonFindMany.mockResolvedValue([
@@ -175,10 +188,6 @@ describe('POST /api/progress/chunk', () => {
           season: { cohortId: 'co1' },
         },
       ]);
-      f.recordProgressBatch.mockResolvedValue({
-        count: 1,
-        completedIds: ['c1'],
-      });
 
       const res = await POST(
         makeRequest({
@@ -190,15 +199,41 @@ describe('POST /api/progress/chunk', () => {
         })
       );
 
+      expect(res.status).toBe(404);
+      const json = await res.json();
+      expect(json.error).toContain('Chunk not found or inaccessible');
+      expect(f.recordProgressBatch).not.toHaveBeenCalled();
+    });
+
+    it('persists all items when all batch items are accessible and valid', async () => {
+      f.lessonFindMany.mockResolvedValue([
+        {
+          id: 'l1',
+          chunks: [{ id: 'c1' }, { id: 'c2' }],
+          season: { cohortId: 'co1' },
+        },
+      ]);
+      f.recordProgressBatch.mockResolvedValue({
+        count: 2,
+        completedIds: ['c1'],
+      });
+
+      const res = await POST(
+        makeRequest({
+          batch: [
+            { chunkId: 'c1', lessonId: 'l1', cohortId: 'co1', watchedSeconds: 90, totalSeconds: 100 },
+            { chunkId: 'c2', lessonId: 'l1', cohortId: 'co1', watchedSeconds: 50, totalSeconds: 100 },
+          ],
+        })
+      );
+
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json).toEqual({
         success: true,
-        count: 1,
+        count: 2,
         completed: ['c1'],
       });
-
-      // Only c1 should be passed to recordProgressBatch
       expect(f.recordProgressBatch).toHaveBeenCalledWith([
         {
           userId: 'user-1',
@@ -209,7 +244,44 @@ describe('POST /api/progress/chunk', () => {
           totalSeconds: 100,
           forceStatus: undefined,
         },
+        {
+          userId: 'user-1',
+          chunkId: 'c2',
+          lessonId: 'l1',
+          cohortId: 'co1',
+          watchedSeconds: 50,
+          totalSeconds: 100,
+          forceStatus: undefined,
+        },
       ]);
+    });
+
+    it('returns 400 when batch exceeds 200 items', async () => {
+      const largeBatch = Array.from({ length: 201 }, (_, i) => ({
+        chunkId: `c${i}`,
+        lessonId: 'l1',
+        cohortId: 'co1',
+        watchedSeconds: 10,
+        totalSeconds: 100,
+      }));
+
+      const res = await POST(makeRequest({ batch: largeBatch }));
+      expect(res.status).toBe(400);
+      expect(f.recordProgressBatch).not.toHaveBeenCalled();
+    });
+
+    it('returns 503 with Cache-Control: no-store when ProgressStorageError is thrown', async () => {
+      f.lessonFindFirst.mockResolvedValue({ chunks: [{ id: 'c1' }] });
+      f.recordProgress.mockRejectedValue(new ProgressStorageError('DB down'));
+
+      const res = await POST(
+        makeRequest({ chunkId: 'c1', lessonId: 'l1', cohortId: 'co1', watchedSeconds: 10, totalSeconds: 100 })
+      );
+
+      expect(res.status).toBe(503);
+      expect(res.headers.get('Cache-Control')).toBe('no-store');
+      const json = await res.json();
+      expect(json.error).toBe('Progress could not be saved. Please retry.');
     });
 
     it('handles empty batch array without error', async () => {

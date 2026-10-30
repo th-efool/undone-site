@@ -7,7 +7,7 @@ vi.mock('@/src/server/infrastructure/db/mongodb/client', () => ({
   connectToMongoDB: vi.fn()
 }));
 
-import { ChunkProgressService } from '../chunkProgress.service';
+import { ChunkProgressService, ProgressStorageError } from '../chunkProgress.service';
 
 describe('ChunkProgressService', () => {
   describe('isEligibleForAutoCompletion', () => {
@@ -32,13 +32,11 @@ describe('ChunkProgressService', () => {
   });
 
   describe('getUserProgressMap', () => {
-    it('returns empty Map safely without calling MongoDB when MONGODB_URI is unset', async () => {
+    it('throws ProgressStorageError without calling MongoDB when MONGODB_URI is unset', async () => {
       const origUri = process.env.MONGODB_URI;
       try {
         delete process.env.MONGODB_URI;
-        const res = await ChunkProgressService.getUserProgressMap('user-1', ['chunk-1']);
-        expect(res).toBeInstanceOf(Map);
-        expect(res.size).toBe(0);
+        await expect(ChunkProgressService.getUserProgressMap('user-1', ['chunk-1'])).rejects.toThrow(ProgressStorageError);
       } finally {
         if (origUri !== undefined) process.env.MONGODB_URI = origUri;
       }

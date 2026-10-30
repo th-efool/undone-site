@@ -19,13 +19,21 @@ vi.mock('@/src/server/infrastructure/db/mongodb/client', () => ({
 
 import {
   ChunkProgressService,
+  ProgressStorageError,
   type UpdateChunkProgressInput,
 } from '../chunkProgress.service';
 
 describe('ChunkProgressService - recordProgressBatch', () => {
   const origEnv = process.env.MONGODB_URI;
 
-  const mockFindReturn = (results: any[] = []) => {
+  type BulkOp = {
+    updateOne: {
+      filter: { chunkId: string };
+      update: { $set: { watchedSeconds: number; status?: string; completedAt?: Date } };
+    };
+  };
+
+  const mockFindReturn = (results: Record<string, unknown>[] = []) => {
     f.find.mockReturnValue({
       lean: vi.fn().mockReturnValue({
         exec: vi.fn().mockResolvedValue(results),
@@ -189,10 +197,10 @@ describe('ChunkProgressService - recordProgressBatch', () => {
       const [operations] = f.bulkWrite.mock.calls[0];
       expect(operations).toHaveLength(2);
 
-      const op1 = operations.find((o: any) => o.updateOne.filter.chunkId === 'chunk-1');
+      const op1 = operations.find((o: BulkOp) => o.updateOne.filter.chunkId === 'chunk-1');
       expect(op1.updateOne.update.$set.watchedSeconds).toBe(70);
 
-      const op2 = operations.find((o: any) => o.updateOne.filter.chunkId === 'chunk-2');
+      const op2 = operations.find((o: BulkOp) => o.updateOne.filter.chunkId === 'chunk-2');
       expect(op2.updateOne.update.$set.watchedSeconds).toBe(10);
     });
 
@@ -291,22 +299,22 @@ describe('ChunkProgressService - recordProgressBatch', () => {
       const [operations] = f.bulkWrite.mock.calls[0];
 
       // Newly completed has completedAt
-      const newOp = operations.find((o: any) => o.updateOne.filter.chunkId === 'chunk-newly-completed');
+      const newOp = operations.find((o: BulkOp) => o.updateOne.filter.chunkId === 'chunk-newly-completed');
       expect(newOp.updateOne.update.$set.status).toBe('COMPLETED');
       expect(newOp.updateOne.update.$set.completedAt).toBeInstanceOf(Date);
 
       // Already completed does NOT have completedAt overwritten
-      const alreadyOp = operations.find((o: any) => o.updateOne.filter.chunkId === 'chunk-already-completed');
+      const alreadyOp = operations.find((o: BulkOp) => o.updateOne.filter.chunkId === 'chunk-already-completed');
       expect(alreadyOp.updateOne.update.$set.status).toBe('COMPLETED');
       expect(alreadyOp.updateOne.update.$set.completedAt).toBeUndefined();
 
       // Transitioning has completedAt
-      const transOp = operations.find((o: any) => o.updateOne.filter.chunkId === 'chunk-transitioning');
+      const transOp = operations.find((o: BulkOp) => o.updateOne.filter.chunkId === 'chunk-transitioning');
       expect(transOp.updateOne.update.$set.status).toBe('COMPLETED');
       expect(transOp.updateOne.update.$set.completedAt).toBeInstanceOf(Date);
 
       // In progress does NOT have completedAt
-      const inProgOp = operations.find((o: any) => o.updateOne.filter.chunkId === 'chunk-in-progress');
+      const inProgOp = operations.find((o: BulkOp) => o.updateOne.filter.chunkId === 'chunk-in-progress');
       expect(inProgOp.updateOne.update.$set.status).toBe('IN_PROGRESS');
       expect(inProgOp.updateOne.update.$set.completedAt).toBeUndefined();
     });
@@ -321,41 +329,43 @@ describe('ChunkProgressService - recordProgressBatch', () => {
       expect(f.bulkWrite).not.toHaveBeenCalled();
     });
 
-    it('returns { count: 0, completedIds: [] } when MONGODB_URI is not set', async () => {
+    it('throws ProgressStorageError when MONGODB_URI is not set for non-empty batch', async () => {
       delete process.env.MONGODB_URI;
 
-      const result = await ChunkProgressService.recordProgressBatch([
-        {
-          userId: 'user-1',
-          chunkId: 'chunk-1',
-          lessonId: 'lesson-1',
-          cohortId: 'cohort-1',
-          watchedSeconds: 10,
-          totalSeconds: 100,
-        },
-      ]);
+      await expect(
+        ChunkProgressService.recordProgressBatch([
+          {
+            userId: 'user-1',
+            chunkId: 'chunk-1',
+            lessonId: 'lesson-1',
+            cohortId: 'cohort-1',
+            watchedSeconds: 10,
+            totalSeconds: 100,
+          },
+        ])
+      ).rejects.toThrow(ProgressStorageError);
 
-      expect(result).toEqual({ count: 0, completedIds: [] });
       expect(f.connectToMongoDB).not.toHaveBeenCalled();
       expect(f.bulkWrite).not.toHaveBeenCalled();
     });
 
-    it('catches MongoDB errors gracefully and returns { count: 0, completedIds: [] }', async () => {
+    it('catches MongoDB errors and throws ProgressStorageError', async () => {
       f.bulkWrite.mockRejectedValueOnce(new Error('Mongo network timeout'));
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      const result = await ChunkProgressService.recordProgressBatch([
-        {
-          userId: 'user-1',
-          chunkId: 'chunk-1',
-          lessonId: 'lesson-1',
-          cohortId: 'cohort-1',
-          watchedSeconds: 10,
-          totalSeconds: 100,
-        },
-      ]);
+      await expect(
+        ChunkProgressService.recordProgressBatch([
+          {
+            userId: 'user-1',
+            chunkId: 'chunk-1',
+            lessonId: 'lesson-1',
+            cohortId: 'cohort-1',
+            watchedSeconds: 10,
+            totalSeconds: 100,
+          },
+        ])
+      ).rejects.toThrow(ProgressStorageError);
 
-      expect(result).toEqual({ count: 0, completedIds: [] });
       expect(warnSpy).toHaveBeenCalledWith(
         '[ChunkProgressService] Failed to record progress batch:',
         'Mongo network timeout'

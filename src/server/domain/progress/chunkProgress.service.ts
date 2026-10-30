@@ -3,6 +3,13 @@ import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client'
 
 export type ChunkStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
 
+export class ProgressStorageError extends Error {
+  constructor(message = 'Progress storage is unavailable', options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'ProgressStorageError';
+  }
+}
+
 export interface UpdateChunkProgressInput {
   userId: string;
   chunkId: string;
@@ -58,7 +65,7 @@ export class ChunkProgressService {
     } = input;
 
     if (!process.env.MONGODB_URI) {
-      return null;
+      throw new ProgressStorageError('Missing MONGODB_URI configuration');
     }
 
     try {
@@ -66,10 +73,13 @@ export class ChunkProgressService {
 
       const existing = await UserChunkProgress.findOne({ userId, chunkId }).lean().exec();
 
+      const effectiveWatched = Math.max(existing?.watchedSeconds ?? 0, watchedSeconds);
+      const effectiveTotal = totalSeconds > 0 ? totalSeconds : (existing?.totalSeconds ?? 0);
+
       const nextStatus = this.computeStatus(
         (existing?.status as ChunkStatus) || null,
-        watchedSeconds,
-        totalSeconds,
+        effectiveWatched,
+        effectiveTotal,
         forceStatus
       );
       
@@ -86,8 +96,8 @@ export class ChunkProgressService {
             lessonId,
             cohortId,
             status: nextStatus,
-            watchedSeconds: Math.max(existing?.watchedSeconds || 0, watchedSeconds),
-            totalSeconds: totalSeconds > 0 ? totalSeconds : existing?.totalSeconds || 0,
+            watchedSeconds: effectiveWatched,
+            totalSeconds: effectiveTotal,
             lastWatchedAt: new Date(),
             ...(isNewlyCompleted ? { completedAt: new Date() } : {})
           },
@@ -95,22 +105,30 @@ export class ChunkProgressService {
         { upsert: true, returnDocument: 'after' }
       );
 
-      // TODO: LessonProgress roll-up could be handled in Postgres if Lesson metadata is there,
-      // or moved entirely to Mongo. For now, since user progress is purely in Mongo,
-      // we omit the LessonProgress sync for brevity, focusing on Vector Search metadata filtering.
+      if (!updatedProgress) {
+        throw new ProgressStorageError('Progress write returned no document');
+      }
 
+      // Retained chunk progress is canonical in Mongo; Home derives lesson completion from retained chunk progress.
       return updatedProgress;
     } catch (err) {
+      if (err instanceof ProgressStorageError) {
+        throw err;
+      }
       console.warn('[ChunkProgressService] Failed to record progress:', (err as Error).message);
-      return null;
+      throw new ProgressStorageError('Failed to record progress', { cause: err });
     }
   }
 
   static async recordProgressBatch(
     inputs: UpdateChunkProgressInput[]
   ): Promise<{ count: number; completedIds: string[] }> {
-    if (!inputs.length || !process.env.MONGODB_URI) {
+    if (!inputs.length) {
       return { count: 0, completedIds: [] };
+    }
+
+    if (!process.env.MONGODB_URI) {
+      throw new ProgressStorageError('Missing MONGODB_URI configuration');
     }
 
     try {
@@ -147,15 +165,24 @@ export class ChunkProgressService {
         .lean()
         .exec();
 
-      const existingMap = new Map((existingList as any[]).map((p) => [p.chunkId, p]));
+      type ExistingProgress = {
+        chunkId: string;
+        watchedSeconds?: number;
+        totalSeconds?: number;
+        completedAt?: Date | null;
+        status?: string;
+      };
+      const existingMap = new Map<string, ExistingProgress>(
+        (existingList as ExistingProgress[]).map((p) => [p.chunkId, p])
+      );
 
-      const operations: any[] = [];
+      const operations = [];
       const completedIds: string[] = [];
 
       for (const input of uniqueInputs) {
         const existing = existingMap.get(input.chunkId);
-        const effectiveWatched = Math.max(existing?.watchedSeconds || 0, input.watchedSeconds);
-        const effectiveTotal = input.totalSeconds > 0 ? input.totalSeconds : (existing?.totalSeconds || 0);
+        const effectiveWatched = Math.max(existing?.watchedSeconds ?? 0, input.watchedSeconds);
+        const effectiveTotal = input.totalSeconds > 0 ? input.totalSeconds : (existing?.totalSeconds ?? 0);
 
         const nextStatus = this.computeStatus(
           (existing?.status as ChunkStatus) || null,
@@ -182,8 +209,8 @@ export class ChunkProgressService {
                 lessonId: input.lessonId,
                 cohortId: input.cohortId,
                 status: nextStatus,
-                watchedSeconds: Math.max(existing?.watchedSeconds || 0, input.watchedSeconds),
-                totalSeconds: input.totalSeconds > 0 ? input.totalSeconds : existing?.totalSeconds || 0,
+                watchedSeconds: effectiveWatched,
+                totalSeconds: effectiveTotal,
                 lastWatchedAt: new Date(),
                 ...(isNewlyCompleted ? { completedAt: new Date() } : {}),
               },
@@ -199,22 +226,28 @@ export class ChunkProgressService {
 
       return { count: operations.length, completedIds };
     } catch (err) {
+      if (err instanceof ProgressStorageError) {
+        throw err;
+      }
       console.warn('[ChunkProgressService] Failed to record progress batch:', (err as Error).message);
-      return { count: 0, completedIds: [] };
+      throw new ProgressStorageError('Failed to record progress batch', { cause: err });
     }
   }
 
   static async getUserProgressMap(userId: string, chunkIds?: string[]) {
     if (!process.env.MONGODB_URI) {
-      return new Map();
+      throw new ProgressStorageError('Missing MONGODB_URI configuration');
     }
     try {
       await connectToMongoDB();
       const list = await UserChunkProgress.find({ userId, ...(chunkIds ? { chunkId: { $in: chunkIds } } : {}) }).lean().exec();
       return new Map(list.map((p) => [p.chunkId, p]));
     } catch (err) {
+      if (err instanceof ProgressStorageError) {
+        throw err;
+      }
       console.warn('[ChunkProgressService] Failed to get user progress map:', (err as Error).message);
-      return new Map();
+      throw new ProgressStorageError('Failed to get user progress map', { cause: err });
     }
   }
 }
