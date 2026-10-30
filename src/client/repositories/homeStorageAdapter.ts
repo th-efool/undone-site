@@ -1,33 +1,19 @@
-import type { ActiveCohort, PausedCohort } from '@/src/client/screens/dashboard/home/models';
+import type { ActiveCohort, PausedCohort, Weekday } from '@/src/client/screens/dashboard/home/models';
+import {
+  type ChannelId,
+  type ChannelPreferences,
+  type StoredChannelConfig,
+  VALID_CHANNEL_IDS,
+  DEFAULT_CHANNEL_PREFERENCES,
+  CHANNEL_CONFIG_STORAGE_PREFIX,
+  validatePrefEntry,
+} from '@/src/shared/feed/channelPreferences';
 
-export type ChannelId = 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick';
+export type { ChannelId, ChannelPreferences, StoredChannelConfig };
+export { VALID_CHANNEL_IDS, DEFAULT_CHANNEL_PREFERENCES };
 
-export interface ChannelPreferences {
-  depth: number;
-  rigor: number;
-  scaffolding: number;
-  weeklyGoal: string;
-  learningAllocation: string;
-  reminderWindow: string;
-}
-
-export const VALID_CHANNEL_IDS: ChannelId[] = [
-  'spark',
-  'explore',
-  'build',
-  'listen',
-  'deep_dive',
-  'quick',
-];
-
-export const DEFAULT_CHANNEL_PREFERENCES: ChannelPreferences = {
-  depth: 0.74,
-  rigor: 0.50,
-  scaffolding: 0.35,
-  weeklyGoal: '8 hours',
-  learningAllocation: 'Balanced',
-  reminderWindow: 'Evening',
-};
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+export type SaveListener = (status: SaveStatus) => void;
 
 const STORAGE_KEY = 'sidequest_home_choices';
 const CHANNEL_KEY = 'sidequest_active_channel';
@@ -51,18 +37,129 @@ export interface StoredHomeChoices {
 }
 
 let lastCohortSyncAt = 0;
-let lastChannelSyncAt = 0;
-let cachedChannelSyncResult: { activeChannel: ChannelId; prefs: ChannelPreferences } | null = null;
 const SYNC_TTL_MS = 30_000;
 
 function getStorageKey(userId?: string | null): string {
   return userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY;
 }
 
+function getChannelConfigKey(userId?: string | null): string {
+  return `${CHANNEL_CONFIG_STORAGE_PREFIX}${userId || 'anon'}`;
+}
+
+function getDefaultChannelConfig(): StoredChannelConfig {
+  return {
+    version: 2,
+    activeChannel: 'default',
+    prefs: {
+      depth: DEFAULT_CHANNEL_PREFERENCES.depth.toFixed(2),
+      rigor: DEFAULT_CHANNEL_PREFERENCES.rigor.toFixed(2),
+      scaffolding: DEFAULT_CHANNEL_PREFERENCES.scaffolding.toFixed(2),
+      weekly_goal: DEFAULT_CHANNEL_PREFERENCES.weeklyGoal,
+      learning_allocation: DEFAULT_CHANNEL_PREFERENCES.learningAllocation,
+      reminder_window: DEFAULT_CHANNEL_PREFERENCES.reminderWindow,
+    },
+    dirty: false,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+interface UserSaveCoordinator {
+  timer: NodeJS.Timeout | null;
+  inFlight: boolean;
+  pendingSnapshot: { activeChannel: ChannelId; prefs: Record<string, string> } | null;
+  status: SaveStatus;
+  listeners: Set<SaveListener>;
+}
+
+const userCoordinators = new Map<string, UserSaveCoordinator>();
+
+function getCoordinator(userIdKey: string): UserSaveCoordinator {
+  let coord = userCoordinators.get(userIdKey);
+  if (!coord) {
+    coord = {
+      timer: null,
+      inFlight: false,
+      pendingSnapshot: null,
+      status: 'idle',
+      listeners: new Set(),
+    };
+    userCoordinators.set(userIdKey, coord);
+  }
+  return coord;
+}
+
+function notifySaveStatus(coord: UserSaveCoordinator, status: SaveStatus) {
+  coord.status = status;
+  for (const listener of coord.listeners) {
+    try {
+      listener(status);
+    } catch {}
+  }
+}
+
+async function executeSave(userId: string) {
+  const coord = getCoordinator(userId);
+  if (coord.inFlight) return;
+  if (!coord.pendingSnapshot) return;
+
+  const snapshotToSave = coord.pendingSnapshot;
+  coord.pendingSnapshot = null;
+  coord.inFlight = true;
+  notifySaveStatus(coord, 'saving');
+
+  try {
+    const res = await fetch('/api/user/channel-config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(snapshotToSave),
+    });
+
+    if (res.ok) {
+      if (!coord.pendingSnapshot) {
+        // Successfully saved latest snapshot
+        const currentDoc = homeStorageAdapter.getStoredChannelConfig(userId);
+        if (currentDoc) {
+          currentDoc.dirty = false;
+          homeStorageAdapter.saveStoredChannelConfig(currentDoc, userId);
+        }
+        notifySaveStatus(coord, 'saved');
+      } else {
+        // Newer changes queued while in-flight
+        coord.inFlight = false;
+        void executeSave(userId);
+        return;
+      }
+    } else {
+      notifySaveStatus(coord, 'error');
+    }
+  } catch {
+    notifySaveStatus(coord, 'error');
+  } finally {
+    coord.inFlight = false;
+  }
+}
+
+function scheduleSave(userId?: string | null) {
+  if (!userId) return; // Anonymous changes are offline-only
+  const coord = getCoordinator(userId);
+  const currentDoc = homeStorageAdapter.getStoredChannelConfig(userId);
+  coord.pendingSnapshot = {
+    activeChannel: currentDoc.activeChannel,
+    prefs: { ...currentDoc.prefs },
+  };
+
+  if (coord.timer) {
+    clearTimeout(coord.timer);
+  }
+
+  coord.timer = setTimeout(() => {
+    coord.timer = null;
+    void executeSave(userId);
+  }, 500);
+}
+
 export const homeStorageAdapter = {
-  /**
-   * Load locally persisted choices synchronously from localStorage / cache
-   */
   getStoredChoices(userId?: string | null): StoredHomeChoices | null {
     if (typeof window === 'undefined') return null;
     try {
@@ -80,9 +177,6 @@ export const homeStorageAdapter = {
     }
   },
 
-  /**
-   * Save choices locally to localStorage & Capacitor Preferences
-   */
   saveChoices(activeCohorts: ActiveCohort[], continueLater: PausedCohort[], userId?: string | null): void {
     if (typeof window === 'undefined') return;
     try {
@@ -95,8 +189,9 @@ export const homeStorageAdapter = {
       const key = getStorageKey(userId);
       localStorage.setItem(key, jsonStr);
 
-      // Capacitor Preferences plugin fallback for native mobile
-      const preferencesPlugin = (window as any).Capacitor?.Plugins?.Preferences;
+      const preferencesPlugin = (window as unknown as {
+        Capacitor?: { Plugins?: { Preferences?: { set: (opts: { key: string; value: string }) => Promise<void> } } };
+      }).Capacitor?.Plugins?.Preferences;
       if (preferencesPlugin?.set) {
         preferencesPlugin.set({ key, value: jsonStr }).catch(() => {});
       }
@@ -105,28 +200,28 @@ export const homeStorageAdapter = {
     }
   },
 
-  /**
-   * Invalidate or remove stored choices on logout
-   */
   clearUserChoices(userId?: string | null): void {
     if (typeof window === 'undefined') return;
     try {
       if (userId) {
+        const coord = userCoordinators.get(userId);
+        if (coord) {
+          if (coord.timer) clearTimeout(coord.timer);
+          coord.pendingSnapshot = null;
+          coord.listeners.clear();
+          userCoordinators.delete(userId);
+        }
         localStorage.removeItem(getStorageKey(userId));
+        localStorage.removeItem(getChannelConfigKey(userId));
       }
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(getChannelConfigKey(null));
     } catch {}
   },
 
-  /**
-   * Pluggable backend sync method.
-   * Checks authentication before sending to prevent 401 spam.
-   * Fetches latest user cohort configs from /api/user/cohort-config and aligns local cache.
-   */
   async syncWithBackend(isAuthenticated = true, userId?: string | null): Promise<StoredHomeChoices | null> {
     if (typeof window === 'undefined') return null;
     if (!isAuthenticated) {
-      // Unauthenticated users rely purely on offline local storage without console 401s
       return this.getStoredChoices(userId);
     }
 
@@ -139,7 +234,6 @@ export const homeStorageAdapter = {
       const res = await fetch('/api/user/cohort-config');
       lastCohortSyncAt = Date.now();
       if (res.status === 401) {
-        // Session expired or unauthenticated; return local choices quietly
         return this.getStoredChoices(userId);
       }
 
@@ -150,14 +244,26 @@ export const homeStorageAdapter = {
           const currentActive = current?.activeCohorts ? [...current.activeCohorts] : [];
           const currentPaused = current?.continueLater ? [...current.continueLater] : [];
 
-          const remoteMap = new Map<string, any>(
-            remoteConfigs.map((cfg: any) => [cfg.cohortId, cfg])
+          type RemoteCohortConfig = {
+            cohortId?: string;
+            rank?: number;
+            isHidden?: boolean;
+            isPaused?: boolean;
+            pausedUntil?: string | null;
+            pausedReason?: string | null;
+            dailyGoalMinutes?: number;
+            scheduleDays?: string[];
+            scheduleLabel?: string;
+            frequency?: string;
+            orderStyle?: string;
+          };
+          const remoteMap = new Map<string, RemoteCohortConfig>(
+            (remoteConfigs as RemoteCohortConfig[]).map((cfg) => [cfg.cohortId || '', cfg])
           );
 
           const updatedActive: ActiveCohort[] = [];
           const updatedPaused: PausedCohort[] = [];
 
-          // Process current active cohorts with remote overrides
           for (const cohort of currentActive) {
             const cleanId = cohort.cohortId || cohort.id;
             const remote = remoteMap.get(cleanId);
@@ -177,11 +283,11 @@ export const homeStorageAdapter = {
                   rank: typeof remote.rank === 'number' ? remote.rank : cohort.rank,
                   dailyGoalMinutes: typeof remote.dailyGoalMinutes === 'number' ? remote.dailyGoalMinutes : cohort.dailyGoalMinutes,
                   schedule: {
-                    days: Array.isArray(remote.scheduleDays) ? remote.scheduleDays : cohort.schedule?.days || ['Mon', 'Wed', 'Fri'],
+                    days: (Array.isArray(remote.scheduleDays) ? remote.scheduleDays : cohort.schedule?.days || ['Mon', 'Wed', 'Fri']) as Weekday[],
                     label: remote.scheduleLabel || cohort.schedule?.label || 'Mon, Wed, Fri',
                   },
-                  frequency: remote.frequency || cohort.frequency,
-                  orderStyle: remote.orderStyle || cohort.orderStyle,
+                  frequency: (remote.frequency || cohort.frequency) as ActiveCohort['frequency'],
+                  orderStyle: (remote.orderStyle || cohort.orderStyle) as ActiveCohort['orderStyle'],
                 });
               }
             } else {
@@ -189,7 +295,6 @@ export const homeStorageAdapter = {
             }
           }
 
-          // Process current paused cohorts with remote overrides
           for (const cohort of currentPaused) {
             const cleanId = cohort.cohortId || cohort.id;
             const remote = remoteMap.get(cleanId);
@@ -208,11 +313,11 @@ export const homeStorageAdapter = {
                   dailyGoalMinutes: typeof remote.dailyGoalMinutes === 'number' ? remote.dailyGoalMinutes : cohort.dailyGoalMinutes,
                   progressPercent: cohort.progressPercent,
                   schedule: {
-                    days: Array.isArray(remote.scheduleDays) ? remote.scheduleDays : cohort.schedule?.days || ['Mon', 'Wed', 'Fri'],
+                    days: (Array.isArray(remote.scheduleDays) ? remote.scheduleDays : cohort.schedule?.days || ['Mon', 'Wed', 'Fri']) as Weekday[],
                     label: remote.scheduleLabel || cohort.schedule?.label || 'Mon, Wed, Fri',
                   },
-                  frequency: remote.frequency || cohort.frequency,
-                  orderStyle: remote.orderStyle || cohort.orderStyle,
+                  frequency: (remote.frequency || cohort.frequency) as ActiveCohort['frequency'],
+                  orderStyle: (remote.orderStyle || cohort.orderStyle) as ActiveCohort['orderStyle'],
                 });
               } else {
                 updatedPaused.push({
@@ -226,17 +331,14 @@ export const homeStorageAdapter = {
             }
           }
 
-          // Sort active cohorts by rank
           updatedActive.sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
-          {
-            this.saveChoices(updatedActive, updatedPaused, userId);
-            return {
-              activeCohorts: updatedActive,
-              continueLater: updatedPaused,
-              updatedAt: new Date().toISOString(),
-            };
-          }
+          this.saveChoices(updatedActive, updatedPaused, userId);
+          return {
+            activeCohorts: updatedActive,
+            continueLater: updatedPaused,
+            updatedAt: new Date().toISOString(),
+          };
         }
       }
     } catch (err) {
@@ -246,68 +348,337 @@ export const homeStorageAdapter = {
     return this.getStoredChoices(userId);
   },
 
-  /**
-   * Fetch and align channel configuration with backend database.
-   */
-  async syncChannelWithBackend(isAuthenticated = true): Promise<{
-    activeChannel: ChannelId;
-    prefs: ChannelPreferences;
-  } | null> {
+  getStoredChannelConfig(userId?: string | null): StoredChannelConfig {
+    if (typeof window === 'undefined') return getDefaultChannelConfig();
+    const key = getChannelConfigKey(userId);
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.version === 2 && typeof parsed.prefs === 'object') {
+          return {
+            version: 2,
+            activeChannel: VALID_CHANNEL_IDS.includes(parsed.activeChannel)
+              ? parsed.activeChannel
+              : 'default',
+            prefs: parsed.prefs,
+            dirty: Boolean(parsed.dirty),
+            updatedAt: parsed.updatedAt || new Date().toISOString(),
+          };
+        }
+      }
+
+      // If anonymous and no v2 document yet, import legacy keys once
+      if (!userId) {
+        const legacyActive = (localStorage.getItem(CHANNEL_KEY) as ChannelId) || 'default';
+        const legacyPrefsRaw = localStorage.getItem(CHANNEL_PREFS_KEY);
+        const importedPrefs: Record<string, string> = {
+          ...getDefaultChannelConfig().prefs,
+        };
+
+        if (legacyPrefsRaw) {
+          try {
+            const p = JSON.parse(legacyPrefsRaw);
+            if (p && typeof p === 'object') {
+              for (const [k, v] of Object.entries(p)) {
+                const valRes = validatePrefEntry(k, v);
+                if (valRes.valid && valRes.normalizedKey && valRes.normalizedVal) {
+                  importedPrefs[valRes.normalizedKey] = valRes.normalizedVal;
+                }
+              }
+            }
+          } catch {}
+        }
+
+        const legacyKeys = [
+          ['depth', PREF_DEPTH_KEY],
+          ['rigor', PREF_RIGOR_KEY],
+          ['scaffolding', PREF_SCAFFOLDING_KEY],
+          ['weekly_goal', PREF_WEEKLY_GOAL_KEY],
+          ['learning_allocation', PREF_LEARNING_ALLOCATION_KEY],
+          ['reminder_window', PREF_REMINDER_WINDOW_KEY],
+        ] as const;
+
+        for (const [field, lk] of legacyKeys) {
+          const lval = localStorage.getItem(lk);
+          if (lval) {
+            const valRes = validatePrefEntry(field, lval);
+            if (valRes.valid && valRes.normalizedKey && valRes.normalizedVal) {
+              importedPrefs[valRes.normalizedKey] = valRes.normalizedVal;
+            }
+          }
+        }
+
+        const importedDoc: StoredChannelConfig = {
+          version: 2,
+          activeChannel: VALID_CHANNEL_IDS.includes(legacyActive) ? legacyActive : 'spark',
+          prefs: importedPrefs,
+          dirty: false,
+          updatedAt: new Date().toISOString(),
+        };
+
+        localStorage.setItem(key, JSON.stringify(importedDoc));
+
+        // Clean up legacy keys after successful write
+        for (const [, lk] of legacyKeys) {
+          localStorage.removeItem(lk);
+        }
+
+        return importedDoc;
+      }
+    } catch {}
+
+    const fresh = getDefaultChannelConfig();
+    try {
+      localStorage.setItem(key, JSON.stringify(fresh));
+    } catch {}
+    return fresh;
+  },
+
+  saveStoredChannelConfig(config: StoredChannelConfig, userId?: string | null): void {
+    if (typeof window === 'undefined') return;
+    const key = getChannelConfigKey(userId);
+    try {
+      localStorage.setItem(key, JSON.stringify(config));
+      // Only mirror to legacy keys for unauthenticated sessions to avoid cross-user state leaks
+      if (!userId) {
+        localStorage.setItem(CHANNEL_KEY, config.activeChannel);
+        localStorage.setItem(CHANNEL_PREFS_KEY, JSON.stringify(config.prefs));
+      }
+    } catch {}
+  },
+
+  getSelectedChannel(userId?: string | null): ChannelId {
+    return this.getStoredChannelConfig(userId).activeChannel;
+  },
+
+  saveSelectedChannel(channel: ChannelId, userId?: string | null): void {
+    if (!VALID_CHANNEL_IDS.includes(channel)) return;
+    const config = this.getStoredChannelConfig(userId);
+    config.activeChannel = channel;
+    config.dirty = true;
+    config.updatedAt = new Date().toISOString();
+    this.saveStoredChannelConfig(config, userId);
+    scheduleSave(userId);
+  },
+
+  getChannelPreferences(userId?: string | null): ChannelPreferences {
+    const config = this.getStoredChannelConfig(userId);
+    const p = config.prefs;
+
+    const parseNum = (val: string | undefined, def: number) => {
+      const n = parseFloat(val ?? '');
+      return Number.isFinite(n) && n >= 0 && n <= 1 ? n : def;
+    };
+
+    return {
+      depth: parseNum(p.depth, DEFAULT_CHANNEL_PREFERENCES.depth),
+      rigor: parseNum(p.rigor, DEFAULT_CHANNEL_PREFERENCES.rigor),
+      scaffolding: parseNum(p.scaffolding, DEFAULT_CHANNEL_PREFERENCES.scaffolding),
+      weeklyGoal: p.weekly_goal || DEFAULT_CHANNEL_PREFERENCES.weeklyGoal,
+      learningAllocation: p.learning_allocation || DEFAULT_CHANNEL_PREFERENCES.learningAllocation,
+      reminderWindow: p.reminder_window || DEFAULT_CHANNEL_PREFERENCES.reminderWindow,
+    };
+  },
+
+  saveChannelPreferences(partial: Partial<ChannelPreferences>, userId?: string | null): void {
+    const config = this.getStoredChannelConfig(userId);
+    const nextPrefs = { ...config.prefs };
+
+    if (partial.depth !== undefined && Number.isFinite(partial.depth)) {
+      nextPrefs.depth = Math.max(0, Math.min(1, partial.depth)).toFixed(2);
+    }
+    if (partial.rigor !== undefined && Number.isFinite(partial.rigor)) {
+      nextPrefs.rigor = Math.max(0, Math.min(1, partial.rigor)).toFixed(2);
+    }
+    if (partial.scaffolding !== undefined && Number.isFinite(partial.scaffolding)) {
+      nextPrefs.scaffolding = Math.max(0, Math.min(1, partial.scaffolding)).toFixed(2);
+    }
+    if (partial.weeklyGoal && typeof partial.weeklyGoal === 'string') {
+      nextPrefs.weekly_goal = partial.weeklyGoal.trim();
+    }
+    if (partial.learningAllocation && typeof partial.learningAllocation === 'string') {
+      nextPrefs.learning_allocation = partial.learningAllocation.trim();
+    }
+    if (partial.reminderWindow && typeof partial.reminderWindow === 'string') {
+      nextPrefs.reminder_window = partial.reminderWindow.trim();
+    }
+
+    config.prefs = nextPrefs;
+    config.dirty = true;
+    config.updatedAt = new Date().toISOString();
+    this.saveStoredChannelConfig(config, userId);
+    scheduleSave(userId);
+  },
+
+  getChannelParam(
+    channelId: ChannelId,
+    paramId: string,
+    defaultValue = 0.5,
+    userId?: string | null
+  ): number {
+    const config = this.getStoredChannelConfig(userId);
+    const key = `${channelId}_${paramId}`;
+    const raw = config.prefs[key];
+    if (raw !== undefined) {
+      const n = parseFloat(raw);
+      if (Number.isFinite(n) && n >= 0 && n <= 1) return n;
+    }
+    return defaultValue;
+  },
+
+  saveChannelParam(
+    channelId: ChannelId,
+    paramId: string,
+    value: number,
+    userId?: string | null
+  ): void {
+    const clamped = Math.max(0, Math.min(1, value));
+    const key = `${channelId}_${paramId}`;
+    const config = this.getStoredChannelConfig(userId);
+    config.prefs[key] = clamped.toFixed(2);
+    config.dirty = true;
+    config.updatedAt = new Date().toISOString();
+    this.saveStoredChannelConfig(config, userId);
+    scheduleSave(userId);
+  },
+
+  getAllChannelPrefs(userId?: string | null): Record<string, string> {
+    return { ...this.getStoredChannelConfig(userId).prefs };
+  },
+
+  subscribeToSaveStatus(userId: string | null | undefined, listener: SaveListener): () => void {
+    const key = userId || 'anon';
+    const coord = getCoordinator(key);
+    coord.listeners.add(listener);
+    listener(coord.status);
+    return () => {
+      coord.listeners.delete(listener);
+    };
+  },
+
+  getSaveStatus(userId?: string | null): SaveStatus {
+    const key = userId || 'anon';
+    return getCoordinator(key).status;
+  },
+
+  flushPendingSave(userId?: string | null): void {
+    if (!userId || typeof window === 'undefined') return;
+    const coord = getCoordinator(userId);
+    const currentDoc = this.getStoredChannelConfig(userId);
+    if (!currentDoc.dirty && !coord.pendingSnapshot) return;
+
+    if (coord.timer) {
+      clearTimeout(coord.timer);
+      coord.timer = null;
+    }
+
+    const snapshot = coord.pendingSnapshot || {
+      activeChannel: currentDoc.activeChannel,
+      prefs: currentDoc.prefs,
+    };
+    coord.pendingSnapshot = null;
+
+    try {
+      fetch('/api/user/channel-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(snapshot),
+        keepalive: true,
+      });
+    } catch {}
+  },
+
+  retrySave(userId?: string | null): void {
+    if (!userId) return;
+    const currentDoc = this.getStoredChannelConfig(userId);
+    const coord = getCoordinator(userId);
+    coord.pendingSnapshot = {
+      activeChannel: currentDoc.activeChannel,
+      prefs: { ...currentDoc.prefs },
+    };
+    if (coord.timer) {
+      clearTimeout(coord.timer);
+      coord.timer = null;
+    }
+    void executeSave(userId);
+  },
+
+  async syncChannelWithBackend(
+    userId?: string | null,
+    isAuthenticated = true,
+    signal?: AbortSignal
+  ): Promise<{ activeChannel: ChannelId; prefs: ChannelPreferences } | null> {
     if (typeof window === 'undefined') return null;
-    if (!isAuthenticated) {
+    const currentLocal = this.getStoredChannelConfig(userId);
+
+    if (!isAuthenticated || !userId) {
       return {
-        activeChannel: this.getSelectedChannel(),
-        prefs: this.getChannelPreferences(),
+        activeChannel: currentLocal.activeChannel,
+        prefs: this.getChannelPreferences(userId),
       };
     }
 
-    if (process.env.NODE_ENV !== 'test' && cachedChannelSyncResult && Date.now() - lastChannelSyncAt < SYNC_TTL_MS) {
+    // Preserve dirty local drafts on mount! Do not overwrite.
+    if (currentLocal.dirty) {
+      scheduleSave(userId);
       return {
-        activeChannel: this.getSelectedChannel(),
-        prefs: this.getChannelPreferences(),
+        activeChannel: currentLocal.activeChannel,
+        prefs: this.getChannelPreferences(userId),
       };
     }
 
     try {
-      const res = await fetch('/api/user/channel-config');
-      lastChannelSyncAt = Date.now();
+      const res = await fetch('/api/user/channel-config', { signal });
       if (res.status === 401) {
         return {
-          activeChannel: this.getSelectedChannel(),
-          prefs: this.getChannelPreferences(),
+          activeChannel: currentLocal.activeChannel,
+          prefs: this.getChannelPreferences(userId),
         };
       }
 
       if (res.ok) {
         const data = await res.json();
-        if (data.activeChannel && VALID_CHANNEL_IDS.includes(data.activeChannel)) {
-          this.saveSelectedChannel(data.activeChannel);
-        }
+        const nextActive =
+          data.activeChannel && VALID_CHANNEL_IDS.includes(data.activeChannel)
+            ? data.activeChannel
+            : currentLocal.activeChannel;
 
+        const nextPrefs: Record<string, string> = { ...currentLocal.prefs };
         if (data.prefs && typeof data.prefs === 'object') {
-          const partial: Partial<ChannelPreferences> = {};
-          if (data.prefs.depth) partial.depth = parseFloat(data.prefs.depth);
-          if (data.prefs.rigor) partial.rigor = parseFloat(data.prefs.rigor);
-          if (data.prefs.scaffolding) partial.scaffolding = parseFloat(data.prefs.scaffolding);
-          if (data.prefs.weekly_goal) partial.weeklyGoal = data.prefs.weekly_goal;
-          if (data.prefs.learning_allocation) partial.learningAllocation = data.prefs.learning_allocation;
-          if (data.prefs.reminder_window) partial.reminderWindow = data.prefs.reminder_window;
-          this.saveChannelPreferences(partial);
+          for (const [k, v] of Object.entries(data.prefs)) {
+            const valRes = validatePrefEntry(k, v);
+            if (valRes.valid && valRes.normalizedKey && valRes.normalizedVal) {
+              nextPrefs[valRes.normalizedKey] = valRes.normalizedVal;
+            }
+          }
         }
 
-        cachedChannelSyncResult = {
-          activeChannel: this.getSelectedChannel(),
-          prefs: this.getChannelPreferences(),
+        const updatedDoc: StoredChannelConfig = {
+          version: 2,
+          activeChannel: nextActive,
+          prefs: nextPrefs,
+          dirty: false,
+          updatedAt: new Date().toISOString(),
         };
-        return cachedChannelSyncResult;
+
+        this.saveStoredChannelConfig(updatedDoc, userId);
+        notifySaveStatus(getCoordinator(userId), 'saved');
+
+        return {
+          activeChannel: nextActive,
+          prefs: this.getChannelPreferences(userId),
+        };
       }
-    } catch (err) {
-      console.warn('Backend channel config sync unavailable, using local choices:', err);
+    } catch (err: unknown) {
+      if ((err as Error)?.name !== 'AbortError') {
+        console.warn('Backend channel config sync unavailable, using local choices:', err);
+      }
     }
 
     return {
-      activeChannel: this.getSelectedChannel(),
-      prefs: this.getChannelPreferences(),
+      activeChannel: currentLocal.activeChannel,
+      prefs: this.getChannelPreferences(userId),
     };
   },
 
@@ -363,28 +734,6 @@ export const homeStorageAdapter = {
     }
   },
 
-  getSelectedChannel(): ChannelId {
-    if (typeof window === 'undefined') return 'spark';
-    try {
-      const saved = localStorage.getItem(CHANNEL_KEY) as ChannelId;
-      if (saved && VALID_CHANNEL_IDS.includes(saved)) {
-        return saved;
-      }
-      return 'spark';
-    } catch {
-      return 'spark';
-    }
-  },
-
-  saveSelectedChannel(channel: ChannelId): void {
-    if (typeof window === 'undefined') return;
-    try {
-      if (VALID_CHANNEL_IDS.includes(channel)) {
-        localStorage.setItem(CHANNEL_KEY, channel);
-      }
-    } catch {}
-  },
-
   getChannelHubExpanded(): boolean {
     if (typeof window === 'undefined') return true;
     try {
@@ -401,189 +750,4 @@ export const homeStorageAdapter = {
       localStorage.setItem(FINETUNE_EXPANDED_KEY, String(isExpanded));
     } catch {}
   },
-
-  getChannelPreferences(): ChannelPreferences {
-    const prefs: ChannelPreferences = { ...DEFAULT_CHANNEL_PREFERENCES };
-    if (typeof window === 'undefined') return prefs;
-
-    try {
-      // 1. Try reading composite channel prefs JSON
-      const compositeRaw = localStorage.getItem(CHANNEL_PREFS_KEY);
-      if (compositeRaw) {
-        try {
-          const parsed = JSON.parse(compositeRaw);
-          if (parsed && typeof parsed === 'object') {
-            if (parsed.depth !== undefined && !isNaN(parseFloat(parsed.depth))) {
-              let d = parseFloat(parsed.depth);
-              if (d > 1) d = d / 5;
-              prefs.depth = Math.max(0, Math.min(1, d));
-            }
-            if (parsed.rigor !== undefined && !isNaN(parseFloat(parsed.rigor))) {
-              let r = parseFloat(parsed.rigor);
-              if (r > 1) r = r / 5;
-              prefs.rigor = Math.max(0, Math.min(1, r));
-            }
-            if (parsed.scaffolding !== undefined && !isNaN(parseFloat(parsed.scaffolding))) {
-              let s = parseFloat(parsed.scaffolding);
-              if (s > 1) s = s / 5;
-              prefs.scaffolding = Math.max(0, Math.min(1, s));
-            }
-            if (typeof parsed.weekly_goal === 'string' && parsed.weekly_goal.trim()) {
-              prefs.weeklyGoal = parsed.weekly_goal.trim();
-            }
-            if (typeof parsed.learning_allocation === 'string' && parsed.learning_allocation.trim()) {
-              prefs.learningAllocation = parsed.learning_allocation.trim();
-            }
-            if (typeof parsed.reminder_window === 'string' && parsed.reminder_window.trim()) {
-              prefs.reminderWindow = parsed.reminder_window.trim();
-            }
-          }
-        } catch {}
-      }
-
-      // 2. Individual key overrides (matching legacy / external writers)
-      const rawDepth = localStorage.getItem(PREF_DEPTH_KEY);
-      if (rawDepth) {
-        let val = parseFloat(rawDepth);
-        if (!isNaN(val)) {
-          if (val > 1) val = val / 5;
-          prefs.depth = Math.max(0, Math.min(1, val));
-        }
-      }
-
-      const rawRigor = localStorage.getItem(PREF_RIGOR_KEY);
-      if (rawRigor) {
-        let val = parseFloat(rawRigor);
-        if (!isNaN(val)) {
-          if (val > 1) val = val / 5;
-          prefs.rigor = Math.max(0, Math.min(1, val));
-        }
-      }
-
-      const rawScaffolding = localStorage.getItem(PREF_SCAFFOLDING_KEY);
-      if (rawScaffolding) {
-        let val = parseFloat(rawScaffolding);
-        if (!isNaN(val)) {
-          if (val > 1) val = val / 5;
-          prefs.scaffolding = Math.max(0, Math.min(1, val));
-        }
-      }
-
-      const rawWeeklyGoal = localStorage.getItem(PREF_WEEKLY_GOAL_KEY);
-      if (rawWeeklyGoal && rawWeeklyGoal.trim()) {
-        prefs.weeklyGoal = rawWeeklyGoal.trim();
-      }
-
-      const rawAllocation = localStorage.getItem(PREF_LEARNING_ALLOCATION_KEY);
-      if (rawAllocation && rawAllocation.trim()) {
-        prefs.learningAllocation = rawAllocation.trim();
-      }
-
-      const rawReminder = localStorage.getItem(PREF_REMINDER_WINDOW_KEY);
-      if (rawReminder && rawReminder.trim()) {
-        prefs.reminderWindow = rawReminder.trim();
-      }
-    } catch (err) {
-      console.warn('Failed to load local channel preferences:', err);
-    }
-
-    return prefs;
-  },
-
-  getChannelParam(channelId: ChannelId, paramId: string, defaultValue = 0.5): number {
-    if (typeof window === 'undefined') return defaultValue;
-    try {
-      const key = `${channelId}_${paramId}`;
-      const compositeRaw = localStorage.getItem(CHANNEL_PREFS_KEY);
-      if (compositeRaw) {
-        const parsed = JSON.parse(compositeRaw);
-        if (parsed && parsed[key] !== undefined) {
-          let val = parseFloat(parsed[key]);
-          if (!isNaN(val)) {
-            if (val > 1) val = val / 5;
-            return Math.max(0, Math.min(1, val));
-          }
-        }
-      }
-      const direct = localStorage.getItem(`sidequest_pref_${key}`);
-      if (direct) {
-        let val = parseFloat(direct);
-        if (!isNaN(val)) {
-          if (val > 1) val = val / 5;
-          return Math.max(0, Math.min(1, val));
-        }
-      }
-    } catch {}
-    return defaultValue;
-  },
-
-  saveChannelParam(channelId: ChannelId, paramId: string, value: number): void {
-    if (typeof window === 'undefined') return;
-    try {
-      const clamped = Math.max(0, Math.min(1, value));
-      const key = `${channelId}_${paramId}`;
-      let composite: Record<string, string> = {};
-      const compositeRaw = localStorage.getItem(CHANNEL_PREFS_KEY);
-      if (compositeRaw) {
-        try {
-          composite = JSON.parse(compositeRaw) || {};
-        } catch {}
-      }
-      composite[key] = clamped.toFixed(2);
-      localStorage.setItem(CHANNEL_PREFS_KEY, JSON.stringify(composite));
-      localStorage.setItem(`sidequest_pref_${key}`, clamped.toFixed(2));
-    } catch {}
-  },
-
-  getAllChannelPrefs(): Record<string, string> {
-    if (typeof window === 'undefined') return {};
-    try {
-      const compositeRaw = localStorage.getItem(CHANNEL_PREFS_KEY);
-      if (compositeRaw) {
-        return JSON.parse(compositeRaw) || {};
-      }
-    } catch {}
-    return {};
-  },
-
-  saveChannelPreferences(partial: Partial<ChannelPreferences>): void {
-    if (typeof window === 'undefined') return;
-    try {
-      const current = this.getChannelPreferences();
-      const updated: ChannelPreferences = {
-        ...current,
-        ...partial,
-      };
-
-      // Write composite JSON
-      const compositeMap: Record<string, string> = {
-        depth: updated.depth.toFixed(2),
-        rigor: updated.rigor.toFixed(2),
-        scaffolding: updated.scaffolding.toFixed(2),
-        weekly_goal: updated.weeklyGoal,
-        learning_allocation: updated.learningAllocation,
-        reminder_window: updated.reminderWindow,
-      };
-      localStorage.setItem(CHANNEL_PREFS_KEY, JSON.stringify(compositeMap));
-
-      // Write individual keys for cross-component compatibility
-      localStorage.setItem(PREF_DEPTH_KEY, updated.depth.toFixed(2));
-      localStorage.setItem(PREF_RIGOR_KEY, updated.rigor.toFixed(2));
-      localStorage.setItem(PREF_SCAFFOLDING_KEY, updated.scaffolding.toFixed(2));
-      localStorage.setItem(PREF_WEEKLY_GOAL_KEY, updated.weeklyGoal);
-      localStorage.setItem(PREF_LEARNING_ALLOCATION_KEY, updated.learningAllocation);
-      localStorage.setItem(PREF_REMINDER_WINDOW_KEY, updated.reminderWindow);
-
-      // Capacitor Preferences fallback
-      const preferencesPlugin = (window as any).Capacitor?.Plugins?.Preferences;
-      if (preferencesPlugin?.set) {
-        preferencesPlugin
-          .set({ key: CHANNEL_PREFS_KEY, value: JSON.stringify(compositeMap) })
-          .catch(() => {});
-      }
-    } catch (err) {
-      console.error('Failed to save channel preferences locally:', err);
-    }
-  },
 };
-

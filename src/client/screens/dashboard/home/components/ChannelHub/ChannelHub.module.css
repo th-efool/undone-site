@@ -677,3 +677,14 @@
   background: rgba(99, 102, 241, 0.18) !important;
   color: #818cf8 !important;
 }
+
+.dropdownBtnDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+:global([data-theme='dark']) .dropdownBtnDisabled,
+:global(.dark) .dropdownBtnDisabled {
+  background: rgba(255, 255, 255, 0.04);
+}

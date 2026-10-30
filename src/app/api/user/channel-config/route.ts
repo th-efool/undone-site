@@ -3,11 +3,14 @@ import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
 import {
   UserChannelConfig,
-  VALID_CHANNEL_IDS,
   type ChannelId,
 } from '@/src/server/database/mongo/models/UserChannelConfig';
+import {
+  VALID_CHANNEL_IDS,
+  validatePrefEntry,
+} from '@/src/shared/feed/channelPreferences';
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -18,30 +21,36 @@ export async function GET(req: Request) {
 
     try {
       await connectToMongoDB();
-    } catch (connError: any) {
+    } catch (connError: unknown) {
       console.error('[API User Channel Config GET] DB connection failure:', connError);
       return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 });
     }
 
     const config = await UserChannelConfig.findOne({ userId }).lean().exec();
 
-    let prefsObj: Record<string, string> = {};
+    const prefsObj: Record<string, string> = {};
     if (config?.prefs) {
-      if (config.prefs instanceof Map) {
-        prefsObj = Object.fromEntries(config.prefs);
-      } else if (typeof config.prefs === 'object') {
-        prefsObj = { ...config.prefs };
+      const rawMap =
+        config.prefs instanceof Map
+          ? Object.fromEntries(config.prefs)
+          : typeof config.prefs === 'object'
+          ? (config.prefs as Record<string, unknown>)
+          : {};
+      for (const [key, val] of Object.entries(rawMap)) {
+        const validation = validatePrefEntry(key, val);
+        if (validation.valid && validation.normalizedKey && validation.normalizedVal) {
+          prefsObj[validation.normalizedKey] = validation.normalizedVal;
+        }
       }
     }
 
     return NextResponse.json({
-      activeChannel: config?.activeChannel || 'quick',
+      activeChannel: (config?.activeChannel as ChannelId) || 'default',
       prefs: prefsObj,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API User Channel Config GET Error]:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to retrieve channel configuration' }, { status: 500 });
   }
 }
 
@@ -54,23 +63,25 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let body: any;
+    let body: unknown;
     try {
       body = (await req.json()) ?? {};
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { activeChannel, prefs } = body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Request body must be an object' }, { status: 400 });
+    }
 
-    const updateFields: Record<string, any> = {};
+    const bodyObj = body as { activeChannel?: unknown; prefs?: unknown };
+    const { activeChannel, prefs } = bodyObj;
+    const updateFields: Record<string, unknown> = {};
 
     if (activeChannel !== undefined) {
       if (!VALID_CHANNEL_IDS.includes(activeChannel as ChannelId)) {
         return NextResponse.json(
-          {
-            error: `Invalid activeChannel '${activeChannel}'. Must be one of: ${VALID_CHANNEL_IDS.join(', ')}`,
-          },
+          { error: 'Invalid active channel parameter' },
           { status: 400 }
         );
       }
@@ -79,15 +90,24 @@ export async function PUT(req: Request) {
 
     if (prefs !== undefined) {
       if (typeof prefs !== 'object' || prefs === null || Array.isArray(prefs)) {
-        return NextResponse.json({ error: 'prefs must be a key-value object' }, { status: 400 });
+        return NextResponse.json({ error: 'Preferences must be an object' }, { status: 400 });
       }
 
-      // Sanitize prefs dictionary to ensure plain string key-values without query selector injection
+      const entries = Object.entries(prefs);
+      if (entries.length > 50) {
+        return NextResponse.json({ error: 'Too many preference parameters' }, { status: 400 });
+      }
+
       const sanitizedPrefs: Record<string, string> = {};
-      for (const [key, val] of Object.entries(prefs)) {
-        if (typeof key === 'string' && key.length > 0 && key.length <= 100 && !key.startsWith('$')) {
-          sanitizedPrefs[key] = String(val ?? '').slice(0, 500);
+      for (const [key, val] of entries) {
+        const validation = validatePrefEntry(key, val);
+        if (!validation.valid || !validation.normalizedKey || !validation.normalizedVal) {
+          return NextResponse.json(
+            { error: `Invalid preference parameter: ${key}` },
+            { status: 400 }
+          );
         }
+        sanitizedPrefs[validation.normalizedKey] = validation.normalizedVal;
       }
       updateFields.prefs = sanitizedPrefs;
     }
@@ -98,7 +118,7 @@ export async function PUT(req: Request) {
 
     try {
       await connectToMongoDB();
-    } catch (connError: any) {
+    } catch (connError: unknown) {
       console.error('[API User Channel Config PUT] DB connection failure:', connError);
       return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 });
     }
@@ -109,22 +129,28 @@ export async function PUT(req: Request) {
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     ).lean().exec();
 
-    let prefsObj: Record<string, string> = {};
+    const prefsObj: Record<string, string> = {};
     if (updatedConfig?.prefs) {
-      if (updatedConfig.prefs instanceof Map) {
-        prefsObj = Object.fromEntries(updatedConfig.prefs);
-      } else if (typeof updatedConfig.prefs === 'object') {
-        prefsObj = { ...updatedConfig.prefs };
+      const rawMap =
+        updatedConfig.prefs instanceof Map
+          ? Object.fromEntries(updatedConfig.prefs)
+          : typeof updatedConfig.prefs === 'object'
+          ? (updatedConfig.prefs as Record<string, unknown>)
+          : {};
+      for (const [key, val] of Object.entries(rawMap)) {
+        const validation = validatePrefEntry(key, val);
+        if (validation.valid && validation.normalizedKey && validation.normalizedVal) {
+          prefsObj[validation.normalizedKey] = validation.normalizedVal;
+        }
       }
     }
 
     return NextResponse.json({
-      activeChannel: updatedConfig?.activeChannel || 'quick',
+      activeChannel: (updatedConfig?.activeChannel as ChannelId) || 'default',
       prefs: prefsObj,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API User Channel Config PUT Error]:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update channel configuration' }, { status: 500 });
   }
 }
