@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubscribedCohortCard } from '../SubscribedCohortCard';
 import type { ActiveCohort } from '../../../models';
 
-vi.mock('next/image', () => ({ default: ({ fill: _fill, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => <img {...props} /> }));
+vi.mock('next/image', () => ({ default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <span data-testid="mock-img" data-src={props.src} /> }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props}>{children}</a> }));
 const cohort: ActiveCohort = { id: 'c1', rank: 1, title: 'Systems', provider: 'Undone', thumbnail: '/cover.jpg', minutesToday: 0, dailyGoalMinutes: 20, progressPercent: 42, schedule: { days: ['Mon'], label: 'Mon' } };
 function setup(value = cohort, save = vi.fn().mockResolvedValue(undefined), remove = vi.fn().mockResolvedValue(undefined)) {
@@ -93,5 +93,25 @@ describe('cohort card controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('disables mutation controls when disabled is true while preserving navigation link', () => {
+    const pause = vi.fn(), resume = vi.fn();
+    render(<SubscribedCohortCard cohort={cohort} disabled={true} onPause={pause} onResume={resume} onSave={vi.fn()} onDelete={vi.fn()} />);
+
+    const link = screen.getByRole('link', { name: 'Open Systems' });
+    expect(link.getAttribute('href')).toBe('/cohort/c1');
+
+    const pauseBtn = screen.getByRole('button', { name: 'Pause Systems' }) as HTMLButtonElement;
+    expect(pauseBtn.disabled).toBe(true);
+
+    const menuBtn = screen.getByRole('button', { name: 'Cohort actions for Systems' }) as HTMLButtonElement;
+    expect(menuBtn.disabled).toBe(true);
+
+    fireEvent.click(pauseBtn);
+    expect(pause).not.toHaveBeenCalled();
+
+    fireEvent.click(menuBtn);
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 });

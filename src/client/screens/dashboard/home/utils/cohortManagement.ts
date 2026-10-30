@@ -254,3 +254,19 @@ export function getResumeLabel(date: Date, today = new Date()) {
 
   return `Resume in ${days} days`;
 }
+
+
+export function getSubscribedCohorts(
+  activeCohorts: ActiveCohort[],
+  continueLater: PausedCohort[]
+): ActiveCohort[] {
+  const sortedActive = [...activeCohorts].sort((a, b) => a.rank - b.rank);
+  const sortedPaused = [...continueLater].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+  return [
+    ...sortedActive.map((cohort, index) => ({ ...cohort, rank: index + 1 })),
+    ...sortedPaused.map((cohort, index) => ({
+      ...cohort,
+      rank: sortedActive.length + index + 1,
+    } as ActiveCohort)),
+  ];
+}

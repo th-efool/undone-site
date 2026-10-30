@@ -16,6 +16,7 @@ export interface ActiveCohortsProps {
   heading: HomeSectionContent;
   items: ActiveCohort[];
   isLoading?: boolean;
+  mutationPending?: boolean;
   onPause(cohortId: string, pausedUntil?: Date): void | Promise<void>;
   onResume(cohortId: string): void | Promise<void>;
   onSave(cohortId: string, settings: CohortLearningSettings): Promise<void>;
@@ -23,18 +24,24 @@ export interface ActiveCohortsProps {
 }
 
 export const ActiveCohorts = React.memo(function ActiveCohorts({
-  heading, items, isLoading, onPause, onResume, onSave, onDelete,
+  heading, items, isLoading, mutationPending, onPause, onResume, onSave, onDelete,
 }: ActiveCohortsProps) {
   return (
     <section className={styles.section} aria-label={heading.title || 'Subscribed Cohorts'}>
       <div className={styles.sectionHeader}>
         <h2 className={styles.title}>{heading.title || 'Subscribed Cohorts'}</h2>
+        {mutationPending && (
+          <span role="status" className="sr-only" aria-live="polite">
+            Saving changes…
+          </span>
+        )}
       </div>
       <div className={styles.grid}>
         {items.map((cohort) => (
           <SubscribedCohortCard
             key={cohort.cohortId || cohort.id}
             cohort={cohort}
+            disabled={mutationPending}
             onPause={(until) => onPause(cohort.cohortId || cohort.id, until)}
             onResume={() => onResume(cohort.cohortId || cohort.id)}
             onSave={(settings) => onSave(cohort.cohortId || cohort.id, settings)}

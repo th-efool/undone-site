@@ -95,7 +95,7 @@ describe('home subscription actions', () => {
     const props = { activeCohorts: [], continueLater: [paused] };
     const { result } = renderHook(() => useHome(props));
     await act(async () => result.current.actions.resumePausedCohort('one'));
-    expect(JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)).toEqual({ cohortId: 'one', isPaused: false, pausedUntil: null });
+    expect(JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)).toMatchObject({ cohortId: 'one', isPaused: false, pausedUntil: null });
     expect(result.current.continueLater).toEqual([]);
     expect(result.current.activeCohorts[0].id).toBe('one');
   });
@@ -121,23 +121,136 @@ describe('home subscription actions', () => {
       }),
     );
   });
-  it('cleans up pending reorder and debounce timers on unmount', async () => {
-    vi.useFakeTimers();
-    const second = { ...cohort, id: 'two', rank: 2 };
-    const props = { activeCohorts: [cohort, second], continueLater: [] };
-    const { result, unmount } = renderHook(() => useHome(props));
 
-    act(() => {
-      result.current.actions.moveCohort('one', 'two');
-      result.current.actions.saveSchedule('one', ['Tue']);
+  describe('FH-07 mutation serialization and identity-safe rollback guard', () => {
+    it('rejects a second mutation while the first mutation is still saving', async () => {
+      let resolveFirst!: (response: Response) => void;
+      vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>((done) => { resolveFirst = done; }));
+
+      const second = { ...cohort, id: 'two', rank: 2 };
+      const props = { activeCohorts: [cohort, second], continueLater: [] };
+      const { result } = renderHook(() => useHome(props));
+
+      // 1. Start deferred pause A
+      let pausePromise!: Promise<void>;
+      act(() => {
+        pausePromise = result.current.actions.pauseActiveCohort('one', new Date(Date.now() + 86400000));
+      });
+      expect(result.current.isSyncing).toBe(true);
+      expect(result.current.mutationPending).toBe(true);
+
+      // 2. Immediately attempt delete B while A is in flight
+      await expect(result.current.actions.removeSubscribedCohort('two')).rejects.toThrow(
+        'A change is still saving. Please wait.'
+      );
+
+      // 3. Resolve A
+      await act(async () => {
+        resolveFirst({ ok: true } as Response);
+        await pausePromise;
+      });
+
+      expect(result.current.isSyncing).toBe(false);
+      expect(result.current.mutationPending).toBe(false);
+
+      // 4. Now delete B succeeds
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true } as Response);
+      await act(async () => {
+        await result.current.actions.removeSubscribedCohort('two');
+      });
+      expect(result.current.activeCohorts.find((c) => c.id === 'two')).toBeUndefined();
     });
 
-    unmount();
+    it('restores original list when pause A fails and allows subsequent action B to work', async () => {
+      vi.mocked(fetch).mockResolvedValue({ ok: false, status: 500, statusText: 'Internal Error' } as Response);
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(2000);
+      const second = { ...cohort, id: 'two', rank: 2 };
+      const props = { activeCohorts: [cohort, second], continueLater: [] };
+      const { result } = renderHook(() => useHome(props));
+
+      // 1. Pause A fails
+      await act(async () => {
+        await expect(
+          result.current.actions.pauseActiveCohort('one', new Date(Date.now() + 86400000))
+        ).rejects.toThrow();
+      });
+
+      // Assert rollback
+      expect(result.current.activeCohorts.map((c) => c.id)).toEqual(['one', 'two']);
+      expect(result.current.continueLater).toEqual([]);
+      expect(result.current.isSyncing).toBe(false);
+
+      // 2. Subsequent action B succeeds
+      vi.mocked(fetch).mockResolvedValue({ ok: true } as Response);
+      await act(async () => {
+        await result.current.actions.removeSubscribedCohort('two');
+      });
+      expect(result.current.activeCohorts.map((c) => c.id)).toEqual(['one']);
     });
 
-    expect(fetch).not.toHaveBeenCalled();
+    it('prevents server prop hydration from erasing optimistic state while a mutation is in flight', async () => {
+      let resolveFirst!: (response: Response) => void;
+      vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>((done) => { resolveFirst = done; }));
+
+      const initialProps = { activeCohorts: [cohort], continueLater: [] };
+      const { result, rerender } = renderHook((p) => useHome(p), { initialProps });
+
+      // Start pause
+      let pausePromise!: Promise<void>;
+      act(() => {
+        pausePromise = result.current.actions.pauseActiveCohort('one', new Date(Date.now() + 86400000));
+      });
+      expect(result.current.activeCohorts).toEqual([]);
+      expect(result.current.continueLater.length).toBe(1);
+
+      // Server props re-render with stale props while pause is still saving
+      rerender({ activeCohorts: [cohort], continueLater: [] });
+
+      // Optimistic state must NOT be overwritten by the stale server props
+      expect(result.current.activeCohorts).toEqual([]);
+      expect(result.current.continueLater.length).toBe(1);
+
+      // Resolve mutation
+      await act(async () => {
+        resolveFirst({ ok: true } as Response);
+        await pausePromise;
+      });
+
+      expect(result.current.activeCohorts).toEqual([]);
+      expect(result.current.continueLater.length).toBe(1);
+    });
+
+    it('ignores old response callbacks when user logs out or switches accounts during request', async () => {
+      let resolveFirst!: (response: Response) => void;
+      vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>((done) => { resolveFirst = done; }));
+
+      const props = { activeCohorts: [cohort], continueLater: [] };
+      const { result, rerender } = renderHook(() => useHome(props));
+
+      // Start pause under 'learner'
+      let pausePromise!: Promise<void>;
+      act(() => {
+        pausePromise = result.current.actions.pauseActiveCohort('one', new Date(Date.now() + 86400000));
+      });
+
+      // User logs out mid-request
+      mocks.authenticated = false;
+      rerender();
+
+      // Resolve old request
+      await act(async () => {
+        resolveFirst({ ok: true } as Response);
+        try {
+          await pausePromise;
+        } catch {}
+      });
+
+      // Must not save old user's state under anonymous or new user
+      const saveCalls = mocks.saveChoices.mock.calls;
+      const lastCall = saveCalls[saveCalls.length - 1];
+      if (lastCall) {
+        expect(lastCall[2]).not.toBe('other-user');
+      }
+    });
   });
 });

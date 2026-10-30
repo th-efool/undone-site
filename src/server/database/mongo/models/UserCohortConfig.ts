@@ -24,6 +24,7 @@ export const VALID_SCHEDULE_DAYS = [
   'Thu',
   'Fri',
   'Sat',
+  'Sun',
 ] as const;
 export type ScheduleDay = (typeof VALID_SCHEDULE_DAYS)[number];
 
@@ -38,8 +39,8 @@ export interface IUserCohortConfig extends Document {
   orderStyle: CohortOrderStyle;
   isPaused: boolean;
   isHidden: boolean;
-  pausedUntil?: Date;
-  pausedReason?: string;
+  pausedUntil?: Date | null;
+  pausedReason?: string | null;
   updatedAt: Date;
 }
 

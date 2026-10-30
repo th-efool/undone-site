@@ -5,6 +5,7 @@ export {
   getActiveCohorts,
   getPausedCohorts,
   getResumeLabel,
+  getSubscribedCohorts,
   pauseCohort,
   reorderCohorts,
   resumeCohort,

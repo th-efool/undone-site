@@ -12,6 +12,7 @@ import styles from './SubscribedCohortCard.module.css';
 
 export interface SubscribedCohortCardProps {
   cohort: ActiveCohort;
+  disabled?: boolean;
   onPause(until?: Date): void | Promise<void>;
   onResume(): void | Promise<void>;
   onSave(settings: CohortLearningSettings): Promise<void>;
@@ -27,13 +28,14 @@ function localDateValue(date: Date) {
 }
 
 export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
-  cohort, onPause, onResume, onSave, onDelete,
+  cohort, disabled, onPause, onResume, onSave, onDelete,
 }: SubscribedCohortCardProps) {
   const [panel, setPanel] = useState<Panel | null>(null);
   const [imgError, setImgError] = useState(false);
   const [customDate, setCustomDate] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const isActionDisabled = Boolean(pending || disabled);
   const [goal, setGoal] = useState(cohort.dailyGoalMinutes);
   const [days, setDays] = useState(cohort.schedule.days);
   const [order, setOrder] = useState(cohort.orderStyle || 'Sequential');
@@ -57,6 +59,7 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
     anchor.current?.focus();
   };
   const open = (next: Panel, button: HTMLButtonElement | null) => {
+    if (disabled) return;
     anchor.current = button;
     setError('');
     setCustomDate('');
@@ -159,7 +162,7 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
           data-paused={paused || undefined}
           aria-label={`${paused ? 'Resume' : 'Pause'} ${cohort.title}`}
           title={paused ? 'Resume' : 'Pause'}
-          disabled={pending} onClick={() => {
+          disabled={isActionDisabled} onClick={() => {
             anchor.current = pauseButton.current;
             if (paused) {
               void persist(onResume);
@@ -172,6 +175,7 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
       </div>
       <button ref={menuButton} type="button" className={styles.kebabBtn} aria-label={`Cohort actions for ${cohort.title}`}
         aria-expanded={panel === 'menu' || panel === 'edit' || panel === 'delete'} aria-haspopup="menu"
+        disabled={isActionDisabled}
         onClick={() => panel === 'menu' ? close() : open('menu', menuButton.current)}><MoreVertical size={17} /></button>
       <div className={styles.bottomContent}>
         <h3 className={styles.title} title={cohort.title}>{cohort.title}</h3>
@@ -189,25 +193,25 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
         <div ref={popover} className={styles.popover} style={position}
           role={panel === 'menu' ? 'menu' : 'dialog'} aria-label={`${panel === 'menu' ? 'Actions' : panel === 'edit' ? 'Learning settings' : panel === 'delete' ? 'Remove subscription' : 'Pause options'} for ${cohort.title}`}>
           {panel === 'menu' ? <>
-            <button type="button" role="menuitem" onClick={() => open('edit', menuButton.current)}><Pencil size={14} /> Edit</button>
-            <button type="button" role="menuitem" onClick={() => open('pause', menuButton.current)}><CalendarDays size={14} /> Pause options…</button>
-            <button type="button" role="menuitem" className={styles.danger} onClick={() => open('delete', menuButton.current)}><Trash2 size={14} /> Delete</button>
+            <button type="button" role="menuitem" disabled={isActionDisabled} onClick={() => open('edit', menuButton.current)}><Pencil size={14} /> Edit</button>
+            <button type="button" role="menuitem" disabled={isActionDisabled} onClick={() => open('pause', menuButton.current)}><CalendarDays size={14} /> Pause options…</button>
+            <button type="button" role="menuitem" className={styles.danger} disabled={isActionDisabled} onClick={() => open('delete', menuButton.current)}><Trash2 size={14} /> Delete</button>
           </> : <>
             <header className={styles.popoverHeader}>
               <strong>{panel === 'edit' ? 'Learning settings' : panel === 'delete' ? 'Remove subscription?' : panel === 'resume' ? 'Resume cohort' : 'Pause for'}</strong>
               <button type="button" className={styles.dismiss} aria-label="Close options" onClick={close}><X size={14} /></button>
             </header>
             {panel === 'pause' && <>
-              <button type="button" disabled={pending} onClick={() => pauseForDays(1)}>1 day</button>
-              <button type="button" disabled={pending} onClick={() => pauseForDays(7)}>1 week</button>
-              <button type="button" disabled={pending} onClick={() => setPanel('custom')}><CalendarDays size={14} /> Custom date</button>
+              <button type="button" disabled={isActionDisabled} onClick={() => pauseForDays(1)}>1 day</button>
+              <button type="button" disabled={isActionDisabled} onClick={() => pauseForDays(7)}>1 week</button>
+              <button type="button" disabled={isActionDisabled} onClick={() => setPanel('custom')}><CalendarDays size={14} /> Custom date</button>
             </>}
             {panel === 'custom' && <form onSubmit={submitCustom} className={styles.form}>
               <label htmlFor={`pause-date-${cohort.id}`}>Pause through</label>
               <input ref={dateInput} id={`pause-date-${cohort.id}`} type="date" min={localDateValue(tomorrow)} value={customDate} required
                 onClick={() => dateInput.current?.showPicker?.()} onInput={(event) => { setCustomDate(event.currentTarget.value); setError(''); }}
                 onChange={(event) => { setCustomDate(event.target.value); setError(''); }} />
-              <button type="submit" className={styles.primary} disabled={pending}>{pending ? 'Saving…' : 'Pause'}</button>
+              <button type="submit" className={styles.primary} disabled={isActionDisabled}>{pending ? 'Saving…' : 'Pause'}</button>
             </form>}
             {panel === 'edit' && <form className={styles.form} onSubmit={(event) => {
               event.preventDefault();
@@ -223,12 +227,12 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
               <select id={`order-${cohort.id}`} value={order} onChange={(event) => setOrder(event.target.value as typeof order)}>
                 <option>Sequential</option><option>Semantic Randomize</option><option>Randomize</option>
               </select>
-              <button type="submit" className={styles.primary} disabled={pending || !days.length}>{pending ? 'Saving…' : 'Save changes'}</button>
+              <button type="submit" className={styles.primary} disabled={isActionDisabled || !days.length}>{pending ? 'Saving…' : 'Save changes'}</button>
             </form>}
             {panel === 'delete' && <>
               <p className={styles.helpText}>Remove this cohort from your subscribed list? Your progress will be kept.</p>
-              <button type="button" className={styles.danger} disabled={pending} onClick={() => void persist(onDelete)}>{pending ? 'Removing…' : 'Remove subscription'}</button>
-              <button type="button" disabled={pending} onClick={close}>Cancel</button>
+              <button type="button" className={styles.danger} disabled={isActionDisabled} onClick={() => void persist(onDelete)}>{pending ? 'Removing…' : 'Remove subscription'}</button>
+              <button type="button" disabled={isActionDisabled} onClick={close}>Cancel</button>
             </>}
           </>}
           {error && <p className={styles.error} role="alert">{error}</p>}
