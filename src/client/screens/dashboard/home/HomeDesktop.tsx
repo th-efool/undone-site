@@ -8,8 +8,8 @@ import { RecentlyCompleted } from './components/RecentlyCompleted/RecentlyComple
 import { UpcomingEvents } from '@/src/client/components/global/UpcomingEvents';
 import { HomeStreakWidget } from './components/HomeStreakWidget';
 import { LearningPromptBar } from '@/src/client/components/global/LearningPromptBar';
-import { StudyRooms } from '@/src/client/components/global/StudyRooms';
-import { messageMock } from '@/src/client/screens/dashboard/message/mock/message.mock';
+import { HomeStudyRooms } from './components/HomeStudyRooms';
+import { getSubscribedCohorts } from './utils';
 import type { UseHomeResult } from './hooks/useHome';
 import styles from './Home.module.css';
 
@@ -27,12 +27,7 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
     input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, []);
 
-  const sortedActive = [...home.activeCohorts].sort((a, b) => a.rank - b.rank);
-  const sortedPaused = [...home.continueLater].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
-  const subscribedCohorts = [
-    ...sortedActive.map((cohort, index) => ({ ...cohort, rank: index + 1 })),
-    ...sortedPaused.map((cohort, index) => ({ ...cohort, rank: sortedActive.length + index + 1 })),
-  ];
+  const subscribedCohorts = getSubscribedCohorts(home.activeCohorts, home.continueLater);
 
   return (
     <div className={styles.home}>
@@ -42,12 +37,20 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
           <LearningPromptBar />
           <ChannelHub />
           {home.syncError && <p role="alert">{home.syncError}</p>}
-          <ActiveCohorts heading={home.sections.activeCohorts} items={subscribedCohorts} isLoading={home.loading && subscribedCohorts.length === 0} onPause={handlePause} onResume={home.actions.resumePausedCohort}
-            onSave={home.actions.saveLearningSettings} onDelete={home.actions.removeSubscribedCohort} />
+          <ActiveCohorts
+            heading={home.sections.activeCohorts}
+            items={subscribedCohorts}
+            isLoading={home.loading && subscribedCohorts.length === 0}
+            mutationPending={home.mutationPending}
+            onPause={handlePause}
+            onResume={home.actions.resumePausedCohort}
+            onSave={home.actions.saveLearningSettings}
+            onDelete={home.actions.removeSubscribedCohort}
+          />
           {home.recentlyCompleted.length > 0 && (
             <RecentlyCompleted heading={home.sections.recentlyCompleted} items={home.recentlyCompleted} isOpen={isCompletedOpen} onToggle={() => setIsCompletedOpen((open) => !open)} />
           )}
-          <StudyRooms items={messageMock.liveSessions} variant="compact" title="Active studyrooms" />
+          <HomeStudyRooms />
         </main>
         <aside className={styles.rightRail}>
           <UpcomingEvents variant="light" showAddTask onAddTask={handleAddTask} />

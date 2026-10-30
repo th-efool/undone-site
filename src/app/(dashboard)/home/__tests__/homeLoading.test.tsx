@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import HomeLoading from '../loading';
+import HomeError from '../error';
 import { ActiveCohorts } from '@/src/client/screens/dashboard/home/components/ActiveCohorts/ActiveCohorts';
 
-// Mock next-auth and session safely
 vi.mock('next-auth/react', () => ({
   useSession: () => ({
     data: { user: { id: 'test-user', name: 'Tester' } },
@@ -13,48 +13,28 @@ vi.mock('next-auth/react', () => ({
   }),
 }));
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({
-    data: null,
-    isLoading: true,
-  }),
-}));
-
-describe('Home Route Loading Boundary (Issue 1)', () => {
+describe('Home Route Loading and Error Boundaries (FH-09)', () => {
   beforeEach(() => {
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn().mockImplementation((query) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
+    localStorage.clear();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it('renders the real Home page composition during loading instead of an obsolete skeleton layout', () => {
-    const { container } = render(<HomeLoading />);
+  it('renders presentational HomeLoading with status role and no fabricated cohorts or storage writes', () => {
+    render(<HomeLoading />);
 
-    // Real Home components must be present
-    expect(screen.getByRole('banner', { name: /dashboard hero/i })).toBeDefined();
-    expect(screen.getByRole('heading', { level: 1 })).toBeDefined();
-    expect(screen.getByRole('region', { name: /subscribed cohorts/i })).toBeDefined();
+    expect(screen.getByRole('status', { name: /loading dashboard/i })).toBeDefined();
 
-    // Must NOT contain obsolete 4-card grid, fake cohort bars, or skeleton containers
-    expect(container.querySelector('[class*="cardGrid"]')).toBeNull();
-    expect(container.querySelector('[class*="summaryCard"]')).toBeNull();
-    expect(container.querySelector('[class*="cohortRows"]')).toBeNull();
-    expect(container.querySelector('[class*="darkSkeletonContainer"]')).toBeNull();
-    expect(container.querySelector('[class*="skeletonContainer"]')).toBeNull();
+    // Must NOT contain fabricated cohorts or text
+    expect(screen.queryByText(/Neuroscience 101/i)).toBeNull();
+    expect(screen.queryByText(/Cities & Urban Systems/i)).toBeNull();
+    expect(screen.queryByText(/AI for Creators/i)).toBeNull();
+
+    // Must NOT write to localStorage
+    expect(localStorage.length).toBe(0);
   });
 
   it('renders a restrained indicator inside ActiveCohorts when empty during loading, with zero shimmer', () => {
@@ -73,8 +53,36 @@ describe('Home Route Loading Boundary (Issue 1)', () => {
     const loader = screen.getByRole('status', { name: /loading cohorts/i });
     expect(loader).toBeDefined();
 
-    // Zero shimmer elements
     expect(container.querySelectorAll('[class*="shimmer"]').length).toBe(0);
     expect(container.querySelectorAll('[class*="skeleton"]').length).toBe(0);
+  });
+
+  it('renders Discover cohorts link when ActiveCohorts is loaded and empty', () => {
+    render(
+      <ActiveCohorts
+        heading={{ title: 'Subscribed Cohorts' }}
+        items={[]}
+        isLoading={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('link', { name: /discover cohorts/i })).toBeDefined();
+  });
+
+  it('renders HomeError boundary with non-database error message and working retry trigger', () => {
+    const reset = vi.fn();
+    render(<HomeError error={new Error('Connection to replica set failed')} reset={reset} />);
+
+    // Must NOT print raw database error text
+    expect(screen.queryByText(/replica set/i)).toBeNull();
+    expect(screen.getByText('Home could not load')).toBeDefined();
+
+    const retryBtn = screen.getByRole('button', { name: /retry/i });
+    fireEvent.click(retryBtn);
+    expect(reset).toHaveBeenCalledOnce();
   });
 });

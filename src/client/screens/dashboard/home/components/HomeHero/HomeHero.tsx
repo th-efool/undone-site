@@ -1,28 +1,16 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useSyncExternalStore } from 'react';
 import styles from './HomeHero.module.css';
+
+const emptySubscribe = () => () => {};
 
 export interface HomeHeroProps {
   userName?: string;
-  // Optional backward compatibility props for existing models/callers:
-  content?: any;
-  summaries?: any[];
-  searchValue?: string;
-  searchPlaceholder?: string;
-  onSearchChange?: (value: string) => void;
-  weeklyMinutes?: number;
-  activeDays?: number;
-  pace?: number;
-  onPaceClick?: () => void;
 }
 
 export function HomeHero({ userName }: HomeHeroProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   const { greeting, emoji } = useMemo(() => {
     // Before mount, use a server-safe default so SSR and initial client hydration match 100%
