@@ -27,14 +27,14 @@ console.log('===========================================================');
 // 1. Verify and initialize submodules
 step('Checking Git Submodules', 'node scripts/ensure-submodules.mjs');
 
-// 2. Fast TypeScript validation (fails in seconds if any types are broken)
-step('TypeScript Verification', 'npx tsc --noEmit --pretty false');
+// 2. Prebuild internal packages (guarantees up-to-date declaration files)
+step('Building Internal Packages', 'npm run prebuild');
 
-// 3. Prebuild internal packages
-step('Package Distributions Check', 'npm run prebuild');
-
-// 4. Prisma Client Generation
+// 3. Prisma Client Generation (guarantees up-to-date database client types)
 step('Prisma Client Generation', 'npx prisma generate');
+
+// 4. TypeScript Verification (authoritative blocker across entire codebase)
+step('TypeScript Verification', 'npx tsc --noEmit --incremental false');
 
 // 5. Full Production Build (matching Vercel serverless environment)
 step('Production Build Simulation', 'node --max-old-space-size=4096 --import ./scripts/register-root-environment.mjs ./node_modules/next/dist/bin/next build');

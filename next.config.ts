@@ -42,10 +42,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: [
       'lucide-react',
       'framer-motion',
-      '@reduxjs/toolkit',
-      'lodash-es',
-      'remeda',
-      'cmdk',
       '@tanstack/react-query',
       '@radix-ui/react-dialog',
       '@radix-ui/react-tooltip',
