@@ -537,7 +537,8 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'set_daily_minutes') { invalidateRelease(); next.dailyMinutes = action.dailyMinutes; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Daily learning time updated.', undoable: true }; }
   if (action.type === 'edit_presentation') {
     invalidateRelease();
-    const { title, description, coverImage, ...presentation } = action;
+    const { type: actionType, title, description, coverImage, ...presentation } = action;
+    void actionType;
     if (title !== undefined) next.title = title;
     if (description !== undefined) next.description = description;
     const current = next.presentation ?? {};

@@ -1,7 +1,7 @@
 import {afterEach,expect,it,vi} from 'vitest';
 import {createCohortAiTools} from '../tools';
 import {cohortAssistantPrompt} from '../context';
-import {cohortWorkspaceSchema} from '@/src/shared/cohort-builder/contracts';
+import {cohortWorkspaceSchema, planCohortAction} from '@/src/shared/cohort-builder/contracts';
 import {localSourceFixture} from '@/src/server/infrastructure/ai/localSourceFixture';
 
 afterEach(()=>vi.unstubAllEnvs());
@@ -147,4 +147,79 @@ it('grounds co-design in presentation and keeps search explicit', () => {
   expect(prompt).toContain('Explain election safety');
   expect(prompt).toContain('Only call start_search when the user explicitly asks');
   expect(prompt).not.toContain('IMMEDIATELY call the `start_search`');
+});
+
+it('tool-to-repository integration: scripted set_intent then edit_presentation completes with two commits and valid snapshot', async () => {
+  let state = cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Draft', intent: 'Initial', audience: 'Beginner', dailyMinutes: 20, lessons: [] });
+  let revision = 0;
+  const commits: any[] = [];
+  const messages: any[] = [];
+
+  const fakeRepo: any = {
+    async loadWorkspace() {
+      return { workspaceId: 'w1', ownerId: 'o1', revision, snapshot: state };
+    },
+    async commitAction(input: any) {
+      if (input.expectedRevision !== revision) throw new Error('STALE_WORKSPACE');
+      const planResult = await input.plan(
+        state,
+        input.envelope.action,
+        {
+          actionId: input.envelope.actionId,
+          workspaceId: input.workspaceId,
+          expectedRevision: input.expectedRevision,
+          currentRevision: revision,
+          entityVersions: new Map(),
+        }
+      );
+      const validatedNext = cohortWorkspaceSchema.parse(planResult.nextState);
+      state = validatedNext;
+      revision++;
+      const receipt = { summary: planResult.summary, changed: planResult.changed };
+      commits.push({ action: input.envelope.action, revision, receipt });
+      return { revision, receipt };
+    },
+    async appendMessage(input: any) {
+      messages.push(input);
+      return { messageId: 'msg-1', sequence: messages.length };
+    },
+  };
+
+  const domain = {
+    plan: planCohortAction,
+    schema: cohortWorkspaceSchema,
+  } as any;
+
+  const tools = createCohortAiTools({
+    workspaceId: 'w1',
+    ownerId: 'o1',
+    observedRevision: 0,
+    stage: 'chat',
+    repo: fakeRepo,
+    domain,
+  });
+
+  await tools.set_intent.execute!({ intent: 'Master Machine Learning' }, {} as any);
+  expect(commits).toHaveLength(1);
+  expect(state.intent).toBe('Master Machine Learning');
+  expect(revision).toBe(1);
+
+  await tools.edit_presentation.execute!({
+    title: 'Machine Learning Deep Dive',
+    description: 'Foundations to advanced architectures',
+  }, {} as any);
+  expect(commits).toHaveLength(2);
+  expect(state.title).toBe('Machine Learning Deep Dive');
+  expect(state.description).toBe('Foundations to advanced architectures');
+  expect(state.presentation).not.toHaveProperty('type');
+  expect(revision).toBe(2);
+
+  await fakeRepo.appendMessage({
+    workspaceId: 'w1',
+    role: 'assistant',
+    content: [{ type: 'text', text: 'I updated the intent and presentation.' }],
+  });
+  expect(messages).toHaveLength(1);
+  expect(commits).toHaveLength(2);
+  expect(() => cohortWorkspaceSchema.parse(state)).not.toThrow();
 });

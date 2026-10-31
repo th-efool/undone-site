@@ -30,6 +30,60 @@ describe('cohort builder action plan', () => {
     const result = planCohortAction(ready, { type: 'edit_presentation', title: 'My course', description: 'My public description' }, context);
     expect(result.nextState).toMatchObject({ title: 'My course', description: 'My public description', processing: ready.processing });
   });
+  it('presentation edits produce a schema-valid snapshot without action metadata', () => {
+    const result = planCohortAction(base(), {
+      type: 'edit_presentation',
+      title: 'Data science',
+      description: 'A deep study path',
+      subtitle: 'From foundations to projects',
+    }, context);
+    expect(result.nextState.presentation).not.toHaveProperty('type');
+    expect(() => cohortWorkspaceSchema.parse(result.nextState)).not.toThrow();
+    expect(result.nextState.title).toBe('Data science');
+    expect(result.nextState.description).toBe('A deep study path');
+    expect(result.nextState.presentation?.subtitle).toBe('From foundations to projects');
+
+    // title-only
+    const titleOnly = planCohortAction(base(), { type: 'edit_presentation', title: 'Title Only' }, context);
+    expect(titleOnly.nextState.presentation).not.toHaveProperty('type');
+    expect(() => cohortWorkspaceSchema.parse(titleOnly.nextState)).not.toThrow();
+    expect(titleOnly.nextState.title).toBe('Title Only');
+
+    // description-only
+    const descOnly = planCohortAction(base(), { type: 'edit_presentation', description: 'Desc Only' }, context);
+    expect(descOnly.nextState.presentation).not.toHaveProperty('type');
+    expect(() => cohortWorkspaceSchema.parse(descOnly.nextState)).not.toThrow();
+    expect(descOnly.nextState.description).toBe('Desc Only');
+
+    // all presentation fields + clearing coverImage
+    const withCover = planCohortAction(base(), {
+      type: 'edit_presentation',
+      coverImage: 'https://example.com/cover.png',
+      subtitle: 'Subtitle',
+      difficulty: 'INTERMEDIATE',
+      categories: ['Coding'],
+      learningOutcomes: ['Outcome 1'],
+      requirements: ['Req 1'],
+    }, context);
+    expect(withCover.nextState.presentation).not.toHaveProperty('type');
+    expect(() => cohortWorkspaceSchema.parse(withCover.nextState)).not.toThrow();
+    expect(withCover.nextState.presentation?.coverImage).toBe('https://example.com/cover.png');
+
+    const clearCover = planCohortAction(withCover.nextState, {
+      type: 'edit_presentation',
+      coverImage: null,
+    }, context);
+    expect(clearCover.nextState.presentation).not.toHaveProperty('type');
+    expect(() => cohortWorkspaceSchema.parse(clearCover.nextState)).not.toThrow();
+    expect(clearCover.nextState.presentation?.coverImage).toBeUndefined();
+
+    // retaining seasonTitles and subsequent action
+    const withSeason = planCohortAction(base(), { type: 'set_season_title', seasonKey: 's1', title: 'Season 1' }, context);
+    const afterSeason = planCohortAction(withSeason.nextState, { type: 'edit_presentation', title: 'Updated With Season' }, context);
+    expect(afterSeason.nextState.presentation).not.toHaveProperty('type');
+    expect(() => cohortWorkspaceSchema.parse(afterSeason.nextState)).not.toThrow();
+    expect(afterSeason.nextState.presentation?.seasonTitles?.s1).toBe('Season 1');
+  });
   it('rejects stale revision and malformed order', () => {
     expect(() => planCohortAction(base(), { type: 'set_intent', intent: 'New' }, { ...context, expectedRevision: 1 })).toThrow('STALE_WORKSPACE');
     expect(() => planCohortAction(base(), { type: 'reorder_lessons', lessonIds: ['l1', 'l1'] }, context)).toThrow('INVALID_LESSON_ORDER');
