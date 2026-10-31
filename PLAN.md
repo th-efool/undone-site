@@ -1,3 +1,68 @@
+# Homepage composer and cohort chat — consolidated fix plan
+
+## Verified root cause — 2026-10-31 (supersedes latency hypotheses)
+
+Read-only inspection of screenshot workspace `064df82e-5fca-4b61-a6c7-6801df1b917e` found the run **failed 8.657 seconds after acceptance**, not after minutes of model execution. `set_intent` committed at +8.076s (so local suggestions could update from the AI-refined goal), then `edit_presentation` failed because `planCohortAction` spreads the action's `type` discriminator into the strict presentation object. The model supplied valid title/description fields. This application defect was reproduced locally; removing only the discriminator restored schema validity. No assistant reply was persisted.
+
+The activity endpoint's truncated-base64 ETag stays identical across queued/running/failed for the same message; the hook therefore can preserve Thinking indefinitely on 304. The collision is reproduced, but original browser network history was not captured. **Minimal repair: exclude type from the presentation spread, hash the full activity payload, and regression-test valid snapshots plus terminal status transitions.** Streaming/model changes/worker redesign are not prerequisites for this incident. Defer the prior D/E runtime expansion until the small repair is verified.
+
+Exact evidence, patches, and tests: [plans/composer-chat-execution.md](plans/composer-chat-execution.md). A copy of the incident specification is also included in the non-ignored detailed handoff below for distribution.
+
+**Executor handoff:** [COMPOSER_CHAT_IMPLEMENTATION_PLAN.md](COMPOSER_CHAT_IMPLEMENTATION_PLAN.md). This detailed specification supersedes the summary below where it is more specific. Execute only this scoped handoff; unrelated historical plans remain out of scope.
+
+**Requested:** 2026-10-31. **Status:** PLAN ONLY. Consolidates the preceding chat investigation and the follow-up screenshot requirements. Application changes are not implemented by this document. The unrelated plans below remain preserved; their execution or deployment instructions do not extend this scope.
+
+## Confirmed findings and remaining investigation
+
+- `src/client/components/global/LearningPromptBar/LearningPromptBar.tsx`: the plus button and Add sources open the same drawer; the drawer adds redundant links/raw-text tabs. Plan toggles mode and calls `handleSubmit('plan')` whenever a query exists, including when toggling off. `submitting` then disables both actions.
+- `LearningPromptBar.module.css`: `sourceTextWrapper:focus-within` highlights the entire drawer. `Composer/LinkRows.module.css` highlights the URL field, and global forms/accessibility styles add a focus halo. These competing indicators explain the nested outlines.
+- `src/client/screens/cohortBuilder/ChatPane.tsx`: suggestions are generated synchronously from local templates and workspace goal/lesson state. They are not evidence that an AI response has completed. Full goals are interpolated into long labels, all suggestions render below the form, and a routine saved-status footer adds more height. Sparkles appears for both assistant messages and active turns.
+- `src/server/infrastructure/ai/interactionModel.ts` does not enable adapter streaming. `packages/interaction-builder/src/adapters/ai/index.ts` waits for `generateText` with up to five steps; `src/runtime/runner.ts` in that package publishes assistant text only after completion. The adapter has no explicit turn deadline and no caller abort-signal input.
+- `src/server/interaction-dispatch.runtime.ts`: the `after` callback discards the worker promise. This is a hosting-lifetime risk, not proof of the reported delay. The worker also services shared queues, so measure queue wait separately from provider execution.
+- The reported latency is now 4–5 minutes. Exact attribution remains unverified without runtime timing. Do not describe streaming alone as a fix for slow queue acquisition or provider latency.
+
+## Implementation order
+
+### 1. Simplify homepage attachments and fix Plan
+
+- Keep one toolbar action labelled **Add link**. Remove the duplicate plus trigger and the links/raw-text tab interface. Open a compact inline URL field within the composer, with removable attached-link rows and explicit extraction/error states. Keep Upload as a separate action.
+- Remove the raw-text editing UI; preserve existing persisted source data through a deliberate compatibility path so old drafts are not silently lost or submitted invisibly. Let users review/remove any restored legacy attachment.
+- Give only the focused URL field one restrained accessible indicator; remove the outer drawer focus halo. Scope changes to this composer rather than disabling global keyboard focus styling.
+- Plan changes mode only, with no network call. Only the primary submit action (and the existing intentional keyboard submission shortcut) sends. Selecting either mode must leave Send available when the draft is otherwise valid.
+- Show a visible sending state during actual intake, prevent duplicate submission, retain drafts on errors, and bound stalled requests with a recoverable error and stable request identity.
+
+### 2. Compact cohort chat suggestions and branding
+
+**Files:** `src/client/screens/cohortBuilder/ChatPane.tsx`, `CohortBuilder.module.css`, and their focused tests. Reuse `public/undone-logo.svg`, the asset used by the existing global Logo component.
+
+- Render at most **three** relevant suggestions (normally two or three) immediately **above the typing box**, inside the composer area. Remove the old suggestion block below the form.
+- Use one non-wrapping horizontal row: flex nowrap, bounded width, overflow-x auto, non-shrinking chips, and single-line labels. On narrow screens scroll the row instead of wrapping chips or overflowing the page. Keep keyboard focus visible and focused chips reachable.
+- Separate concise visible labels from contextual prompt payloads. Examples: **Draft a syllabus**, **Add projects**, **Set my pace**. Never repeat a full learning goal in each label. Do not silently assume a pace when the label asks the user to choose one.
+- Hide suggestions while the initial assistant turn is queued/running, and while a send is pending, rather than showing irrelevant disabled prompts under an unanswered message. Restore relevant suggestions after completion. Keep errors/retry actionable independently of suggestion visibility.
+- Remove the routine **Saved to your account**, **Saving…**, and **Last saved state** footer from this area. Preserve actual failure/offline feedback where action is needed; do not remove persistence or misrepresent unsaved work.
+- Replace both assistant Sparkles instances (message avatar and waiting indicator) with the actual Undone mark, sized consistently without a decorative frame. Use a non-navigating image here: the existing Logo component wraps its image in an auth link, which is inappropriate for a chat avatar. Provide one accessible assistant identity without repetitive decorative announcements.
+
+### 3. Diagnose and fix response latency
+
+- Correlate intake request, workspace, and run IDs. Measure intake acceptance, dispatch, queue acquisition, model start, first text, each tool duration, final message commit, and client receipt. Record durations/statuses without source contents or credentials.
+- Reproduce the initial homepage Plan submission and ordinary search-mode submission separately; they schedule different work. Exercise a simple text-only prompt before attachments or curriculum generation. Inspect queued/running/failed states to distinguish waiting from execution.
+- Ensure the hosting lifecycle owns the worker promise; preserve durable dispatch and lease fencing. Verify wake-up failure/recovery, queue contention, and cold-start behavior before attributing delay to the model.
+- Thread caller cancellation and a bounded interactive-turn deadline through worker, runner, model adapter, and tool boundaries. Ensure timeout/cancel leaves an honest terminal/retryable state and does not publish stale completion after cancellation.
+- Wire streaming end-to-end: model text deltas and useful tool progress must reach the authorized workspace client, not just a server callback. Use run/message identities, reconcile the final durable message, avoid duplicate text on replay/reconnect, and retain existing ownership and lease fences. Enabling `streaming: true` alone is insufficient.
+- Keep the first conversational response concise. Avoid unnecessary serial metadata/tool rounds for a simple topic; move substantial curriculum/source processing to existing durable background jobs. Do not fabricate an instant AI response or bypass required durable writes.
+- Replace indefinite undifferentiated Thinking with truthful queued/responding/working status and an actionable stalled/error state. Choose deadlines and latency targets from measurements; immediate UI acknowledgement is required, but instantaneous completed AI generation is not promised.
+
+### 4. Verification and completion criteria
+
+- Composer regressions: selecting/deselecting Plan issues zero requests; submitting issues one request using the chosen mode; busy/error/retry and draft retention work; duplicate attachment controls/raw-text tabs are absent.
+- Chat regressions: no more than three short suggestions; row precedes the form; initial active-turn suggestions are hidden; suggestion payloads remain meaningful; saved footer is absent; both assistant states use the Undone asset.
+- Inspect desktop and narrow mobile rendering, keyboard focus, horizontal scrolling, and attachment errors. Suggestion row never wraps or increases to a multi-row block.
+- Use deterministic delayed model/worker fixtures to verify first streamed text appears before turn completion, cancellation/timeout stops stale publication, reconnect reconciles messages, and queue recovery works. Test actual module boundaries rather than mocking away dispatch or streaming integration.
+- Run focused LearningPromptBar, ChatPane, assistant activity, adapter/runner, and dispatch tests plus relevant type/build checks. Package exports use `dist`, so rebuild the interaction-builder package when changing its source and verify the application consumes the updated artifact.
+- Report measured before/after stage timings and residual limitations. Update relevant MEMORY files if streaming/runtime ownership contracts change. Do not deploy or claim production latency resolved merely because unit tests pass.
+
+---
+
 # Feed and Home — detailed remediation implementation plan
 
 **Requested:** 2026-10-30. **Status:** PLAN ONLY; none of the changes below have been implemented by writing this document.

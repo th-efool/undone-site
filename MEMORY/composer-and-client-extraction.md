@@ -12,9 +12,11 @@
   - `webClientExtractor.ts`: Server proxies HTML with `<script>`, `<style>`, `<noscript>`, `<svg>` stripped; client native `DOMParser` extracts clean article text.
 - `src/client/components/global/Composer/`:
   - `useComposerAttachments.ts`: Attachment state manager with URL deduplication, playlist fan-out (up to 100 videos using returned batch metadata), and a 3MB UTF-8 total text budget (`MAX_TOTAL_TEXT_BYTES`).
-  - `LinkRows.tsx`: Multi-row link input.
+  - `LinkRows.tsx`: Multi-row link input; bare URL field rendered with `data-bare-input`.
   - `AttachmentTray.tsx`: File cards displaying Page 1 PDF previews, extracting spinners, and remove buttons without retaining raw `File` byte buffers in state.
   - `SourceIcon.tsx`: Lean vector brand icon primitive.
+- `src/client/components/global/LearningPromptBar/`:
+  - `LearningPromptBar.tsx`: Single "Add link" pill trigger, inline URL input under input field, mode-only Plan button (toggles mode without submitting), in-flight submit guard with idempotent content fingerprinting, legacy attached source text preview/removal.
 - `src/client/screens/cohortBuilder/`:
   - `CohortInteractionScreen.tsx`: Single persistent component tree using `data-layout="centered" | "split"`. Keeps `<ChatPane />` mounted during `chat` ↔ `recommendations` transitions, preserving user drafts and scroll state.
   - `ChatPane.tsx`: AI chat pane styled via parent `data-layout` without `!important`.
