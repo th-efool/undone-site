@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, BookOpen, Paperclip, Sparkles, Square, X } from 'lucide-react';
+import { ArrowUp, BookOpen, Paperclip, Square, X } from 'lucide-react';
 import { useWorkspaceMessages, useSendMessage, useInteractionState, useDispatchAction } from '@/src/client/interaction/hooks';
 import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useComposerAttachments, AttachmentTray } from '@/src/client/components/global/Composer';
 import { useAssistantActivity } from './useAssistantActivity';
+import { stageSuggestions } from './chat-suggestions';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 import { ProcessingChecklist } from './stages/ProcessingChecklist';
@@ -32,7 +33,7 @@ interface ChatPaneProps {
   connection?: string;
 }
 
-export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = 'live' }: ChatPaneProps) {
+export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProps) {
   const messages = useWorkspaceMessages();
   const sendMessage = useSendMessage();
   const dispatchAction = useDispatchAction<CohortAction>();
@@ -91,7 +92,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
           checksum: source.checksum ?? undefined,
         };
 
-        if (source.label.toLowerCase().endsWith('.pdf') || (source.provenance as any)?.pageCount !== undefined) {
+        if (source.label.toLowerCase().endsWith('.pdf') || (source.provenance as { pageCount?: number } | undefined)?.pageCount !== undefined) {
           await dispatchAction({
             type: 'add_pdf_source',
             label: source.label,
@@ -100,7 +101,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         } else if (source.input?.kind === 'youtube' || source.label.includes('youtube.com') || source.label.includes('youtu.be')) {
           await dispatchAction({
             type: 'add_youtube_source',
-            url: (source.input as any)?.url || source.label,
+            url: (source.input as { url?: string } | undefined)?.url || source.label,
             label: source.label,
             mode: 'video_observation',
             extraction,
@@ -108,15 +109,15 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         } else if (source.input?.kind === 'github' || source.label.includes('github.com')) {
           await dispatchAction({
             type: 'add_github_source',
-            repoUrl: (source.input as any)?.repoUrl || source.label,
-            ref: (source.input as any)?.ref || 'main',
+            repoUrl: (source.input as { repoUrl?: string } | undefined)?.repoUrl || source.label,
+            ref: (source.input as { ref?: string } | undefined)?.ref || 'main',
             label: source.label,
             extraction,
           });
         } else if (source.input?.kind === 'web' || source.label.startsWith('http')) {
           await dispatchAction({
             type: 'add_web_source',
-            url: (source.input as any)?.url || source.label,
+            url: (source.input as { url?: string } | undefined)?.url || source.label,
             label: source.label,
             extraction,
           });
@@ -170,62 +171,19 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
   const latestAssistantText = messages.filter(message => message.role === 'assistant').at(-1)?.parts
     .filter(part => part.type === 'text').map(part => part.text).join(' ') ?? '';
   const asksAboutBackground = /\b(background|experience|familiar|prerequisites)\b/i.test(latestAssistantText);
-  const suggestions = step === 'chat' || step === 'review'
-    ? [
-        lessons.length
-          ? `Refine the objectives for ${lessons[0].title}`
-          : goal ? `Draft a deep-dive syllabus for ${goal}` : 'Help me choose a learning goal',
-        asksAboutBackground
-          ? `Help me assess my background${goal ? ` for ${goal}` : ''}`
-          : goal ? `Add hands-on projects for ${goal}` : 'Help me assess my current background',
-        `Set pace to ${state.view?.dailyMinutes === 45 ? 30 : 45} mins/day`,
-        goal ? `Find external resources for ${goal}` : 'Help me choose a daily study pace',
-      ]
-    : step === 'recommendations'
-    ? [
-        'Show more advanced ones',
-        'I want something more practical',
-        'I’ll create my own instead',
-      ]
-    : step === 'discovery'
-    ? [
-        'Search again',
-        'I’ll provide my own sources instead',
-      ]
-    : step === 'goal_setup'
-    ? [
-        '30 minutes per day',
-        'For intermediate developers',
-      ]
-    : step === 'starting_point' || step === 'material_input'
-    ? [
-        'I have a YouTube playlist',
-        'Find material for me',
-        'I just have a goal',
-      ]
-    : step === 'processing'
-    ? [
-        'Show understanding progress',
-        'Show chunking details',
-        'Cancel processing',
-      ]
-    : step === 'ready'
-    ? [
-        'Show my learning experience',
-        'Review my cohort',
-        'What happens next?',
-      ]
-    : step === 'published'
-    ? [
-        'View cohort page',
-        'Start learning in feed',
-      ]
-    : [
-        'Make the description shorter',
-        'Make the title clearer',
-        'Clarify the learning objectives',
-        'Add a capstone project lesson',
-      ];
+
+  const latestMessage = messages.at(-1);
+  const isLatestUser = latestMessage?.role === 'user';
+  const hasActiveTurn =
+    activity.turns.some(t => t.status === 'pending' || t.status === 'queued' || t.status === 'running') ||
+    !!activeTurn;
+  const showSuggestions = !sending && !hasActiveTurn && !composerAttachments.isExtracting && !isLatestUser;
+
+  const suggestions = stageSuggestions(step, {
+    goal,
+    firstLessonTitle: lessons[0]?.title,
+    asksAboutBackground,
+  });
 
   const placeholder = step === 'chat'
     ? 'What do you want to learn? Ask a question, explore topics, or paste links...'
@@ -260,7 +218,15 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
               >
                 {!isUser && (
                   <div className={styles.assistantSparkleWrapper} aria-hidden="true">
-                    <Sparkles size={18} className={styles.sparkleIcon} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/undone-logo.svg"
+                      alt=""
+                      aria-hidden="true"
+                      width={20}
+                      height={20}
+                      className={styles.assistantMark}
+                    />
                   </div>
                 )}
                 <div className={isUser ? styles.userBubble : styles.assistantBubble}>
@@ -322,7 +288,15 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         {activeTurn && (
           <div className={`${styles.messageRow} ${styles.messageAssistant}`} role="status">
             <div className={styles.assistantSparkleWrapper} aria-hidden="true">
-              <Sparkles size={18} className={styles.sparkleIcon} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/undone-logo.svg"
+                alt=""
+                aria-hidden="true"
+                width={20}
+                height={20}
+                className={styles.assistantMark}
+              />
             </div>
             <div className={styles.assistantBubble}>
               <div className={styles.thinkingContainer}>
@@ -370,6 +344,20 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
       </div>
 
       <div className={styles.composerArea}>
+        {showSuggestions && suggestions.length > 0 && (
+          <div className={styles.suggestions} role="group" aria-label="Suggested next steps">
+            {suggestions.slice(0, 3).map(s => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => void handleSend(s.prompt)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <form
           className={styles.composerCard}
           onSubmit={e => {
@@ -452,27 +440,6 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
             </div>
           </div>
         </form>
-
-        <div className={styles.suggestions}>
-          {suggestions.map((s, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => void handleSend(s)}
-              disabled={sending || !!activeTurn}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <span className={styles.saved} role="status">
-          {Object.keys(state.pending ?? {}).length
-            ? 'Saving…'
-            : connection === 'live'
-            ? 'Saved to your account'
-            : 'Last saved state'}
-        </span>
       </div>
     </div>
   );

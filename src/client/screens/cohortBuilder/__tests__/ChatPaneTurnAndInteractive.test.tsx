@@ -36,6 +36,41 @@ vi.mock('@/src/client/hooks/useTheme', () => ({
 
 import { ChatPane } from '../ChatPane';
 import { CurriculumStageView } from '../stages/CurriculumStageView';
+import { planningSuggestions, stageSuggestions } from '../chat-suggestions';
+
+describe('planningSuggestions pure helper', () => {
+  it('handles empty goal with choose goal and assess background', () => {
+    const suggestions = planningSuggestions({ asksAboutBackground: false });
+    expect(suggestions.map(s => s.label)).toEqual(['Choose a goal', 'Assess my background', 'Set my pace']);
+    expect(suggestions[0].prompt).toBe('Help me choose a learning goal');
+    expect(suggestions[2].prompt).toBe('Help me choose a realistic daily study pace. Ask about my available time first.');
+  });
+
+  it('handles existing lesson title with refine objectives', () => {
+    const suggestions = planningSuggestions({
+      goal: 'TypeScript',
+      firstLessonTitle: 'Type Basics',
+      asksAboutBackground: false,
+    });
+    expect(suggestions[0]).toEqual({
+      id: 'objectives',
+      label: 'Refine objectives',
+      prompt: 'Refine the objectives for Type Basics',
+    });
+  });
+
+  it('adapts when assistant asks about background', () => {
+    const suggestions = planningSuggestions({
+      goal: 'Distributed Systems',
+      asksAboutBackground: true,
+    });
+    expect(suggestions[1]).toEqual({
+      id: 'background',
+      label: 'Assess my background',
+      prompt: 'Help me assess my current background for Distributed Systems',
+    });
+  });
+});
 
 describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
   afterEach(() => {
@@ -72,21 +107,75 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
     ],
   });
 
-  it('renders no synthetic transcript or banner and derives suggestions from the goal', () => {
+  it('renders short suggestion labels and sends contextual goal-aware payloads on click', () => {
     fakeState.view = { ...baseWorkspace, lessons: [], journey: { version: 1, step: 'chat', branch: null, processingStarted: false, intentVersion: 0 } };
     render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
     expect(screen.queryByText('Undone')).toBeNull();
     expect(screen.queryByText('Conversational Planning')).toBeNull();
-    expect(screen.queryByText('Search machine learning cohorts')).toBeNull();
-    expect(screen.getByText('Draft a deep-dive syllabus for Master distributed consensus')).toBeTruthy();
+
+    const group = screen.getByRole('group', { name: 'Suggested next steps' });
+    expect(group).toBeTruthy();
+    const buttons = screen.getAllByRole('button').filter(b => b.parentElement === group);
+    expect(buttons.length).toBeLessThanOrEqual(3);
+    expect(screen.getByRole('button', { name: 'Draft a syllabus' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add projects' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Set my pace' })).toBeTruthy();
+
+    expect(screen.queryByText('Draft a deep-dive syllabus for Master distributed consensus')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add projects' }));
+    expect(fakeState.send).toHaveBeenCalledWith('Add hands-on projects for Master distributed consensus', expect.anything());
+
+    const textarea = screen.getByRole('textbox', { name: 'Message the cohort assistant' });
+    expect(group.compareDocumentPosition(textarea) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('adapts planning suggestions to the latest assistant question', () => {
+  it('adapts planning suggestions to short labels and hides while turn is active', () => {
     fakeState.view = { ...baseWorkspace, journey: { version: 1, step: 'review', branch: null, processingStarted: false, intentVersion: 0 } };
     fakeState.messages = [{ id: 'background-question', role: 'assistant', parts: [{ type: 'text', text: 'What is your background in distributed systems?' }] }];
-    render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
-    expect(screen.getByText('Help me assess my background for Master distributed consensus')).toBeTruthy();
-    expect(screen.getByText('Refine the objectives for Paxos & Consensus Basics')).toBeTruthy();
+    const { rerender } = render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+
+    expect(screen.getByRole('button', { name: 'Refine objectives' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Assess my background' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Set my pace' })).toBeTruthy();
+
+    fakeState.turns = [{ messageId: 'm1', runId: 'r1', status: 'running' }];
+    rerender(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+    expect(screen.queryByRole('group', { name: 'Suggested next steps' })).toBeNull();
+
+    fakeState.turns = [];
+    fakeState.messages = [
+      { id: 'background-question', role: 'assistant', parts: [{ type: 'text', text: 'What is your background?' }] },
+      { id: 'user-ans', role: 'user', parts: [{ type: 'text', text: 'I am a beginner' }] },
+    ];
+    rerender(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+    expect(screen.queryByRole('group', { name: 'Suggested next steps' })).toBeNull();
+
+    fakeState.messages.push({
+      id: 'assistant-reply',
+      role: 'assistant',
+      parts: [{ type: 'text', text: 'Understood. We will start from basics.' }],
+    });
+    rerender(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+    expect(screen.getByRole('group', { name: 'Suggested next steps' })).toBeTruthy();
+  });
+
+  it('omits routine saved status footer across connection values and uses undone mark for assistant avatar', () => {
+    fakeState.view = baseWorkspace;
+    fakeState.messages = [
+      { id: 'msg-asst', role: 'assistant', parts: [{ type: 'text', text: 'Hello! I am ready.' }] },
+    ];
+
+    const { rerender } = render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} connection="live" />);
+    expect(screen.queryByText(/Saved to your account/i)).toBeNull();
+    expect(screen.queryByText(/Saving…/i)).toBeNull();
+    expect(screen.queryByText(/Last saved state/i)).toBeNull();
+
+    rerender(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} connection="offline" />);
+    expect(screen.queryByText(/Last saved state/i)).toBeNull();
+
+    const images = document.querySelectorAll('img[src="/undone-logo.svg"]');
+    expect(images.length).toBeGreaterThan(0);
   });
 
   it('renders assistant markdown content with headings, lists, and formatted code blocks', async () => {
@@ -163,6 +252,8 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
 
     expect(screen.getByText('Thinking…')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Stop assistant turn/i })).toBeTruthy();
+    const images = document.querySelectorAll('img[src="/undone-logo.svg"]');
+    expect(images.length).toBeGreaterThan(0);
 
     fakeState.turns = [{ messageId: 'msg-turn', runId: 'run-1', status: 'queued' }];
     rerender(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
