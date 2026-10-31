@@ -1,5 +1,7 @@
 # Cohort builder processing
 
+- `packages/interaction-builder/src/runtime/handlers.ts#getEvents` serializes database event rows into the strict wire schema (`id` -> `eventId`, omit null revision and storage timestamps). JSON and SSE share this boundary. Returning raw rows makes the client reject all events and wait for the 25s reconnect snapshot. Package `__tests__/sse.test.ts` exercises repository -> handler -> stream parser -> reducer before stream closure.
+
 - Interactive chat uses `COHORT_CHAT_MODEL` (default `gemini-3.5-flash-lite`) separately from processing model selection. `interactionModel.ts` bounds a turn to 20s/1200 output tokens with zero SDK retries; adapter policy remains optional for other consumers. Initial topic replies avoid redundant metadata tools. `UNDONE_LOG_LEVEL` controls server operational logs (default INFO); browser logs remain opt-in in production. Correlate model_started/completed/failed by runId/workspaceId; queueWaitMs is logged on claim.
 
 - `src/server/domain/cohort-builder/text-job-plan.ts`: source DAG (acquisition -> optional extraction -> understanding -> chunking -> analysis -> global assembly). Algorithm keys version downstream work independently; keep acquisition identities stable to reuse retained paid work.
