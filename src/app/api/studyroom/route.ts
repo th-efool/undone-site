@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
@@ -15,6 +16,8 @@ export async function GET(req: Request): Promise<Response>;
 export async function GET(): Promise<Response>;
 export async function GET(req?: Request): Promise<Response> {
   try {
+    const ifNoneMatch = req?.headers?.get('if-none-match');
+
     // 0. Check for Phase 3 Query-backed Discovery
     if (req) {
       const url = new URL(req.url, 'http://localhost');
@@ -53,15 +56,26 @@ export async function GET(req?: Request): Promise<Response> {
           user?.id ?? null
         );
 
+        const etag = `W/"${createHash('sha256')
+          .update(JSON.stringify(discoveryResult))
+          .digest('hex')}"`;
+        const discoveryHeaders = {
+          'Cache-Control': 'private, no-cache',
+          ETag: etag,
+        };
+
+        if (ifNoneMatch && ifNoneMatch === etag) {
+          return new Response(null, {
+            status: 304,
+            headers: discoveryHeaders,
+          });
+        }
+
         return Response.json(discoveryResult, {
-          headers: {
-            'Cache-Control': 'private, no-cache',
-          },
+          headers: discoveryHeaders,
         });
       }
     }
-
-    const ifNoneMatch = req?.headers?.get('if-none-match');
 
     // 1. In-memory 5-second micro-cache check
     if (Date.now() < studyRoomCache.cachedRoomsExpiresAt && studyRoomCache.cachedRooms !== null) {
@@ -110,12 +124,12 @@ export async function GET(req?: Request): Promise<Response> {
       },
     });
 
-    const etagPayload = (rooms ?? [])
-      .map((r) => `${r.id}:${r.onlineCount}:${(r.participants ?? []).map((p) => p.userId).join(',')}`)
-      .join('|');
-    const etag = 'W/"' + Buffer.from(etagPayload).toString('base64').slice(0, 24) + '"';
+    const payload = rooms ?? [];
+    const etag = `W/"${createHash('sha256')
+      .update(JSON.stringify(payload))
+      .digest('hex')}"`;
 
-    studyRoomCache.cachedRooms = rooms ?? [];
+    studyRoomCache.cachedRooms = payload;
     studyRoomCache.cachedRoomsExpiresAt = Date.now() + 5000;
     studyRoomCache.cachedRoomsEtag = etag;
 

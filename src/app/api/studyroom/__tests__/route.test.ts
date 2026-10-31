@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   RoomNotFoundError,
@@ -15,6 +16,13 @@ const hoisted = vi.hoisted(() => ({
   renewLease: vi.fn(),
   leaveRoom: vi.fn(),
   updateParticipantGoal: vi.fn(),
+  discoverRooms: vi.fn(),
+}));
+
+vi.mock('@/src/server/domain/studyroom/room-discovery.service', () => ({
+  roomDiscoveryService: {
+    discoverRooms: hoisted.discoverRooms,
+  },
 }));
 
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({
@@ -147,7 +155,17 @@ describe('/api/studyroom route', () => {
       expect(res.status).toBe(200);
       const etag = res.headers.get('ETag');
       expect(etag).toBeDefined();
-      expect(etag).toMatch(/^W\/"[A-Za-z0-9+/=]{1,24}"$/);
+      expect(etag).toMatch(/^W\/"[a-f0-9]{64}"$/);
+      const expectedEtag = `W/"${createHash('sha256')
+        .update(JSON.stringify([
+          {
+            id: 'room-1',
+            onlineCount: 2,
+            participants: [{ userId: 'user-a' }, { userId: 'user-b' }],
+          },
+        ]))
+        .digest('hex')}"`;
+      expect(etag).toBe(expectedEtag);
       expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=5, stale-while-revalidate=15');
     });
 
@@ -200,6 +218,168 @@ describe('/api/studyroom route', () => {
       const data = await res2.json();
       expect(data).toHaveLength(1);
       expect(data[0].id).toBe('room-1');
+    });
+
+    it('generates a new ETag and returns 200 when a room visible field (title/topic) changes', async () => {
+      hoisted.studyRoomCount.mockResolvedValue(1);
+      const roomInitial = {
+        id: 'room-1',
+        title: 'Fireplace',
+        topic: 'General Focus',
+        onlineCount: 2,
+        participants: [{ id: 'p-1', userId: 'user-a' }, { id: 'p-2', userId: 'user-b' }],
+      };
+      hoisted.studyRoomFindMany.mockResolvedValue([roomInitial]);
+
+      const initialRes = await GET();
+      expect(initialRes.status).toBe(200);
+      const initialEtag = initialRes.headers.get('ETag');
+      expect(initialEtag).toBeTruthy();
+
+      // Clear micro-cache to simulate DB update after TTL
+      clearStudyRoomCacheForTest();
+
+      // Change title and topic only; id, onlineCount, participants remain identical
+      const roomUpdated = {
+        ...roomInitial,
+        title: 'Lofi Fireplace Lounge',
+        topic: 'Deep Work Only',
+      };
+      hoisted.studyRoomFindMany.mockResolvedValue([roomUpdated]);
+
+      const reqWithOldEtag = new Request('http://localhost/api/studyroom', {
+        headers: { 'If-None-Match': initialEtag! },
+      });
+      const updatedRes = await GET(reqWithOldEtag);
+
+      expect(updatedRes.status).toBe(200);
+      const updatedEtag = updatedRes.headers.get('ETag');
+      expect(updatedEtag).toBeTruthy();
+      expect(updatedEtag).not.toBe(initialEtag);
+      expect(updatedEtag).toMatch(/^W\/"[a-f0-9]{64}"$/);
+      const data = await updatedRes.json();
+      expect(data[0].title).toBe('Lofi Fireplace Lounge');
+    });
+
+    it('generates a new ETag and returns 200 when occupancy or participants change', async () => {
+      hoisted.studyRoomCount.mockResolvedValue(1);
+      const roomInitial = {
+        id: 'room-1',
+        title: 'Fireplace',
+        onlineCount: 1,
+        participants: [{ id: 'p-1', userId: 'user-a' }],
+      };
+      hoisted.studyRoomFindMany.mockResolvedValue([roomInitial]);
+
+      const initialRes = await GET();
+      expect(initialRes.status).toBe(200);
+      const initialEtag = initialRes.headers.get('ETag');
+      expect(initialEtag).toBeTruthy();
+
+      // Clear micro-cache to simulate DB update
+      clearStudyRoomCacheForTest();
+
+      // Change occupancy (onlineCount and participant added)
+      const roomUpdated = {
+        id: 'room-1',
+        title: 'Fireplace',
+        onlineCount: 2,
+        participants: [{ id: 'p-1', userId: 'user-a' }, { id: 'p-2', userId: 'user-b' }],
+      };
+      hoisted.studyRoomFindMany.mockResolvedValue([roomUpdated]);
+
+      const reqWithOldEtag = new Request('http://localhost/api/studyroom', {
+        headers: { 'If-None-Match': initialEtag! },
+      });
+      const updatedRes = await GET(reqWithOldEtag);
+
+      expect(updatedRes.status).toBe(200);
+      const updatedEtag = updatedRes.headers.get('ETag');
+      expect(updatedEtag).toBeTruthy();
+      expect(updatedEtag).not.toBe(initialEtag);
+      expect(updatedEtag).toMatch(/^W\/"[a-f0-9]{64}"$/);
+    });
+
+    it('handles query-backed discovery with SHA-256 ETag, returns 304 on identical representation, and enforces query isolation', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'user-test' });
+      const discoverResults = {
+        items: [
+          {
+            id: 'room-disc-1',
+            title: 'Discover Room',
+            onlineCount: 3,
+            participants: [{ userId: 'u1' }],
+          },
+        ],
+        total: 1,
+        hasMore: false,
+      };
+      const myRoomsResults = {
+        items: [
+          {
+            id: 'room-my-1',
+            title: 'My Custom Room',
+            onlineCount: 1,
+            participants: [{ userId: 'user-test' }],
+          },
+        ],
+        total: 1,
+        hasMore: false,
+      };
+
+      hoisted.discoverRooms.mockImplementation(async (query: { tab?: string }) => {
+        if (query.tab === 'my-rooms') return myRoomsResults;
+        return discoverResults;
+      });
+
+      // 1. Initial discover query returns 200 with SHA-256 ETag and private, no-cache
+      const reqDiscover = new Request('http://localhost/api/studyroom?tab=discover&format=v2');
+      const resDiscover = await GET(reqDiscover);
+      expect(resDiscover.status).toBe(200);
+      expect(resDiscover.headers.get('Cache-Control')).toBe('private, no-cache');
+      const discoverEtag = resDiscover.headers.get('ETag');
+      expect(discoverEtag).toMatch(/^W\/"[a-f0-9]{64}"$/);
+
+      const expectedDiscoverEtag = `W/"${createHash('sha256')
+        .update(JSON.stringify(discoverResults))
+        .digest('hex')}"`;
+      expect(discoverEtag).toBe(expectedDiscoverEtag);
+
+      // 2. Conditional request with matching If-None-Match returns 304
+      const reqDiscover304 = new Request('http://localhost/api/studyroom?tab=discover&format=v2', {
+        headers: { 'If-None-Match': discoverEtag! },
+      });
+      const resDiscover304 = await GET(reqDiscover304);
+      expect(resDiscover304.status).toBe(304);
+      expect(resDiscover304.headers.get('ETag')).toBe(discoverEtag);
+      expect(resDiscover304.headers.get('Cache-Control')).toBe('private, no-cache');
+      expect(await resDiscover304.text()).toBe('');
+
+      // 3. Query isolation: my-rooms query with discover ETag returns 200 with distinct ETag
+      const reqMyRooms = new Request('http://localhost/api/studyroom?tab=my-rooms&format=v2', {
+        headers: { 'If-None-Match': discoverEtag! },
+      });
+      const resMyRooms = await GET(reqMyRooms);
+      expect(resMyRooms.status).toBe(200);
+      const myRoomsEtag = resMyRooms.headers.get('ETag');
+      expect(myRoomsEtag).toMatch(/^W\/"[a-f0-9]{64}"$/);
+      expect(myRoomsEtag).not.toBe(discoverEtag);
+
+      // 4. Discovery result update invalidates ETag and returns 200
+      const updatedDiscoverResults = {
+        ...discoverResults,
+        items: [{ ...discoverResults.items[0], onlineCount: 4 }],
+      };
+      hoisted.discoverRooms.mockResolvedValue(updatedDiscoverResults);
+
+      const reqDiscoverUpdated = new Request('http://localhost/api/studyroom?tab=discover&format=v2', {
+        headers: { 'If-None-Match': discoverEtag! },
+      });
+      const resDiscoverUpdated = await GET(reqDiscoverUpdated);
+      expect(resDiscoverUpdated.status).toBe(200);
+      const updatedDiscoverEtag = resDiscoverUpdated.headers.get('ETag');
+      expect(updatedDiscoverEtag).not.toBe(discoverEtag);
+      expect(updatedDiscoverEtag).toMatch(/^W\/"[a-f0-9]{64}"$/);
     });
   });
 

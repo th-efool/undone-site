@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
@@ -78,7 +79,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ work
     webBytes: 1024 * 1024,
   };
 
-  const etag = 'W/"' + Buffer.from(JSON.stringify(payload)).toString('base64').slice(0, 24) + '"';
+  const etag = `W/"${createHash('sha256')
+    .update(JSON.stringify(payload))
+    .digest('hex')}"`;
 
   if (request.headers.get('if-none-match') === etag) {
     return new Response(null, { status: 304, headers: { ...headers, ETag: etag } });

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fake = vi.hoisted(() => ({
@@ -158,9 +159,11 @@ describe('GET /api/cohort-builder/workspaces/[workspaceId]/sources', () => {
         webBytes: 1024 * 1024,
       });
 
-      const expectedEtag =
-        'W/"' + Buffer.from(JSON.stringify(data)).toString('base64').slice(0, 24) + '"';
+      const expectedEtag = `W/"${createHash('sha256')
+        .update(JSON.stringify(data))
+        .digest('hex')}"`;
       expect(res.headers.get('etag')).toBe(expectedEtag);
+      expect(expectedEtag).toMatch(/^W\/"[a-f0-9]{64}"$/);
     });
 
     it('returns 200 with disabled capabilities when driver is not durable', async () => {
@@ -214,6 +217,43 @@ describe('GET /api/cohort-builder/workspaces/[workspaceId]/sources', () => {
       expect(pollingRes.status).toBe(200);
       const body = await pollingRes.json();
       expect(body.pdf).toBe(true);
+    });
+
+    it('returns 200 with new ETag when payload changes beyond prefix 24, whereas identical payload returns 304', async () => {
+      const initialReq = createRequest(validWorkspaceId);
+      const initialRes = await GET(initialReq, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(initialRes.status).toBe(200);
+      const initialEtag = initialRes.headers.get('etag');
+      expect(initialEtag).toBeTruthy();
+
+      // Identical payload with matching If-None-Match returns 304
+      const identicalReq = createRequest(validWorkspaceId, { 'if-none-match': initialEtag! });
+      const identicalRes = await GET(identicalReq, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(identicalRes.status).toBe(304);
+      expect(identicalRes.headers.get('etag')).toBe(initialEtag);
+      expect(await identicalRes.text()).toBe('');
+
+      // Mutate a field that appears far beyond the first 24 characters of the serialized payload
+      // In old base64 prefix 24, only {"pdf":true,"web": was hashed.
+      // Changing githubUnavailableReason from 'GITHUB_CAPABILITY_DISABLED' to 'GITHUB_TOKEN_EXPIRED':
+      fake.github = { enabled: true, code: 'GITHUB_TOKEN_EXPIRED' };
+
+      const modifiedReq = createRequest(validWorkspaceId, { 'if-none-match': initialEtag! });
+      const modifiedRes = await GET(modifiedReq, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(modifiedRes.status).toBe(200);
+      const modifiedData = await modifiedRes.json();
+      expect(modifiedData.githubUnavailableReason).toBe('GITHUB_TOKEN_EXPIRED');
+
+      const modifiedEtag = modifiedRes.headers.get('etag');
+      expect(modifiedEtag).toBeTruthy();
+      expect(modifiedEtag).not.toBe(initialEtag);
+      expect(modifiedEtag).toMatch(/^W\/"[a-f0-9]{64}"$/);
+
+      // Subsequent request with the new ETag returns 304
+      const subsequentReq = createRequest(validWorkspaceId, { 'if-none-match': modifiedEtag! });
+      const subsequentRes = await GET(subsequentReq, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(subsequentRes.status).toBe(304);
+      expect(subsequentRes.headers.get('etag')).toBe(modifiedEtag);
     });
   });
 
