@@ -1,5 +1,7 @@
 # Cohort builder processing
 
+- Interactive chat uses `COHORT_CHAT_MODEL` (default `gemini-3.5-flash-lite`) separately from processing model selection. `interactionModel.ts` bounds a turn to 20s/1200 output tokens with zero SDK retries; adapter policy remains optional for other consumers. Initial topic replies avoid redundant metadata tools. `UNDONE_LOG_LEVEL` controls server operational logs (default INFO); browser logs remain opt-in in production. Correlate model_started/completed/failed by runId/workspaceId; queueWaitMs is logged on claim.
+
 - `src/server/domain/cohort-builder/text-job-plan.ts`: source DAG (acquisition -> optional extraction -> understanding -> chunking -> analysis -> global assembly). Algorithm keys version downstream work independently; keep acquisition identities stable to reuse retained paid work.
 - `text-source-processor.ts`: per-source artifact payloads are arrays for understanding/chunks/analysis. `text-job-acceptance.ts` locks current workspace/graph, validates artifact source/version and deterministic prerequisite bytes, accepts with lease fence, then commits intermediate snapshot + job status atomically. `text-assembly-acceptance.ts` separately validates final lesson projection and moves journey to ready.
 - `text-pipeline.ts`: timed observations grouped toward 60 seconds; final remainder allowed, 24 KiB Unicode-safe evidence bounds, complete non-whitespace character coverage. Byte limits can require shorter units. Evidence offsets/checksums remain exact; playback overlap never modifies retained evidence.

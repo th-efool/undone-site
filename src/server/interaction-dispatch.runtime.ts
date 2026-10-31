@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { start } from 'workflow/api';
 import { prisma } from './infrastructure/db/postgres/client';
 import { runDurableInteractionQueue } from './interaction.workflow';
+import { devLogger } from '@/src/shared/lib/dev-logger';
 
 /** A persisted wake-up survives HTTP completion; one workflow drains the leased queue. */
 export async function dispatchInteractionExecution(workspaceId?: string) {
@@ -12,14 +13,12 @@ export async function dispatchInteractionExecution(workspaceId?: string) {
         const { runInteractionWorkerLoop } = await import('./interaction-worker');
         const ac = new AbortController();
         await runInteractionWorkerLoop({ maxIterations: 5, pollIntervalMs: 50 }, ac.signal);
-      } catch {}
+      } catch (error) { devLogger.error('InteractionDispatch', 'worker_failed', error); }
     };
 
     try {
       const { after } = await import('next/server');
-      after(() => {
-        void runWorker();
-      });
+      after(runWorker);
     } catch {
       void runWorker();
     }

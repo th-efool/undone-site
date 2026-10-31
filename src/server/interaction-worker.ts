@@ -133,7 +133,7 @@ export async function runInteractionWorkerLoop(
         continue;
       }
 
-      devLogger.info('InteractionWorker', `Claimed assistant run ${run.id} for workspace ${run.workspaceId}`);
+      devLogger.info('InteractionWorker', 'run_claimed', { runId: run.id, workspaceId: run.workspaceId, queueWaitMs: Date.now() - run.createdAt.getTime() });
 
       // Start heartbeat timer
       let heartbeatTimer: NodeJS.Timeout | null = setInterval(async () => {
@@ -162,7 +162,7 @@ export async function runInteractionWorkerLoop(
         const stage = parsedSnapshot.journey?.step;
         const selectedLesson = await selectedLessonForLatestTurn(repo, wsRow.ownerId, run.workspaceId, run.triggeringMessageId);
         const { createInteractionModelAdapter } = await import('./infrastructure/ai/interactionModel');
-        const model = await createInteractionModelAdapter(selectedLesson);
+        const model = await createInteractionModelAdapter(selectedLesson, { signal, runId: run.id, workspaceId: run.workspaceId });
         const res = await runAssistantTurn({
           workspaceId: run.workspaceId,
           ownerId: wsRow.ownerId,

@@ -1,11 +1,30 @@
 import 'server-only';
 import { createAiSdkModelAdapter } from 'interaction-builder/adapters/ai';
 import { createCohortModel } from './modelRegistry';
+import { devLogger } from '@/src/shared/lib/dev-logger';
 
 let fixtureTurn = 0;
 /** Explicit local fixture only; production always uses the installed provider adapter. */
-export async function createInteractionModelAdapter(selected?: { id: string } | null) {
-  if (process.env.INTERACTION_LOCAL_MODEL_FIXTURE !== '1') return createAiSdkModelAdapter(createCohortModel());
+export async function createInteractionModelAdapter(selected?: { id: string } | null, execution?: { signal: AbortSignal; runId: string; workspaceId: string }) {
+  if (process.env.INTERACTION_LOCAL_MODEL_FIXTURE !== '1') {
+    const model = createCohortModel({ apiKey: process.env.GEMINI_API_KEY, modelId: process.env.COHORT_CHAT_MODEL || 'gemini-3.5-flash-lite' });
+    const adapter = createAiSdkModelAdapter(model, {
+      maxRetries: 0, timeoutMs: 20_000, maxOutputTokens: 1200, signal: execution?.signal,
+    });
+    return { async executeTurn(input: Parameters<typeof adapter.executeTurn>[0]) {
+      const started = performance.now();
+      const context = { runId: execution?.runId, workspaceId: execution?.workspaceId, model: typeof model === 'string' ? model : model.modelId };
+      devLogger.info('InteractionModel', 'model_started', context);
+      try {
+        const result = await adapter.executeTurn(input);
+        devLogger.info('InteractionModel', 'model_completed', { ...context, durationMs: performance.now() - started, steps: result.stepsCount });
+        return result;
+      } catch (error) {
+        devLogger.error('InteractionModel', 'model_failed', { ...context, durationMs: performance.now() - started, error: error instanceof Error ? error.message : String(error) });
+        throw error;
+      }
+    } };
+  }
   const database = new URL(process.env.DATABASE_URL ?? '');
   if (process.env.NODE_ENV !== 'development' || !['127.0.0.1', 'localhost'].includes(database.hostname)
     || !database.pathname.startsWith('/s3test')) throw new Error('LOCAL_MODEL_FIXTURE_FORBIDDEN');

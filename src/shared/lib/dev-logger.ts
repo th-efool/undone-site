@@ -49,6 +49,10 @@ function getRuntimeType(): 'browser' | 'node-server' | 'worker' {
 }
 
 function shouldEnableLogsByDefault(): { enabled: boolean; level: UndoneLogLevel } {
+  if (typeof window === 'undefined') {
+    const configured = process.env.UNDONE_LOG_LEVEL as UndoneLogLevel | undefined;
+    return { enabled: true, level: configured && configured in LEVEL_MAP ? configured : 'INFO' };
+  }
   const isDev = process.env.NODE_ENV !== 'production';
   const forceEnable = process.env.NEXT_PUBLIC_ENABLE_LOGS === '1' ||
     process.env.NEXT_PUBLIC_ENABLE_LOGS === 'true' ||
