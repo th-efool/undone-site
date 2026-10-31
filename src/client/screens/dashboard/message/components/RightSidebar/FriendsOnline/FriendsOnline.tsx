@@ -1,5 +1,5 @@
 import { PersonPreview } from '../../../models';
-import { FriendAvatarGroup } from '../FriendAvatarGroup/FriendAvatarGroup';
+import { FriendAvatarGroup } from '@/src/client/components/global/FriendAvatarGroup';
 import styles from './FriendsOnline.module.css';
 interface Props {
   friends: PersonPreview[];
