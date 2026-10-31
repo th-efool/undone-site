@@ -495,4 +495,43 @@ describe('useAssistantActivity', () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it('updates state when running turn transitions to terminal failure and backs off polling', async () => {
+    const runningTurn = [{ messageId: 'm-run', runId: 'r-fail', status: 'running' }];
+    const failedTurn = [{ messageId: 'm-run', runId: 'r-fail', status: 'failed' }];
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ ETag: '"etag-running"' }),
+        json: async () => ({ turns: runningTurn }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ ETag: '"etag-failed"' }),
+        json: async () => ({ turns: failedTurn }),
+      });
+
+    const { result } = renderHook(() => useAssistantActivity());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.turns[0].status).toBe('running');
+
+    // 2s active poll fires and receives failed status
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.current.turns[0].status).toBe('failed');
+
+    // At 2000ms after failed, no immediate new poll (backs off)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

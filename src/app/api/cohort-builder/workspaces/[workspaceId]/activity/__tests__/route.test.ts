@@ -1,4 +1,10 @@
+import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+function computeExpectedEtag(turns: unknown[]) {
+  const payload = { turns };
+  return `W/"${createHash('sha256').update(JSON.stringify(payload)).digest('hex')}"`;
+}
 
 const fake = vi.hoisted(() => ({
   owner: 'owner-uuid' as string | null,
@@ -104,8 +110,7 @@ describe('GET /api/cohort-builder/workspaces/[workspaceId]/activity', () => {
       expect(res.status).toBe(200);
       expect(res.headers.get('cache-control')).toBe('private, no-store');
 
-      const expectedPayload = 'msg-1::pending|msg-2:run-1:completed';
-      const expectedEtag = `W/"${Buffer.from(expectedPayload).toString('base64').slice(0, 32)}"`;
+      const expectedEtag = computeExpectedEtag(turns);
       expect(res.headers.get('etag')).toBe(expectedEtag);
 
       const data = await res.json();
@@ -119,7 +124,7 @@ describe('GET /api/cohort-builder/workspaces/[workspaceId]/activity', () => {
       const res = await GET(req, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
 
       expect(res.status).toBe(200);
-      expect(res.headers.get('etag')).toBe('W/""');
+      expect(res.headers.get('etag')).toBe(computeExpectedEtag([]));
       const data = await res.json();
       expect(data).toEqual({ turns: [] });
     });
@@ -167,6 +172,85 @@ describe('GET /api/cohort-builder/workspaces/[workspaceId]/activity', () => {
 
       const body = await res2.json();
       expect(body.turns[0]).toEqual({ messageId: 'msg-1', runId: 'run-99', status: 'completed' });
+    });
+
+    it('running -> failed updates ETag, delivers HTTP 200, and subsequent identical failed returns 304', async () => {
+      const fixedMessageId = '064df82e-5fca-4b61-a6c7-6801df1b917e';
+      const fixedRunId = '6898be69-7ebd-4f87-86f9-05b2b49c2cb4';
+
+      // 1. First response: running
+      fake.queryRaw.mockResolvedValue([{ messageId: fixedMessageId, runId: fixedRunId, status: 'running' }]);
+      const req1 = createRequest(validWorkspaceId);
+      const res1 = await GET(req1, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(res1.status).toBe(200);
+      const etagRunning = res1.headers.get('etag')!;
+      expect(etagRunning).toBeTruthy();
+
+      // 2. Second response: failed using If-None-Match from first -> HTTP 200, new ETag, failed body
+      fake.queryRaw.mockResolvedValue([{ messageId: fixedMessageId, runId: fixedRunId, status: 'failed' }]);
+      const req2 = createRequest(validWorkspaceId, { 'if-none-match': etagRunning });
+      const res2 = await GET(req2, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(res2.status).toBe(200);
+      const etagFailed = res2.headers.get('etag')!;
+      expect(etagFailed).not.toBe(etagRunning);
+      const body2 = await res2.json();
+      expect(body2.turns[0].status).toBe('failed');
+
+      // 3. Third unchanged failed response with new ETag -> 304
+      const req3 = createRequest(validWorkspaceId, { 'if-none-match': etagFailed });
+      const res3 = await GET(req3, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(res3.status).toBe(304);
+      expect(res3.headers.get('etag')).toBe(etagFailed);
+    });
+
+    it('distinguishes queued -> running -> completed and pending -> queued transitions', async () => {
+      const msgId = '11111111-1111-4111-8111-111111111111';
+      const runId = '22222222-2222-4222-8222-222222222222';
+
+      // pending -> queued
+      fake.queryRaw.mockResolvedValue([{ messageId: msgId, runId: null, status: 'pending' }]);
+      const resPending = await GET(createRequest(validWorkspaceId), { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      const etagPending = resPending.headers.get('etag')!;
+
+      fake.queryRaw.mockResolvedValue([{ messageId: msgId, runId: runId, status: 'queued' }]);
+      const resQueued = await GET(createRequest(validWorkspaceId, { 'if-none-match': etagPending }), { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(resQueued.status).toBe(200);
+      const etagQueued = resQueued.headers.get('etag')!;
+      expect(etagQueued).not.toBe(etagPending);
+
+      // queued -> running
+      fake.queryRaw.mockResolvedValue([{ messageId: msgId, runId: runId, status: 'running' }]);
+      const resRunning = await GET(createRequest(validWorkspaceId, { 'if-none-match': etagQueued }), { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(resRunning.status).toBe(200);
+      const etagRunning = resRunning.headers.get('etag')!;
+      expect(etagRunning).not.toBe(etagQueued);
+
+      // running -> completed
+      fake.queryRaw.mockResolvedValue([{ messageId: msgId, runId: runId, status: 'completed' }]);
+      const resCompleted = await GET(createRequest(validWorkspaceId, { 'if-none-match': etagRunning }), { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(resCompleted.status).toBe(200);
+      const etagCompleted = resCompleted.headers.get('etag')!;
+      expect(etagCompleted).not.toBe(etagRunning);
+    });
+
+    it('changes outside the first row update the ETag', async () => {
+      const turns1 = [
+        { messageId: 'msg-1', runId: 'run-1', status: 'completed' },
+        { messageId: 'msg-2', runId: 'run-2', status: 'running' },
+      ];
+      fake.queryRaw.mockResolvedValue(turns1);
+      const res1 = await GET(createRequest(validWorkspaceId), { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      const etag1 = res1.headers.get('etag')!;
+
+      // Change only the second row
+      const turns2 = [
+        { messageId: 'msg-1', runId: 'run-1', status: 'completed' },
+        { messageId: 'msg-2', runId: 'run-2', status: 'failed' },
+      ];
+      fake.queryRaw.mockResolvedValue(turns2);
+      const res2 = await GET(createRequest(validWorkspaceId, { 'if-none-match': etag1 }), { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+      expect(res2.status).toBe(200);
+      expect(res2.headers.get('etag')).not.toBe(etag1);
     });
   });
 

@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const OWNER_CACHE_TTL_MS = 60_000;
 const verifiedOwnerCache = new Map<string, number>();
@@ -60,12 +62,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ work
         (SELECT id,status FROM interaction_runs WHERE "workspaceId"=m."workspaceId" AND "triggeringMessageId"=m.id ORDER BY "createdAt" DESC LIMIT 1) r ON true
       WHERE m."workspaceId"=${workspaceId} AND m.role='user' ORDER BY m.sequence DESC LIMIT 50`) ?? [];
 
-  const etagPayload = turns.map((t) => `${t.messageId}:${t.runId ?? ''}:${t.status}`).join('|');
-  const etag = `W/"${Buffer.from(etagPayload).toString('base64').slice(0, 32)}"`;
+  const payload = { turns };
+  const etag = `W/"${createHash('sha256')
+    .update(JSON.stringify(payload))
+    .digest('hex')}"`;
 
   if (request.headers.get('if-none-match') === etag) {
     return new Response(null, { status: 304, headers: { ...headers, ETag: etag } });
   }
 
-  return Response.json({ turns }, { headers: { ...headers, ETag: etag } });
+  return Response.json(payload, { headers: { ...headers, ETag: etag } });
 }
