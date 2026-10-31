@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
 import { X, Check, AlertCircle } from 'lucide-react';
@@ -144,6 +144,7 @@ export const LinkRows: React.FC<LinkRowsProps> = ({
           <input
             ref={inputRef}
             type="text"
+            data-bare-input
             className={styles.urlInput}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}

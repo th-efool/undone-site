@@ -2,49 +2,64 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import React from 'react';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+}));
+
 import { CentralInterface } from '../CentralInterface';
+import { saveIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
 
 describe('CentralInterface Source Text & Error Banner UI (ISSUE-25)', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     vi.restoreAllMocks();
   });
 
   afterEach(() => {
     cleanup();
     sessionStorage.clear();
+    localStorage.clear();
   });
 
-  it('renders styled source text card with live character counter and clear button', () => {
+  it('renders Add link action and opens inline link editor with URL field', () => {
     render(<CentralInterface />);
 
-    // Initially source card is hidden
-    expect(screen.queryByLabelText('Paste source text')).toBeNull();
+    // Initially links region is hidden
+    expect(screen.queryByRole('region', { name: 'Attached links' })).toBeNull();
 
-    // Click "Add sources"
-    const addSourcesBtn = screen.getByRole('button', { name: /add sources/i });
-    fireEvent.click(addSourcesBtn);
+    // Click "Add link"
+    const addLinkBtn = screen.getByRole('button', { name: /add link/i });
+    fireEvent.click(addLinkBtn);
 
-    // Source card should be visible
-    expect(screen.getByText('Paste reference material or syllabus')).toBeTruthy();
-    expect(screen.getByText('0 / 200,000')).toBeTruthy();
+    // Links region is now visible
+    expect(screen.getByRole('region', { name: 'Attached links' })).toBeTruthy();
+    const urlInput = screen.getByLabelText('Add link URL');
+    expect(urlInput).toBeTruthy();
+    expect(urlInput.getAttribute('data-bare-input')).toBe('true');
+  });
 
-    const textarea = screen.getByRole('textbox', { name: /paste source text/i });
-    expect(textarea.getAttribute('maxLength')).toBe('200000');
+  it('displays legacy attached source text preview with remove capability', () => {
+    saveIntakeDraft(
+      {
+        requestId: '00000000-0000-4000-8000-000000000001',
+        prompt: 'Compilers',
+        mode: 'search',
+        source: { label: 'Pasted text', text: 'Rust memory safety and affine types' },
+      },
+      null
+    );
 
-    // Type text into textarea
-    fireEvent.change(textarea, { target: { value: 'Rust memory safety and affine types' } });
-    expect(screen.getByText('35 / 200,000')).toBeTruthy();
+    render(<CentralInterface />);
 
-    // Clear button should be visible when text is present
-    const clearBtn = screen.getByRole('button', { name: /clear source text/i });
-    expect(clearBtn).toBeTruthy();
+    expect(screen.getByText('Previously attached text')).toBeTruthy();
+    expect(screen.getByText('Rust memory safety and affine types')).toBeTruthy();
 
-    // Click clear button
-    fireEvent.click(clearBtn);
-    expect((textarea as HTMLTextAreaElement).value).toBe('');
-    expect(screen.getByText('0 / 200,000')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /clear source text/i })).toBeNull();
+    const removeBtn = screen.getByRole('button', { name: 'Remove previously attached text' });
+    fireEvent.click(removeBtn);
+
+    expect(screen.queryByText('Previously attached text')).toBeNull();
   });
 
   it('renders themed error banner with alert role, message, and dismiss button when intake throws error', async () => {
@@ -60,20 +75,17 @@ describe('CentralInterface Source Text & Error Banner UI (ISSUE-25)', () => {
     const beginBtn = screen.getByRole('button', { name: /begin journey/i });
     fireEvent.click(beginBtn);
 
-    // Wait for the alert banner to appear
     await waitFor(() => {
       const alert = screen.getByRole('alert');
       expect(alert).toBeTruthy();
       expect(screen.getByText('Storage quota exceeded')).toBeTruthy();
     });
 
-    // Dismiss error button
     const dismissBtn = screen.getByRole('button', { name: /dismiss error/i });
     expect(dismissBtn).toBeTruthy();
 
     fireEvent.click(dismissBtn);
 
-    // Banner should be removed
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByText('Storage quota exceeded')).toBeNull();
   });

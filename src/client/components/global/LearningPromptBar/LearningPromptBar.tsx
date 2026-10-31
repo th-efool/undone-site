@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
-  Plus,
+  Link as LinkIcon,
   Lightbulb,
   ArrowRight,
-  FileText,
   Paperclip,
   Sparkles,
   AlertCircle,
@@ -149,20 +148,93 @@ export const LearningPromptBar = React.memo(
     },
     ref,
   ) {
-    const [internalQuery, setInternalQuery] = useState('');
+    const [internalQuery, setInternalQuery] = useState(() => {
+      if (controlledValue !== undefined) return '';
+      if (typeof window === 'undefined') return '';
+      try {
+        const parsedUrl = new URL(window.location.href, 'http://localhost');
+        const q = parsedUrl.searchParams.get('q');
+        if (q) return q;
+      } catch {
+        const urlParams = new URLSearchParams(window.location.search);
+        const q = urlParams.get('q');
+        if (q) return q;
+      }
+      try {
+        const stored =
+          sessionStorage.getItem('sidequest_prompt_query_draft') ||
+          localStorage.getItem('sidequest_prompt_query_draft') ||
+          sessionStorage.getItem('undone:landing-query');
+        if (stored) return stored;
+        const intakeDraft = readIntakeDraft(null);
+        if (intakeDraft?.prompt) return intakeDraft.prompt;
+      } catch {}
+      return '';
+    });
     const query = controlledValue !== undefined ? controlledValue : internalQuery;
 
-    const [showSource, setShowSource] = useState(false);
-    const [sourceTab, setSourceTab] = useState<'links' | 'text'>('links');
-    const [sourceText, setSourceText] = useState('');
+    const linksRegionId = useId();
+    const [showSource, setShowSource] = useState(() => {
+      if (typeof window === 'undefined') return false;
+      try {
+        const storedShow =
+          sessionStorage.getItem('sidequest_prompt_source_visible') ||
+          localStorage.getItem('sidequest_prompt_source_visible');
+        if (storedShow === 'true') return true;
+        const storedSrc =
+          sessionStorage.getItem('sidequest_prompt_source_draft') ||
+          localStorage.getItem('sidequest_prompt_source_draft');
+        if (storedSrc) return true;
+        const intakeDraft = readIntakeDraft(null);
+        if (intakeDraft?.source?.text || (intakeDraft?.sources && intakeDraft.sources.length > 0)) {
+          return true;
+        }
+      } catch {}
+      return false;
+    });
+    const [sourceText, setSourceText] = useState(() => {
+      if (typeof window === 'undefined') return '';
+      try {
+        const storedSrc =
+          sessionStorage.getItem('sidequest_prompt_source_draft') ||
+          localStorage.getItem('sidequest_prompt_source_draft');
+        if (storedSrc) return storedSrc;
+        const intakeDraft = readIntakeDraft(null);
+        if (intakeDraft?.source?.text) return intakeDraft.source.text;
+      } catch {}
+      return '';
+    });
     const [intakeError, setIntakeError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
-    const [selectedMode, setSelectedMode] = useState<'search' | 'plan'>('search');
+    const [selectedMode, setSelectedMode] = useState<'search' | 'plan'>(() => {
+      if (typeof window === 'undefined') return 'search';
+      try {
+        const parsedUrl = new URL(window.location.href, 'http://localhost');
+        const m = parsedUrl.searchParams.get('mode');
+        if (m === 'plan' || m === 'search') return m;
+      } catch {
+        const urlParams = new URLSearchParams(window.location.search);
+        const m = urlParams.get('mode');
+        if (m === 'plan' || m === 'search') return m;
+      }
+      try {
+        const intakeDraft = readIntakeDraft(null);
+        if (intakeDraft?.mode === 'plan' || intakeDraft?.mode === 'search') {
+          return intakeDraft.mode;
+        }
+      } catch {}
+      return 'search';
+    });
 
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const templateMenuRef = useRef<HTMLDivElement>(null);
+    const submitInFlight = useRef(false);
+    const intakeAttempt = useRef<{
+      fingerprint: string;
+      requestId: string;
+    } | null>(null);
     const { data: session, status } = useSafeSession();
     const router = useSafeRouter();
 
@@ -239,69 +311,26 @@ export const LearningPromptBar = React.memo(
 
     useEffect(() => {
       if (typeof window !== 'undefined') {
-        let qFromUrl: string | null = null;
-        let modeFromUrl: 'plan' | 'search' | null = null;
-        try {
-          const parsedUrl = new URL(window.location.href, 'http://localhost');
-          qFromUrl = parsedUrl.searchParams.get('q');
-          const m = parsedUrl.searchParams.get('mode');
-          if (m === 'plan' || m === 'search') modeFromUrl = m;
-        } catch {
-          const urlParams = new URLSearchParams(window.location.search);
-          qFromUrl = urlParams.get('q');
-          const m = urlParams.get('mode');
-          if (m === 'plan' || m === 'search') modeFromUrl = m;
-        }
-
-        const storedQ =
-          sessionStorage.getItem('sidequest_prompt_query_draft') ||
-          localStorage.getItem('sidequest_prompt_query_draft') ||
-          sessionStorage.getItem('undone:landing-query');
-
-        const storedSrc =
-          sessionStorage.getItem('sidequest_prompt_source_draft') ||
-          localStorage.getItem('sidequest_prompt_source_draft');
-
-        const storedShow =
-          sessionStorage.getItem('sidequest_prompt_source_visible') ||
-          localStorage.getItem('sidequest_prompt_source_visible');
-
         const intakeDraft = readIntakeDraft(null);
-        if (modeFromUrl) {
-          setSelectedMode(modeFromUrl);
-        } else if (intakeDraft?.mode === 'plan' || intakeDraft?.mode === 'search') {
-          setSelectedMode(intakeDraft.mode);
-        }
+        if (intakeDraft) {
+          const contentPayload = {
+            ownerId: session?.user?.id ?? null,
+            prompt: intakeDraft.prompt,
+            mode: intakeDraft.mode,
+            ...(intakeDraft.sources && intakeDraft.sources.length > 0 ? { sources: intakeDraft.sources } : {}),
+            ...(intakeDraft.source ? { source: intakeDraft.source } : {}),
+          };
+          intakeAttempt.current = {
+            fingerprint: JSON.stringify(contentPayload),
+            requestId: intakeDraft.requestId,
+          };
 
-        // Restore prompt query if uncontrolled
-        if (controlledValue === undefined) {
-          if (qFromUrl) {
-            setInternalQuery(qFromUrl);
-          } else if (storedQ) {
-            setInternalQuery(storedQ);
-          } else if (intakeDraft?.prompt) {
-            setInternalQuery(intakeDraft.prompt);
+          if (intakeDraft.sources && intakeDraft.sources.length > 0) {
+            composerAttachments.restoreSources(intakeDraft.sources);
           }
         }
-
-        // Restore pasted source text and visibility
-        if (storedSrc) {
-          setSourceText(storedSrc);
-          setShowSource(true);
-        } else if (intakeDraft?.source?.text) {
-          setSourceText(intakeDraft.source.text);
-          setShowSource(true);
-        } else if (storedShow === 'true') {
-          setShowSource(true);
-        }
-
-        // Restore attached files and links from intake draft (e.g. after auth redirect)
-        if (intakeDraft?.sources && intakeDraft.sources.length > 0) {
-          composerAttachments.restoreSources(intakeDraft.sources);
-          setShowSource(true);
-        }
       }
-    }, [controlledValue]);
+    }, [composerAttachments, session?.user?.id]);
 
     // Continuously auto-persist unsubmitted prompt queries and pasted sources
     useEffect(() => {
@@ -352,21 +381,39 @@ export const LearningPromptBar = React.memo(
         }
       }
 
-      if (!textToSearch.trim() || submitting || composerAttachments.isExtracting) return;
+      if (!textToSearch.trim() || submitInFlight.current || submitting || composerAttachments.isExtracting) return;
 
       if (customOnSubmit) {
         customOnSubmit(textToSearch.trim());
         return;
       }
 
+      submitInFlight.current = true;
       setSubmitting(true);
       setIntakeError('');
       try {
         const ownerId: string | null = session?.user?.id ?? null;
         const readySources = composerAttachments.getReadySources();
 
+        const contentPayload = {
+          ownerId,
+          prompt: textToSearch.trim(),
+          mode,
+          ...(readySources.length > 0 ? { sources: readySources } : {}),
+          ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText.trim() } } : {}),
+        };
+        const fingerprint = JSON.stringify(contentPayload);
+
+        let requestId: string;
+        if (intakeAttempt.current && intakeAttempt.current.fingerprint === fingerprint) {
+          requestId = intakeAttempt.current.requestId;
+        } else {
+          requestId = crypto.randomUUID();
+          intakeAttempt.current = { fingerprint, requestId };
+        }
+
         const draftPayload = {
-          requestId: crypto.randomUUID(),
+          requestId,
           prompt: textToSearch.trim(),
           mode,
           ...(readySources.length > 0 ? { sources: readySources } : {}),
@@ -378,59 +425,65 @@ export const LearningPromptBar = React.memo(
         persistPromptDraft(textToSearch.trim(), sourceText.trim(), showSource);
 
         if (!ownerId && status === 'unauthenticated') {
-          const returnUrl = `/?q=${encodeURIComponent(textToSearch.trim())}&mode=${mode}`;
+          submitInFlight.current = false;
+          setSubmitting(false);
+          const returnUrl = mode === 'plan'
+            ? `/?q=${encodeURIComponent(textToSearch.trim())}&mode=plan`
+            : `/?q=${encodeURIComponent(textToSearch.trim())}`;
           const authHref = `/auth?returnTo=${encodeURIComponent(returnUrl)}`;
           if (router) router.push(authHref);
           else window.location.href = authHref;
           return;
         }
 
-        // Direct POST to intake endpoint without blocking on a pre-flight GET
-        let createRes: Response | null = null;
         try {
-          createRes = await fetch('/api/cohort-builder/intake', {
+          const createRes = await fetch('/api/cohort-builder/intake', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...draftPayload, ...(ownerId ? { expectedOwnerId: ownerId } : {}) }),
+            signal: AbortSignal.timeout(15_000),
           });
-          if (createRes?.ok) {
+
+          if (createRes.ok) {
             const created = await createRes.json();
             if (created?.workspaceId) {
               clearPromptDraft();
               composerAttachments.clearAll();
+              intakeAttempt.current = null;
               const buildHref = `/quest/build/${created.workspaceId}`;
               if (router) router.push(buildHref);
               else window.location.href = buildHref;
               return;
             }
-          } else {
-            const errBody = await createRes.json().catch(() => ({}));
-            const code = errBody?.code;
-            if (createRes.status === 413 || code === 'INPUT_TOO_LARGE') {
-              setIntakeError('Reference material exceeds the 3.5MB server limit. Please remove an attachment.');
-              setSubmitting(false);
-              return;
-            }
-            if (createRes.status === 400 || code === 'INVALID_INPUT') {
-              setIntakeError('Please provide a valid learning topic or curriculum intent.');
-              setSubmitting(false);
-              return;
-            }
-            if (code) {
-              setIntakeError(`Could not initialize cohort (${code}). Please retry.`);
-              setSubmitting(false);
-              return;
-            }
           }
-        } catch {
-          // Network failure: fall back to /quest/start
-        }
 
-        if (router) router.push('/quest/start');
-        else window.location.href = '/quest/start';
+          const errBody = await createRes.json().catch(() => ({}));
+          const code = errBody?.code;
+          submitInFlight.current = false;
+          setSubmitting(false);
+
+          if (createRes.status === 413 || code === 'INPUT_TOO_LARGE') {
+            setIntakeError('Reference material exceeds the 3.5MB server limit. Please remove an attachment.');
+            return;
+          }
+          if (createRes.status === 400 || code === 'INVALID_INPUT') {
+            setIntakeError('Please provide a valid learning topic or curriculum intent.');
+            return;
+          }
+          if (code) {
+            setIntakeError(`Could not initialize cohort (${code}). Please retry.`);
+            return;
+          }
+          setIntakeError('Could not confirm your request. Retry to continue.');
+        } catch {
+          submitInFlight.current = false;
+          setSubmitting(false);
+          setIntakeError('Could not confirm your request. Retry to continue.');
+        }
       } catch (error) {
-        setIntakeError(error instanceof Error ? error.message : 'Intake unavailable');
+        submitInFlight.current = false;
         setSubmitting(false);
+        setIntakeError(error instanceof Error ? error.message : 'Intake unavailable');
       }
     };
 
@@ -477,228 +530,188 @@ export const LearningPromptBar = React.memo(
           inputClassName={styles.textInput}
           aria-label={ariaLabel || ariaLabelAlt || 'What do you want to learn about?'}
           bottomBar={
-            <div className={styles.promptToolbar}>
-              <div className={styles.promptPillGroup}>
-                <button
-                  type="button"
-                  className={styles.promptPlusPill}
-                  aria-label="Add sources"
-                  aria-expanded={showSource}
-                  onClick={() => {
-                    setShowSource((prev) => !prev);
-                    setSourceTab('links');
-                  }}
-                >
-                  <Plus size={16} strokeWidth={2.0} />
-                </button>
-
-                <button
-                  type="button"
-                  className={`${styles.promptPill} ${showSource ? styles.promptPillActive : ''}`}
-                  onClick={() => {
-                    setShowSource((prev) => !prev);
-                    setSourceTab('links');
-                  }}
-                  aria-expanded={showSource}
-                >
-                  <FileText size={15} strokeWidth={1.8} />
-                  <span>
-                    Add sources{composerAttachments.links.length > 0 ? ` (${composerAttachments.links.length})` : ''}
-                  </span>
-                </button>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".txt,.md,.json,.pdf,text/plain,text/markdown,application/json,application/pdf"
-                  style={{ display: 'none' }}
-                  onChange={handleFileUpload}
-                  aria-hidden="true"
-                  tabIndex={-1}
-                />
-
-                <button
-                  type="button"
-                  className={styles.promptPill}
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Upload reference files (.pdf, .txt, .md, .json)"
-                  aria-label="Upload reference material"
-                >
-                  <Paperclip size={15} strokeWidth={1.8} />
-                  <span>
-                    Upload{composerAttachments.files.length > 0 ? ` (${composerAttachments.files.length})` : ''}
-                  </span>
-                </button>
-
-                <div className={styles.templateWrapper} ref={templateMenuRef}>
+            <>
+              <div className={styles.promptToolbar}>
+                <div className={styles.promptPillGroup}>
                   <button
                     type="button"
-                    className={`${styles.promptPill} ${showTemplates ? styles.promptPillActive : ''}`}
-                    onClick={() => setShowTemplates((prev) => !prev)}
-                    aria-expanded={showTemplates}
-                    aria-haspopup="dialog"
-                    title="Choose a curated learning template"
+                    className={`${styles.promptPill} ${showSource ? styles.promptPillActive : ''}`}
+                    onClick={() => setShowSource((prev) => !prev)}
+                    aria-expanded={showSource}
+                    aria-controls={linksRegionId}
                   >
-                    <Sparkles size={15} strokeWidth={1.8} />
-                    <span>Use a template</span>
+                    <LinkIcon size={15} strokeWidth={1.8} />
+                    <span>
+                      Add link{composerAttachments.links.length > 0 ? ` (${composerAttachments.links.length})` : ''}
+                    </span>
                   </button>
 
-                  {showTemplates && (
-                    <div
-                      className={styles.templateMenu}
-                      role="menu"
-                      aria-label="Curated learning templates"
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".txt,.md,.json,.pdf,text/plain,text/markdown,application/json,application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleFileUpload}
+                    aria-hidden="true"
+                    tabIndex={-1}
+                  />
+
+                  <button
+                    type="button"
+                    className={styles.promptPill}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Upload reference files (.pdf, .txt, .md, .json)"
+                    aria-label="Upload reference material"
+                  >
+                    <Paperclip size={15} strokeWidth={1.8} />
+                    <span>
+                      Upload{composerAttachments.files.length > 0 ? ` (${composerAttachments.files.length})` : ''}
+                    </span>
+                  </button>
+
+                  <div className={styles.templateWrapper} ref={templateMenuRef}>
+                    <button
+                      type="button"
+                      className={`${styles.promptPill} ${showTemplates ? styles.promptPillActive : ''}`}
+                      onClick={() => setShowTemplates((prev) => !prev)}
+                      aria-expanded={showTemplates}
+                      aria-haspopup="dialog"
+                      title="Choose a curated learning template"
                     >
-                      <div className={styles.templateMenuHeader}>
-                        <span className={styles.templateMenuTitle}>Curated Pathways</span>
-                        <span className={styles.templateMenuSubtitle}>
-                          Select a pathway to pre-fill your prompt
-                        </span>
+                      <Sparkles size={15} strokeWidth={1.8} />
+                      <span>Use a template</span>
+                    </button>
+
+                    {showTemplates && (
+                      <div
+                        className={styles.templateMenu}
+                        role="menu"
+                        aria-label="Curated learning templates"
+                      >
+                        <div className={styles.templateMenuHeader}>
+                          <span className={styles.templateMenuTitle}>Curated Pathways</span>
+                          <span className={styles.templateMenuSubtitle}>
+                            Select a pathway to pre-fill your prompt
+                          </span>
+                        </div>
+                        <div className={styles.templateList}>
+                          {HIGH_VALUE_TEMPLATES.map((tmpl) => (
+                            <button
+                              key={tmpl.id}
+                              type="button"
+                              className={styles.templateItem}
+                              onClick={() => handleSelectTemplate(tmpl)}
+                              role="menuitem"
+                            >
+                              <div className={styles.templateItemTop}>
+                                <span className={styles.templateBadge}>{tmpl.category}</span>
+                                <span className={styles.templateItemTitle}>{tmpl.title}</span>
+                              </div>
+                              <p className={styles.templateItemDesc}>{tmpl.tagline}</p>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div className={styles.templateList}>
-                        {HIGH_VALUE_TEMPLATES.map((tmpl) => (
-                          <button
-                            key={tmpl.id}
-                            type="button"
-                            className={styles.templateItem}
-                            onClick={() => handleSelectTemplate(tmpl)}
-                            role="menuitem"
-                          >
-                            <div className={styles.templateItemTop}>
-                              <span className={styles.templateBadge}>{tmpl.category}</span>
-                              <span className={styles.templateItemTitle}>{tmpl.title}</span>
-                            </div>
-                            <p className={styles.templateItemDesc}>{tmpl.tagline}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.promptRightActions}>
+                  <button
+                    type="button"
+                    className={`${styles.promptPlanBtn} ${selectedMode === 'plan' ? styles.promptPlanBtnActive : ''}`}
+                    disabled={isBusy}
+                    aria-pressed={selectedMode === 'plan'}
+                    onClick={() => {
+                      setSelectedMode(current => current === 'plan' ? 'search' : 'plan');
+                      inputRef.current?.focus();
+                    }}
+                    title="Plan collaboratively with AI in conversational chat"
+                  >
+                    <Lightbulb size={16} strokeWidth={selectedMode === 'plan' ? 2.2 : 1.8} />
+                    <span>{composerAttachments.isExtracting ? 'Reading…' : 'Plan'}</span>
+                    {selectedMode === 'plan' && (
+                      <span className={styles.activePlanBadge} aria-hidden="true">✓</span>
+                    )}
+                  </button>
+
+                  <span className={styles.promptDivider} aria-hidden="true" />
+
+                  <button
+                    type="button"
+                    className={`${styles.promptBeginBtn} ${selectedMode === 'plan' ? styles.promptBeginBtnPlan : ''}`}
+                    disabled={isBusy}
+                    onClick={(e) => void handleSubmit(selectedMode, e)}
+                    title={selectedMode === 'plan' ? 'Plan your cohort with AI assistant' : 'Search matching cohorts and begin your journey'}
+                  >
+                    <span>
+                      {composerAttachments.isExtracting
+                        ? 'Reading files…'
+                        : selectedMode === 'plan'
+                        ? 'Start planning'
+                        : 'Begin journey'}
+                    </span>
+                    <ArrowRight size={16} strokeWidth={2.0} />
+                  </button>
                 </div>
               </div>
 
-              <div className={styles.promptRightActions}>
-                <button
-                  type="button"
-                  className={`${styles.promptPlanBtn} ${selectedMode === 'plan' ? styles.promptPlanBtnActive : ''}`}
-                  disabled={isBusy}
-                  aria-pressed={selectedMode === 'plan'}
-                  onClick={() => {
-                    const nextMode = selectedMode === 'plan' ? 'search' : 'plan';
-                    setSelectedMode(nextMode);
-                    if (query.trim()) {
-                      void handleSubmit('plan');
-                    }
-                  }}
-                  title="Plan collaboratively with AI in conversational chat"
+              {showSource && (
+                <div
+                  id={linksRegionId}
+                  className={styles.inlineLinks}
+                  role="region"
+                  aria-label="Attached links"
                 >
-                  <Lightbulb size={16} strokeWidth={selectedMode === 'plan' ? 2.2 : 1.8} />
-                  <span>{composerAttachments.isExtracting ? 'Reading…' : 'Plan'}</span>
-                  {selectedMode === 'plan' && (
-                    <span className={styles.activePlanBadge} aria-hidden="true">✓</span>
-                  )}
-                </button>
+                  <div className={styles.inlineLinksHeader}>
+                    <span>Links</span>
+                    <button
+                      type="button"
+                      className={styles.inlineLinksClose}
+                      onClick={() => setShowSource(false)}
+                      aria-label="Close link input"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.stopPropagation();
+                    }}
+                  >
+                    <LinkRows
+                      links={composerAttachments.links}
+                      onAddLink={composerAttachments.addLink}
+                      onRemoveLink={composerAttachments.removeLink}
+                      disabled={submitting}
+                    />
+                  </div>
+                </div>
+              )}
 
-                <span className={styles.promptDivider} aria-hidden="true" />
-
-                <button
-                  type="button"
-                  className={`${styles.promptBeginBtn} ${selectedMode === 'plan' ? styles.promptBeginBtnPlan : ''}`}
-                  disabled={isBusy}
-                  onClick={(e) => void handleSubmit(selectedMode, e)}
-                  title={selectedMode === 'plan' ? 'Plan your cohort with AI assistant' : 'Search matching cohorts and begin your journey'}
-                >
-                  <span>
-                    {composerAttachments.isExtracting
-                      ? 'Reading files…'
-                      : selectedMode === 'plan'
-                      ? 'Start planning'
-                      : 'Begin journey'}
-                  </span>
-                  <ArrowRight size={16} strokeWidth={2.0} />
-                </button>
-              </div>
-            </div>
+              {sourceText.trim() && (
+                <details className={styles.legacySourceDetails}>
+                  <summary className={styles.legacySourceSummary}>
+                    <span>Previously attached text</span>
+                    <button
+                      type="button"
+                      className={styles.legacySourceRemove}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setSourceText('');
+                      }}
+                      aria-label="Remove previously attached text"
+                    >
+                      Remove
+                    </button>
+                  </summary>
+                  <div className={styles.legacySourcePreview}>{sourceText}</div>
+                </details>
+              )}
+            </>
           }
         />
-
-        {showSource && (
-          <div className={styles.sourceTextWrapper} role="region" aria-label="Reference material drawer">
-            <div className={styles.sourceTextHeader}>
-              <div className={styles.drawerTabs}>
-                <button
-                  type="button"
-                  className={`${styles.drawerTabBtn} ${sourceTab === 'links' ? styles.drawerTabBtnActive : ''}`}
-                  onClick={() => setSourceTab('links')}
-                >
-                  Add links ({composerAttachments.links.length})
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.drawerTabBtn} ${sourceTab === 'text' ? styles.drawerTabBtnActive : ''}`}
-                  onClick={() => setSourceTab('text')}
-                >
-                  Paste raw text
-                </button>
-              </div>
-
-              <div className={styles.sourceTextActions}>
-                {sourceTab === 'text' && (
-                  <span className={styles.sourceTextCounter}>
-                    {sourceText.length.toLocaleString()} / 200,000
-                  </span>
-                )}
-                {sourceTab === 'text' && sourceText.length > 0 && (
-                  <button
-                    type="button"
-                    className={styles.sourceTextClear}
-                    onClick={() => setSourceText('')}
-                    aria-label="Clear source text"
-                  >
-                    Clear
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={styles.sourceTextClear}
-                  onClick={() => setShowSource(false)}
-                  aria-label="Close source material drawer"
-                  title="Close (Esc)"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            </div>
-
-            {sourceTab === 'links' ? (
-              <div className={styles.linkRowsWrapper}>
-                <LinkRows
-                  links={composerAttachments.links}
-                  onAddLink={composerAttachments.addLink}
-                  onRemoveLink={composerAttachments.removeLink}
-                  disabled={submitting}
-                />
-              </div>
-            ) : (
-              <textarea
-                className={styles.sourceTextarea}
-                aria-label="Paste source text"
-                maxLength={200_000}
-                placeholder="Paste articles, code snippets, notes, or lecture outlines to ground your cohort..."
-                value={sourceText}
-                onChange={(event) => setSourceText(event.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    e.stopPropagation();
-                    setShowSource(false);
-                  }
-                }}
-                rows={4}
-              />
-            )}
-          </div>
-        )}
 
         {displayedError && (
           <div className={styles.intakeErrorBanner} role="alert">

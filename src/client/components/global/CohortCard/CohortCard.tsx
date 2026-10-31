@@ -32,13 +32,21 @@ export interface CohortCardProps {
   priority?: boolean;
 }
 
+function useSafeRouter() {
+  try {
+    return useRouter();
+  } catch {
+    return null;
+  }
+}
+
 export function CohortCard({
   item,
   size = 'standard',
   className,
   priority = false,
 }: CohortCardProps) {
-  const router = useRouter();
+  const router = useSafeRouter();
   const subtitleLength = item.subtitle.length;
 
   const rawSubtitleWidth =
@@ -80,7 +88,7 @@ export function CohortCard({
 
   const handlePrefetch = () => {
     if (href) {
-      router.prefetch(href);
+      router?.prefetch(href);
     }
   };
 

@@ -2,7 +2,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import React from 'react';
+
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: { user: { id: 'owner-test-1' } }, status: 'authenticated' }),
+}));
+
 import { CentralInterface } from '../CentralInterface';
+import { saveIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
 
 describe('CentralInterface homepage handoff', () => {
   let currentHref: string;
@@ -10,6 +16,7 @@ describe('CentralInterface homepage handoff', () => {
 
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     vi.restoreAllMocks();
     currentHref = 'http://localhost:3000/';
     locationMock = {
@@ -36,6 +43,7 @@ describe('CentralInterface homepage handoff', () => {
   afterEach(() => {
     cleanup();
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it('navigates directly to /quest/build/[workspaceId] and saves draft to sessionStorage when intake POST succeeds', async () => {
@@ -74,38 +82,10 @@ describe('CentralInterface homepage handoff', () => {
     expect(saved.body.requestId).toMatch(/^[0-9a-f-]{36}$/i);
   });
 
-  it('falls back to /quest/start and saves draft to sessionStorage when policy is enabled and POST is deferred', async () => {
+  it('toggles Plan mode without submitting, and subsequent submit sends mode plan', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ enabled: true, ownerId: 'owner-test-1' }),
-    });
-
-    render(<CentralInterface />);
-
-    const input = screen.getByRole('textbox', { name: /what do you want to learn about/i });
-    fireEvent.change(input, { target: { value: 'Learn machine learning' } });
-
-    const beginBtn = screen.getByRole('button', { name: /begin journey/i });
-    fireEvent.click(beginBtn);
-
-    await waitFor(() => {
-      expect(locationMock.href).toBe('/quest/start');
-      expect(locationMock.href).not.toContain('/quest/new');
-    });
-
-    const rawDraft = sessionStorage.getItem('undone:cohort-intake');
-    expect(rawDraft).toBeTruthy();
-    const saved = JSON.parse(rawDraft!);
-    expect(saved.ownerId).toBe('owner-test-1');
-    expect(saved.body.prompt).toBe('Learn machine learning');
-    expect(saved.body.source).toBeUndefined();
-    expect(saved.body.requestId).toMatch(/^[0-9a-f-]{36}$/i);
-  });
-
-  it('navigates to /quest/start and does NOT silently navigate to v1 (/quest/new) when policy is disabled', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ enabled: false, ownerId: 'owner-disabled' }),
+      json: async () => ({ workspaceId: 'ws-plan-build-1' }),
     });
 
     render(<CentralInterface />);
@@ -113,52 +93,62 @@ describe('CentralInterface homepage handoff', () => {
     const input = screen.getByRole('textbox', { name: /what do you want to learn about/i });
     fireEvent.change(input, { target: { value: 'Explore quantum computing' } });
 
-    const beginBtn = screen.getByRole('button', { name: /begin journey/i });
-    fireEvent.click(beginBtn);
+    const planBtn = screen.getByRole('button', { name: /plan/i });
+    expect(planBtn.getAttribute('aria-pressed')).toBe('false');
+
+    // Toggle Plan mode ON -> does not send network request
+    fireEvent.click(planBtn);
+    expect(planBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    // Now submit via Start planning button
+    const submitBtn = screen.getByRole('button', { name: /start planning/i });
+    fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(locationMock.href).toBe('/quest/start');
-      expect(locationMock.href).not.toContain('/quest/new');
+      expect(locationMock.href).toBe('/quest/build/ws-plan-build-1');
     });
 
     const rawDraft = sessionStorage.getItem('undone:cohort-intake');
     expect(rawDraft).toBeTruthy();
     const saved = JSON.parse(rawDraft!);
-    expect(saved.ownerId).toBe('owner-disabled');
+    expect(saved.ownerId).toBe('owner-test-1');
+    expect(saved.body.mode).toBe('plan');
     expect(saved.body.prompt).toBe('Explore quantum computing');
   });
 
-  it('preserves pasted source text in draft and navigates to /quest/start', async () => {
+  it('preserves legacy attached text in draft and submits it', async () => {
+    saveIntakeDraft(
+      {
+        requestId: '00000000-0000-4000-8000-000000000002',
+        prompt: 'Analyze neuroscience paper',
+        mode: 'search',
+        source: { label: 'Pasted text', text: 'Synaptic plasticity and long term potentiation principles' },
+      },
+      'owner-test-1'
+    );
+
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ enabled: true, ownerId: 'owner-test-2' }),
+      json: async () => ({ workspaceId: 'ws-neuro-1' }),
     });
 
     render(<CentralInterface />);
 
-    const input = screen.getByRole('textbox', { name: /what do you want to learn about/i });
-    fireEvent.change(input, { target: { value: 'Analyze neuroscience paper' } });
-
-    const addSourcesBtn = screen.getByRole('button', { name: /add sources/i });
-    fireEvent.click(addSourcesBtn);
-
-    const sourceTextarea = screen.getByRole('textbox', { name: /paste source text/i });
-    fireEvent.change(sourceTextarea, {
-      target: { value: 'Synaptic plasticity and long term potentiation principles' },
-    });
+    expect(screen.getByText('Previously attached text')).toBeTruthy();
+    expect(screen.getByText('Synaptic plasticity and long term potentiation principles')).toBeTruthy();
 
     const beginBtn = screen.getByRole('button', { name: /begin journey/i });
     fireEvent.click(beginBtn);
 
     await waitFor(() => {
-      expect(locationMock.href).toBe('/quest/start');
-      expect(locationMock.href).not.toContain('/quest/new');
+      expect(locationMock.href).toBe('/quest/build/ws-neuro-1');
     });
 
     const rawDraft = sessionStorage.getItem('undone:cohort-intake');
     expect(rawDraft).toBeTruthy();
     const saved = JSON.parse(rawDraft!);
-    expect(saved.ownerId).toBe('owner-test-2');
+    expect(saved.ownerId).toBe('owner-test-1');
     expect(saved.body.prompt).toBe('Analyze neuroscience paper');
     expect(saved.body.source).toEqual({
       label: 'Pasted text',
@@ -166,7 +156,7 @@ describe('CentralInterface homepage handoff', () => {
     });
   });
 
-  it('preserves draft with null ownerId and navigates to /quest/start when intake API returns 500', async () => {
+  it('displays recoverable error and retains draft when intake API returns 500', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -182,18 +172,16 @@ describe('CentralInterface homepage handoff', () => {
     fireEvent.click(beginBtn);
 
     await waitFor(() => {
-      expect(locationMock.href).toBe('/quest/start');
-      expect(locationMock.href).not.toContain('/quest/new');
+      expect(screen.getByRole('alert')).toBeTruthy();
     });
 
     const rawDraft = sessionStorage.getItem('undone:cohort-intake');
     expect(rawDraft).toBeTruthy();
     const saved = JSON.parse(rawDraft!);
-    expect(saved.ownerId).toBeNull();
     expect(saved.body.prompt).toBe('Study game theory');
   });
 
-  it('preserves draft with null ownerId and navigates to /quest/start when fetch throws network error', async () => {
+  it('displays recoverable error and retains draft when fetch throws network error or timeout', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network offline'));
 
     render(<CentralInterface />);
@@ -201,18 +189,17 @@ describe('CentralInterface homepage handoff', () => {
     const input = screen.getByRole('textbox', { name: /what do you want to learn about/i });
     fireEvent.change(input, { target: { value: 'Study distributed consensus' } });
 
-    const planBtn = screen.getByRole('button', { name: /plan/i });
-    fireEvent.click(planBtn);
+    const beginBtn = screen.getByRole('button', { name: /begin journey/i });
+    fireEvent.click(beginBtn);
 
     await waitFor(() => {
-      expect(locationMock.href).toBe('/quest/start');
-      expect(locationMock.href).not.toContain('/quest/new');
+      expect(screen.getByRole('alert')).toBeTruthy();
+      expect(screen.getByText('Could not confirm your request. Retry to continue.')).toBeTruthy();
     });
 
     const rawDraft = sessionStorage.getItem('undone:cohort-intake');
     expect(rawDraft).toBeTruthy();
     const saved = JSON.parse(rawDraft!);
-    expect(saved.ownerId).toBeNull();
     expect(saved.body.prompt).toBe('Study distributed consensus');
   });
 
