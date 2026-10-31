@@ -57,6 +57,11 @@ Tailwind CSS v4 replaces old Tailwind v3 plugins. Phantom classes that emit 0 CS
 - Banned: `animate-in`, `fade-in`, `slide-in-from-bottom-*`, `slide-in-from-top-*`.
 - Preferred: Native CSS transitions (`transition-opacity duration-200`) or `@keyframes` transitions defined in CSS modules.
 
+## Pruned Dead Selectors (Lean Mean Refactor)
+- `Hero.module.css`: Removed dead input card/prompt toolbar classes extracted to `LearningPromptBar`, unreferenced pencil flourishes, and dark mode overrides (-518 lines).
+- `CohortBuilder.module.css`: Removed dead turn status controls, connection badges, legacy 2-pane switching, duplicate `.dot` override, unreferenced curriculum cards, and obsolete review elements (-696 lines).
+- `Notes.module.css`: Removed dead legacy viewer, search bar duplicates, obsolete workspace tree, space header, and tasks panel (-566 lines), while strictly preserving `.titleInputTop:focus-visible` and `.canvasSwitchControl:focus-within` guarded by cascade regression tests.
+
 ## Testing & Verification Commands
 - Style & Token Unit Suites: `npx vitest run src/app/styles/__tests__/` (7 files, 98 tests).
 - UI Primitives & Components Suite: `npx vitest run src/client/components/ui/__tests__/` (16 tests).
