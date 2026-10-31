@@ -565,7 +565,7 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
 
       expect(screen.getByRole('button', { name: 'Search again' })).toBeTruthy();
       expect(
-        screen.getByRole('button', { name: 'I’ll provide my own sources instead' })
+        screen.getByRole('button', { name: 'Provide my sources' })
       ).toBeTruthy();
     });
 
@@ -576,10 +576,10 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
       );
 
       expect(
-        screen.getByRole('button', { name: '30 minutes per day' })
+        screen.getByRole('button', { name: 'Set daily time' })
       ).toBeTruthy();
       expect(
-        screen.getByRole('button', { name: 'For intermediate developers' })
+        screen.getByRole('button', { name: 'Set experience' })
       ).toBeTruthy();
     });
   });

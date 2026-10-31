@@ -111,19 +111,19 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
   const removeFile = useCallback((id: string) => {
     bytesById.current.delete(id);
     setFiles((prev) => prev.filter((f) => f.id !== id));
-  }, []);
+  }, [setFiles]);
 
   const removeLink = useCallback((id: string) => {
     bytesById.current.delete(id);
     setLinks((prev) => prev.filter((l) => l.id !== id));
-  }, []);
+  }, [setLinks]);
 
   const clearAll = useCallback(() => {
     bytesById.current.clear();
     setFiles([]);
     setLinks([]);
     setErrors([]);
-  }, []);
+  }, [setFiles, setLinks]);
 
   const addFiles = useCallback(async (fileList: FileList | File[]) => {
     const slots = maxFiles - filesRef.current.length;
@@ -197,11 +197,16 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
 
   const restoreSources = useCallback((sources: CohortSource[]) => {
     if (!sources || !sources.length) return;
+    const knownIds = new Set([
+      ...filesRef.current.map((item) => item.id),
+      ...linksRef.current.map((item) => item.id),
+    ]);
     const newFiles: FileItem[] = [];
     const newLinks: LinkItem[] = [];
 
     for (const s of sources) {
-      if (!s.text) continue;
+      if (!s.text || knownIds.has(s.id)) continue;
+      knownIds.add(s.id);
       const extraction: ClientSourceExtraction = {
         text: s.text,
         locations: s.locations ?? [{ start: 0, end: s.text.length }],
@@ -214,7 +219,7 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
         break; // Stop restoring if text budget is reached
       }
 
-      const isFile = s.label.toLowerCase().endsWith('.pdf') || s.input?.kind === 'pdf' || (s.provenance as any)?.pageCount !== undefined;
+      const isFile = s.label.toLowerCase().endsWith('.pdf') || s.input?.kind === 'pdf' || (s.provenance as { pageCount?: number } | undefined)?.pageCount !== undefined;
       if (isFile) {
         newFiles.push({
           id: s.id,
@@ -239,7 +244,7 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
 
     if (newFiles.length) setFiles((prev) => [...prev, ...newFiles]);
     if (newLinks.length) setLinks((prev) => [...prev, ...newLinks]);
-  }, [setFiles, setLinks]);
+  }, [filesRef, linksRef, setFiles, setLinks]);
 
   const isExtracting = useMemo(
     () => files.some((f) => f.status === 'extracting') || links.some((l) => l.status === 'extracting'),

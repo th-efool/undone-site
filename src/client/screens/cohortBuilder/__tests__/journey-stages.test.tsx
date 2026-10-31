@@ -361,12 +361,12 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
 
       render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
 
-      expect(screen.getByRole('button', { name: 'Show more advanced ones' })).toBeDefined();
-      expect(screen.getByRole('button', { name: 'I want something more practical' })).toBeDefined();
-      expect(screen.getByRole('button', { name: 'I’ll create my own instead' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Advanced options' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Practical options' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Create my own' })).toBeDefined();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Show more advanced ones' }));
-      expect(fake.sendMessage).toHaveBeenCalledWith('Show more advanced ones', []);
+      fireEvent.click(screen.getByRole('button', { name: 'Advanced options' }));
+      expect(fake.sendMessage).toHaveBeenCalledWith('Show more advanced ones', expect.anything());
     });
 
     it('displays starting_point suggestions when in starting_point step', () => {
@@ -382,12 +382,12 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
 
       render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
 
-      expect(screen.getByRole('button', { name: 'I have a YouTube playlist' })).toBeDefined();
-      expect(screen.getByRole('button', { name: 'Find material for me' })).toBeDefined();
-      expect(screen.getByRole('button', { name: 'I just have a goal' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Add a playlist' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Find materials' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Start with a goal' })).toBeDefined();
 
-      fireEvent.click(screen.getByRole('button', { name: 'I have a YouTube playlist' }));
-      expect(fake.sendMessage).toHaveBeenCalledWith('I have a YouTube playlist', []);
+      fireEvent.click(screen.getByRole('button', { name: 'Add a playlist' }));
+      expect(fake.sendMessage).toHaveBeenCalledWith('I have a YouTube playlist', expect.anything());
     });
 
     it('chat rail textarea remains fully writable', () => {

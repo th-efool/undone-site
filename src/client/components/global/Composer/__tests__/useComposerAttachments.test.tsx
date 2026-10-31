@@ -49,4 +49,75 @@ describe('useComposerAttachments', () => {
     await act(async () => { release(); });
     await waitFor(() => expect(result.current.isExtracting).toBe(false));
   });
+
+  it('restores sources idempotently without duplicating rows or re-consuming byte budget', async () => {
+    const { result } = renderHook(() => useComposerAttachments());
+    const sample = {
+      id: 'src-sample-1',
+      version: 1,
+      label: 'https://example.com/guide',
+      text: 'Extracted guide text',
+      locations: [{ start: 0, end: 20 }],
+      checksum: 'c'.repeat(64),
+      state: 'ready' as const,
+    };
+
+    // 1. Restore twice in same act
+    act(() => {
+      result.current.restoreSources([sample]);
+      result.current.restoreSources([sample]);
+    });
+    expect(result.current.links).toHaveLength(1);
+    expect(result.current.getReadySources()).toHaveLength(1);
+
+    // 2. Restore once in separate act
+    act(() => {
+      result.current.restoreSources([sample]);
+    });
+    expect(result.current.links).toHaveLength(1);
+    expect(result.current.getReadySources()).toHaveLength(1);
+
+    // 3. Restore [source, source] as a batch
+    act(() => {
+      result.current.clearAll();
+    });
+    expect(result.current.links).toHaveLength(0);
+
+    act(() => {
+      result.current.restoreSources([sample, sample]);
+    });
+    expect(result.current.links).toHaveLength(1);
+
+    // 4. Remove it and expect zero
+    act(() => {
+      result.current.removeLink(sample.id);
+    });
+    expect(result.current.links).toHaveLength(0);
+
+    // 5. Restore it explicitly again and expect one
+    act(() => {
+      result.current.restoreSources([sample]);
+    });
+    expect(result.current.links).toHaveLength(1);
+
+    // 6. Near-limit 2.5MB source restored twice does not throw or exceed 3MB limit
+    const bigSource = {
+      id: 'src-big-1',
+      version: 1,
+      label: 'https://example.com/big',
+      text: 'x'.repeat(2.5 * 1024 * 1024),
+      locations: [{ start: 0, end: 2.5 * 1024 * 1024 }],
+      checksum: 'b'.repeat(64),
+      state: 'ready' as const,
+    };
+    act(() => {
+      result.current.clearAll();
+    });
+    act(() => {
+      result.current.restoreSources([bigSource]);
+      result.current.restoreSources([bigSource]);
+    });
+    expect(result.current.links).toHaveLength(1);
+    expect(result.current.errors).toHaveLength(0);
+  });
 });

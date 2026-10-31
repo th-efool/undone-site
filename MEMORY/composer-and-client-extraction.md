@@ -16,7 +16,7 @@
   - `AttachmentTray.tsx`: File cards displaying Page 1 PDF previews, extracting spinners, and remove buttons without retaining raw `File` byte buffers in state.
   - `SourceIcon.tsx`: Lean vector brand icon primitive.
 - `src/client/components/global/LearningPromptBar/`:
-  - `LearningPromptBar.tsx`: Single "Add link" pill trigger, inline URL input under input field, mode-only Plan button (toggles mode without submitting), in-flight submit guard with idempotent content fingerprinting, legacy attached source text preview/removal.
+  - `LearningPromptBar.tsx`: Deterministic initial render with empty defaults, mount-only post-hydration draft restoration (`draftRestored`), single "Add link" pill trigger, inline URL input under input field, mode-only Plan button, in-flight submit guard with idempotent content fingerprinting, caller-owned request identity, legacy attached source text preview/removal.
 - `src/client/screens/cohortBuilder/`:
   - `CohortInteractionScreen.tsx`: Single persistent component tree using `data-layout="centered" | "split"`. Keeps `<ChatPane />` mounted during `chat` ↔ `recommendations` transitions, preserving user drafts and scroll state.
   - `ChatPane.tsx`: AI chat pane styled via parent `data-layout` without `!important`.
@@ -25,5 +25,5 @@
 
 1. **Client-Device Execution First**: Extraction of user files (PDF, web DOM, GitHub files) executes on the user's browser, preventing CPU-intensive processing or binary uploads in Vercel Serverless Lambdas.
 2. **Payload Size Boundaries**: Client enforces 3MB total text budget across all attachments; server intake route accepts up to 3.5MB stream before throwing 413 `INPUT_TOO_LARGE`. `saveIntakeDraft` catches `QuotaExceededError` and retries storing without `sources` to guarantee reliability.
-3. **Draft Retention**: LearningPromptBar drafts are persisted synchronously on debounce and `beforeunload`. Keyboard shortcut `Shift+Enter` submits in `plan` mode. Submit buttons are gated while extraction is in flight (`isExtracting`).
+3. **Draft Retention & Lifecycle**: `LearningPromptBar` performs deterministic mount-only restoration after client hydration, gating persistence and submission behind `draftRestored`. Drafts are auto-persisted on debounce and `beforeunload`. `saveIntakeDraft` preserves caller-supplied request identity; `restoreSources` deduplicates existing IDs idempotently.
 4. **Tool Parity & Context Excerpt Budget**: `ALWAYS_TOOLS` (`start_search`, `set_intent`) are exposed in all active interactive journey stages. Prompt excerpt budget is stage-aware: 2,000 chars per source during early exploration/materials; 240 chars once lessons and chunks are generated.

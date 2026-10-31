@@ -74,10 +74,10 @@ it('planJourneyJobs DOES queue recommendations job when step is recommendations'
   expect(jobs.filter(j => j.stage === 'recommendations').length).toBe(1);
 });
 
-it('keeps duplicate landing submissions on one pending request identity', () => {
+it('preserves supplied requestId without rewriting it to match prior draft', () => {
   saveIntakeDraft(body, null);
   saveIntakeDraft({ ...body, requestId: '161a7dd4-5acf-4463-a66a-c3c2325d4be0' }, null);
-  expect(readIntakeDraft('owner')?.requestId).toBe(body.requestId);
+  expect(readIntakeDraft('owner')?.requestId).toBe('161a7dd4-5acf-4463-a66a-c3c2325d4be0');
 });
 
 it('rejects a source editor based on an older source version', () => {

@@ -148,84 +148,18 @@ export const LearningPromptBar = React.memo(
     },
     ref,
   ) {
-    const [internalQuery, setInternalQuery] = useState(() => {
-      if (controlledValue !== undefined) return '';
-      if (typeof window === 'undefined') return '';
-      try {
-        const parsedUrl = new URL(window.location.href, 'http://localhost');
-        const q = parsedUrl.searchParams.get('q');
-        if (q) return q;
-      } catch {
-        const urlParams = new URLSearchParams(window.location.search);
-        const q = urlParams.get('q');
-        if (q) return q;
-      }
-      try {
-        const stored =
-          sessionStorage.getItem('sidequest_prompt_query_draft') ||
-          localStorage.getItem('sidequest_prompt_query_draft') ||
-          sessionStorage.getItem('undone:landing-query');
-        if (stored) return stored;
-        const intakeDraft = readIntakeDraft(null);
-        if (intakeDraft?.prompt) return intakeDraft.prompt;
-      } catch {}
-      return '';
-    });
+    const [internalQuery, setInternalQuery] = useState('');
     const query = controlledValue !== undefined ? controlledValue : internalQuery;
 
     const linksRegionId = useId();
-    const [showSource, setShowSource] = useState(() => {
-      if (typeof window === 'undefined') return false;
-      try {
-        const storedShow =
-          sessionStorage.getItem('sidequest_prompt_source_visible') ||
-          localStorage.getItem('sidequest_prompt_source_visible');
-        if (storedShow === 'true') return true;
-        const storedSrc =
-          sessionStorage.getItem('sidequest_prompt_source_draft') ||
-          localStorage.getItem('sidequest_prompt_source_draft');
-        if (storedSrc) return true;
-        const intakeDraft = readIntakeDraft(null);
-        if (intakeDraft?.source?.text || (intakeDraft?.sources && intakeDraft.sources.length > 0)) {
-          return true;
-        }
-      } catch {}
-      return false;
-    });
-    const [sourceText, setSourceText] = useState(() => {
-      if (typeof window === 'undefined') return '';
-      try {
-        const storedSrc =
-          sessionStorage.getItem('sidequest_prompt_source_draft') ||
-          localStorage.getItem('sidequest_prompt_source_draft');
-        if (storedSrc) return storedSrc;
-        const intakeDraft = readIntakeDraft(null);
-        if (intakeDraft?.source?.text) return intakeDraft.source.text;
-      } catch {}
-      return '';
-    });
+    const [showSource, setShowSource] = useState(false);
+    const [sourceText, setSourceText] = useState('');
     const [intakeError, setIntakeError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
-    const [selectedMode, setSelectedMode] = useState<'search' | 'plan'>(() => {
-      if (typeof window === 'undefined') return 'search';
-      try {
-        const parsedUrl = new URL(window.location.href, 'http://localhost');
-        const m = parsedUrl.searchParams.get('mode');
-        if (m === 'plan' || m === 'search') return m;
-      } catch {
-        const urlParams = new URLSearchParams(window.location.search);
-        const m = urlParams.get('mode');
-        if (m === 'plan' || m === 'search') return m;
-      }
-      try {
-        const intakeDraft = readIntakeDraft(null);
-        if (intakeDraft?.mode === 'plan' || intakeDraft?.mode === 'search') {
-          return intakeDraft.mode;
-        }
-      } catch {}
-      return 'search';
-    });
+    const [selectedMode, setSelectedMode] = useState<'search' | 'plan'>('search');
+    const [draftRestored, setDraftRestored] = useState(false);
+    const restored = useRef(false);
 
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -245,6 +179,7 @@ export const LearningPromptBar = React.memo(
       maxPdfSizeMb: 50,
       maxTextSizeMb: 5,
     });
+    const { restoreSources } = composerAttachments;
 
     useEffect(() => {
       if (!showTemplates && !showSource) return;
@@ -310,46 +245,58 @@ export const LearningPromptBar = React.memo(
     }));
 
     useEffect(() => {
-      if (typeof window !== 'undefined') {
-        const intakeDraft = readIntakeDraft(null);
-        if (intakeDraft) {
-          const contentPayload = {
-            ownerId: session?.user?.id ?? null,
-            prompt: intakeDraft.prompt,
-            mode: intakeDraft.mode,
-            ...(intakeDraft.sources && intakeDraft.sources.length > 0 ? { sources: intakeDraft.sources } : {}),
-            ...(intakeDraft.source ? { source: intakeDraft.source } : {}),
-          };
-          intakeAttempt.current = {
-            fingerprint: JSON.stringify(contentPayload),
-            requestId: intakeDraft.requestId,
-          };
+      if (restored.current) return;
+      restored.current = true;
 
-          if (intakeDraft.sources && intakeDraft.sources.length > 0) {
-            composerAttachments.restoreSources(intakeDraft.sources);
-          }
+      const read = (key: string) => {
+        try {
+          return sessionStorage.getItem(key) || localStorage.getItem(key);
+        } catch {
+          return null;
         }
-      }
-    }, [composerAttachments, session?.user?.id]);
+      };
+      const params = new URLSearchParams(window.location.search);
+      let draft: ReturnType<typeof readIntakeDraft> = null;
+      try {
+        draft = readIntakeDraft(session?.user?.id ?? null);
+      } catch {}
+      const text = read('sidequest_prompt_source_draft') || draft?.source?.text || '';
+      const prompt =
+        params.get('q') ||
+        read('sidequest_prompt_query_draft') ||
+        read('undone:landing-query') ||
+        draft?.prompt ||
+        '';
+      const urlMode = params.get('mode');
+
+      if (controlledValue === undefined) setInternalQuery(prompt);
+      setSourceText(text);
+      setSelectedMode(urlMode === 'plan' || urlMode === 'search' ? urlMode : draft?.mode ?? 'search');
+      setShowSource(Boolean(text || draft?.sources?.length || read('sidequest_prompt_source_visible') === 'true'));
+      if (draft?.sources?.length) restoreSources(draft.sources);
+      setDraftRestored(true);
+    }, [controlledValue, restoreSources, session?.user?.id]);
 
     // Continuously auto-persist unsubmitted prompt queries and pasted sources
     useEffect(() => {
+      if (!draftRestored) return;
       const timer = window.setTimeout(() => {
         persistPromptDraft(query, sourceText, showSource);
       }, 200);
 
       return () => window.clearTimeout(timer);
-    }, [query, sourceText, showSource]);
+    }, [query, sourceText, showSource, draftRestored]);
 
     // Flush immediately on accidental navigation or refresh before unload
     useEffect(() => {
+      if (!draftRestored) return;
       const handleBeforeUnload = () => {
         persistPromptDraft(query, sourceText, showSource);
       };
 
       window.addEventListener('beforeunload', handleBeforeUnload);
       return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [query, sourceText, showSource]);
+    }, [query, sourceText, showSource, draftRestored]);
 
     const handleQueryChange = (val: string) => {
       if (controlledOnChange) {
@@ -359,7 +306,7 @@ export const LearningPromptBar = React.memo(
       }
     };
 
-    const isBusy = submitting || composerAttachments.isExtracting;
+    const isBusy = !draftRestored || submitting || composerAttachments.isExtracting;
     const effectivePlaceholder = selectedMode === 'plan'
       ? 'Describe what you want to learn, your background, or paste links to plan...'
       : placeholder;
@@ -381,7 +328,7 @@ export const LearningPromptBar = React.memo(
         }
       }
 
-      if (!textToSearch.trim() || submitInFlight.current || submitting || composerAttachments.isExtracting) return;
+      if (!draftRestored || !textToSearch.trim() || submitInFlight.current || submitting || composerAttachments.isExtracting) return;
 
       if (customOnSubmit) {
         customOnSubmit(textToSearch.trim());
@@ -403,6 +350,25 @@ export const LearningPromptBar = React.memo(
           ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText.trim() } } : {}),
         };
         const fingerprint = JSON.stringify(contentPayload);
+
+        if (!intakeAttempt.current) {
+          let saved: ReturnType<typeof readIntakeDraft> = null;
+          try {
+            saved = readIntakeDraft(ownerId);
+          } catch {}
+          if (saved) {
+            const savedContent = {
+              ownerId,
+              prompt: saved.prompt,
+              mode: saved.mode,
+              ...(saved.sources?.length ? { sources: saved.sources } : {}),
+              ...(saved.source ? { source: saved.source } : {}),
+            };
+            if (JSON.stringify(savedContent) === fingerprint) {
+              intakeAttempt.current = { fingerprint, requestId: saved.requestId };
+            }
+          }
+        }
 
         let requestId: string;
         if (intakeAttempt.current && intakeAttempt.current.fingerprint === fingerprint) {

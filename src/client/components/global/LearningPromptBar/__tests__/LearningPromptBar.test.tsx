@@ -2,6 +2,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
+import ReactDOMServer from 'react-dom/server';
+import { hydrateRoot } from 'react-dom/client';
 
 const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -200,6 +202,7 @@ describe('LearningPromptBar Component (Unit B)', () => {
     });
     const secondReqId = JSON.parse(fetchMock.mock.calls[1][1].body).requestId;
     expect(secondReqId).toBe(firstReqId);
+    expect(readIntakeDraft('test-user-123')?.requestId).toBe(firstReqId);
 
     // 3. Change prompt -> requestId changes
     fireEvent.change(input, { target: { value: 'Brand new prompt inquiry' } });
@@ -214,6 +217,77 @@ describe('LearningPromptBar Component (Unit B)', () => {
     });
     const thirdReqId = JSON.parse(fetchMock.mock.calls[2][1].body).requestId;
     expect(thirdReqId).not.toBe(firstReqId);
+    expect(readIntakeDraft('test-user-123')?.requestId).toBe(thirdReqId);
+  });
+
+  it('request identity matches storage across retries, remounts, and payload variations', async () => {
+    fetchMock.mockRejectedValue(new Error('Network error'));
+    const getIntakeCalls = () => fetchMock.mock.calls.filter((call) => call[0] === '/api/cohort-builder/intake');
+
+    // 1. Initial submission
+    const { unmount, rerender } = render(<LearningPromptBar />);
+    const input = screen.getByLabelText('What do you want to learn about?');
+    fireEvent.change(input, { target: { value: 'Identical payload goal' } });
+
+    const beginBtn = screen.getByRole('button', { name: /Begin journey/i });
+    fireEvent.click(beginBtn);
+
+    await waitFor(() => {
+      expect(getIntakeCalls()).toHaveLength(1);
+    });
+    const req1 = JSON.parse(getIntakeCalls()[0][1].body).requestId;
+    expect(readIntakeDraft('test-user-123')?.requestId).toBe(req1);
+
+    // 2. Rerender between retries
+    rerender(<LearningPromptBar />);
+    fireEvent.click(beginBtn);
+
+    await waitFor(() => {
+      expect(getIntakeCalls()).toHaveLength(2);
+    });
+    const req2 = JSON.parse(getIntakeCalls()[1][1].body).requestId;
+    expect(req2).toBe(req1);
+    expect(readIntakeDraft('test-user-123')?.requestId).toBe(req1);
+
+    // 3. Unmount and remount identical draft
+    unmount();
+    const { unmount: unmount2 } = render(<LearningPromptBar />);
+    await waitFor(() => {
+      const el = screen.getByLabelText('What do you want to learn about?') as HTMLTextAreaElement;
+      expect(el.value).toBe('Identical payload goal');
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Begin journey/i }));
+
+    await waitFor(() => {
+      expect(getIntakeCalls()).toHaveLength(3);
+    });
+    const req3 = JSON.parse(getIntakeCalls()[2][1].body).requestId;
+    expect(req3).toBe(req1);
+    expect(readIntakeDraft('test-user-123')?.requestId).toBe(req1);
+
+    // 4. Same prompt but changed mode -> new requestId
+    fireEvent.click(screen.getByRole('button', { name: /^Plan$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Start planning/i }));
+
+    await waitFor(() => {
+      expect(getIntakeCalls()).toHaveLength(4);
+    });
+    const req4 = JSON.parse(getIntakeCalls()[3][1].body).requestId;
+    expect(req4).not.toBe(req1);
+    expect(readIntakeDraft('test-user-123')?.requestId).toBe(req4);
+
+    // 5. Change prompt text on mounted input -> new requestId
+    const mountedInput = screen.getByLabelText('What do you want to learn about?');
+    fireEvent.change(mountedInput, { target: { value: 'A completely different learning direction' } });
+    fireEvent.click(screen.getByRole('button', { name: /Start planning/i }));
+    await waitFor(() => {
+      expect(getIntakeCalls()).toHaveLength(5);
+    });
+    const req5 = JSON.parse(getIntakeCalls()[4][1].body).requestId;
+    expect(req5).not.toBe(req4);
+    expect(readIntakeDraft('test-user-123')?.requestId).toBe(req5);
+
+    unmount2();
   });
 
   it('renders legacy attached text with preview and remove button', () => {
@@ -257,5 +331,157 @@ describe('LearningPromptBar Component (Unit B)', () => {
     const draft = readIntakeDraft('test-user-123');
     expect(draft).not.toBeNull();
     expect(draft?.prompt).toBe('Large draft test');
+  });
+
+  it('restores ready source in StrictMode and preserves user removal across rerenders', async () => {
+    saveIntakeDraft({
+      requestId: '00000000-0000-4000-8000-000000000002',
+      prompt: 'Persisted StrictMode Goal',
+      mode: 'plan',
+      sources: [{
+        id: 'persisted-link-1',
+        version: 1,
+        label: 'https://example.com/strict',
+        text: 'Strict mode guide text',
+        locations: [{ start: 0, end: 23 }],
+        checksum: 'a'.repeat(64),
+        state: 'ready',
+      }],
+    }, 'test-user-123');
+
+    const { rerender } = render(
+      <React.StrictMode>
+        <LearningPromptBar />
+      </React.StrictMode>
+    );
+
+    // Initial post-hydration restore displays link and plan button
+    await waitFor(() => {
+      expect(screen.getByText('example.com/strict')).toBeTruthy();
+    });
+    expect(screen.getByRole('button', { name: /^Plan$/i }).getAttribute('aria-pressed')).toBe('true');
+
+    // Type into prompt
+    const input = screen.getByLabelText('What do you want to learn about?');
+    fireEvent.change(input, { target: { value: 'User edited prompt' } });
+
+    // Toggle Plan off
+    fireEvent.click(screen.getByRole('button', { name: /^Plan$/i }));
+    expect(screen.getByRole('button', { name: /^Plan$/i }).getAttribute('aria-pressed')).toBe('false');
+
+    // Rerender with same props
+    rerender(
+      <React.StrictMode>
+        <LearningPromptBar />
+      </React.StrictMode>
+    );
+    expect((input as HTMLTextAreaElement).value).toBe('User edited prompt');
+    expect(screen.getByRole('button', { name: /^Plan$/i }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByText('example.com/strict')).toBeTruthy();
+
+    // Remove source and rerender
+    const removeBtn = screen.getByLabelText(/Remove link/i);
+    fireEvent.click(removeBtn);
+    expect(screen.queryByText('example.com/strict')).toBeNull();
+
+    rerender(
+      <React.StrictMode>
+        <LearningPromptBar />
+      </React.StrictMode>
+    );
+    expect(screen.queryByText('example.com/strict')).toBeNull();
+  });
+
+  it('controlled value remains parent-owned without firing onChange on mount', async () => {
+    saveIntakeDraft({
+      requestId: '00000000-0000-4000-8000-000000000003',
+      prompt: 'Draft stored prompt',
+      mode: 'search',
+    }, 'test-user-123');
+
+    const onChange = vi.fn();
+    render(<LearningPromptBar value="Controlled Prompt Value" onChange={onChange} />);
+
+    await waitFor(() => {
+      const input = screen.getByLabelText('What do you want to learn about?');
+      expect((input as HTMLTextAreaElement).value).toBe('Controlled Prompt Value');
+    });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('survives throwing storage without crashing and renders usable empty composer', () => {
+    const originalGetItem = window.sessionStorage.getItem;
+    window.sessionStorage.getItem = () => { throw new Error('Storage disabled'); };
+
+    try {
+      render(<LearningPromptBar />);
+      expect(screen.getByLabelText('What do you want to learn about?')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Begin journey/i })).toBeTruthy();
+    } finally {
+      window.sessionStorage.getItem = originalGetItem;
+    }
+  });
+
+  it('hydrates server-rendered HTML cleanly without mismatch errors when client storage has draft', async () => {
+    // 1. Obtain server HTML before seeding browser storage
+    const serverHtml = ReactDOMServer.renderToString(<LearningPromptBar />);
+
+    // 2. Seed draft in browser storage
+    saveIntakeDraft({
+      requestId: '00000000-0000-4000-8000-000000000004',
+      prompt: 'Hydration goal from storage',
+      mode: 'plan',
+      source: { label: 'Pasted text', text: 'Hydration legacy text' },
+      sources: [{
+        id: 'hydrate-src-1',
+        version: 1,
+        label: 'https://example.com/hydrate',
+        text: 'Hydrate source text',
+        locations: [{ start: 0, end: 19 }],
+        checksum: 'b'.repeat(64),
+        state: 'ready',
+      }],
+    }, 'test-user-123');
+
+    const recoverableErrors: unknown[] = [];
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args) => {
+      const msg = args.join(' ');
+      if (msg.includes('Hydration') || msg.includes('hydrat')) {
+        recoverableErrors.push(msg);
+      }
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    container.innerHTML = serverHtml;
+
+    let root: ReturnType<typeof hydrateRoot> | null = null;
+    await act(async () => {
+      root = hydrateRoot(container, <LearningPromptBar />, {
+        onRecoverableError: (err) => {
+          recoverableErrors.push(err);
+        },
+      });
+    });
+
+    try {
+      // Must have zero hydration errors
+      expect(recoverableErrors).toHaveLength(0);
+
+      // Post-hydration effect populates restored UI
+      await waitFor(() => {
+        expect(screen.getByText('Hydration legacy text')).toBeTruthy();
+      });
+      expect(screen.getByText('example.com/hydrate')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /^Plan$/i }).getAttribute('aria-pressed')).toBe('true');
+    } finally {
+      consoleErrorSpy.mockRestore();
+      if (root) {
+        await act(async () => {
+          root?.unmount();
+        });
+      }
+      container.remove();
+    }
   });
 });

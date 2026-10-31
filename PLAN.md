@@ -1,5 +1,7 @@
 # Homepage composer and cohort chat — consolidated fix plan
 
+**Latest review repair:** execute [COMPOSER_FINAL_REPAIR_PLAN.md](COMPOSER_FINAL_REPAIR_PLAN.md) for the restoration/hydration regressions and consistent retry identity. It supersedes older instructions on those areas and deliberately avoids expanding runtime architecture.
+
 ## Verified root cause — 2026-10-31 (supersedes latency hypotheses)
 
 Read-only inspection of screenshot workspace `064df82e-5fca-4b61-a6c7-6801df1b917e` found the run **failed 8.657 seconds after acceptance**, not after minutes of model execution. `set_intent` committed at +8.076s (so local suggestions could update from the AI-refined goal), then `edit_presentation` failed because `planCohortAction` spreads the action's `type` discriminator into the strict presentation object. The model supplied valid title/description fields. This application defect was reproduced locally; removing only the discriminator restored schema validity. No assistant reply was persisted.
