@@ -88,7 +88,7 @@ describe('AI Tools Optimization & Stage Filtering', () => {
         version: 1,
         step: 'chat',
         branch: 'have_material',
-        processingStarted: false,
+        processingStarted: true,
         intentVersion: 1,
       },
       sources: [
