@@ -342,12 +342,10 @@ describe('PlayDesktop visual redesign composition', () => {
 
     render(<PlayDesktop playback={playback} />);
 
-    const alertEl = screen.getByRole('alert');
-    expect(alertEl).toBeDefined();
-    expect(within(alertEl).getByText('Network timeout recording progress')).toBeDefined();
+    expect(screen.queryByText('Network timeout recording progress')).toBeNull();
 
-    // 1. Toast retry button
-    const toastRetryBtn = within(alertEl).getByRole('button', { name: /retry/i });
+    // Explicit retry remains available without an inline technical error banner.
+    const toastRetryBtn = screen.getByRole('button', { name: 'Retry' });
     fireEvent.click(toastRetryBtn);
     expect(completeActiveChunk).toHaveBeenCalledTimes(1);
 

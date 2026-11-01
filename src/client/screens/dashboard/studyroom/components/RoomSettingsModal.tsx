@@ -1,5 +1,6 @@
 'use client';
 
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Loader2, Shield, UserMinus, ArrowRightLeft, History, Settings } from 'lucide-react';
 import {
@@ -72,6 +73,8 @@ export function RoomSettingsModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLifecycleLoading, setIsLifecycleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const actionFailure = errorMessage && errorMessage !== 'Room title cannot be empty.' ? errorMessage : null;
+  useFailureToast(actionFailure, 'Could not confirm the room change. Your form is kept; check the current room state.', 'RoomSettings');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Load controllers
@@ -386,7 +389,7 @@ export function RoomSettingsModal({
         </div>
 
         <div className={styles.body}>
-          {errorMessage && <div className={styles.errorBanner}>{errorMessage}</div>}
+          {errorMessage && !actionFailure && <div className={styles.errorBanner}>{errorMessage}</div>}
           {successMessage && <div className={styles.successBanner}>{successMessage}</div>}
 
           {/* TAB 1: GENERAL SETTINGS & LIFECYCLE */}

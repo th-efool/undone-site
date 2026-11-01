@@ -1,5 +1,6 @@
 'use client';
 
+import { reportSiteFailure } from '@/src/client/feedback/site-failures';
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, X, Loader2, RefreshCw, Compass, Users, User, Clock } from 'lucide-react';
 import type { StudyRoomCardDTO, DiscoveryTab } from '@/src/shared/studyroom/contracts';
@@ -102,9 +103,8 @@ export function StudyRoomScreen({ initialRooms }: StudyRoomScreenProps) {
       const incomingRooms: StudyRoomCardDTO[] = Array.isArray(data) ? data : data.rooms || [];
       setRooms((prev) => [...prev, ...incomingRooms]);
       setNextCursor(data.nextCursor || null);
-    } catch (err: unknown) {
-      setIsError(true);
-      setErrorMessage(err instanceof Error ? err.message : 'Unable to fetch more study rooms.');
+    } catch {
+      reportSiteFailure('room');
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,8 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvider';
+const render = (ui: React.ReactNode) => testingRender(<ToastProvider>{ui}</ToastProvider>);
+import { render as testingRender, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import SharedSprintWidget from '../room/components/SharedSprintWidget';
 import type { UseRoomSprintReturn } from '../hooks/useRoomSprint';
@@ -148,6 +150,6 @@ describe('SharedSprintWidget component', () => {
     render(<SharedSprintWidget sprintHook={mockHook} />);
     const alert = screen.getByRole('alert');
     expect(alert).toBeDefined();
-    expect(alert.textContent).toContain('Sprint revision conflict; please refresh sprint status');
+    expect(alert.textContent).toContain('Could not confirm the sprint action. Check its current state before retrying.');
   });
 });

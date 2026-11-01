@@ -1,5 +1,6 @@
 'use client';
 
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   PlayHeader,
@@ -13,7 +14,6 @@ import {
 import type { UsePlaybackResult } from './hooks/usePlayback';
 import { use1DGesture } from './hooks/use1DGesture';
 import { resolveMediaSource } from './utils/mediaSource';
-import { AlertCircle } from 'lucide-react';
 import styles from './Play.module.css';
 
 interface PlayDesktopProps {
@@ -24,6 +24,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
   const playContainerRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenFeedback, setFullscreenFeedback] = useState<string | null>(null);
+  useFailureToast(fullscreenFeedback, 'Fullscreen was blocked by your browser. Playback remains available here.', 'Fullscreen');
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [channelSelectorOpen, setChannelSelectorOpen] = useState(false);
   const preLongPressSpeedRef = useRef<number>(playback.playbackSpeed);
@@ -152,10 +153,8 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
       )}
 
       {/* Feedback toast for fullscreen rejection or completion error */}
-      {(fullscreenFeedback || playback.completionError) && (
-        <div className={styles.feedbackToast} role="alert">
-          <AlertCircle size={16} />
-          <span>{fullscreenFeedback || playback.completionError}</span>
+      {playback.completionError && (
+        <div className={styles.feedbackToast}>
           {playback.completionError && (
             <button
               type="button"

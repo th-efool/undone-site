@@ -36,7 +36,6 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
           <HomeHero userName={userName} />
           <LearningPromptBar />
           <ChannelHub />
-          {home.syncError && <p role="alert">{home.syncError}</p>}
           <ActiveCohorts
             heading={home.sections.activeCohorts}
             items={subscribedCohorts}

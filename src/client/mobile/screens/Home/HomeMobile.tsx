@@ -55,11 +55,6 @@ export function HomeMobile({ model: home }: HomeMobileProps) {
       <Link href="/quest/start" className={styles.createQuest}>Start a new quest</Link>
       <ChannelHub />
 
-      {home.syncError && (
-        <p role="alert" className={styles.errorAlert}>
-          {home.syncError}
-        </p>
-      )}
 
       {normalizedQuery && filteredCohorts.length === 0 ? (
         <div className={styles.noMatches}>

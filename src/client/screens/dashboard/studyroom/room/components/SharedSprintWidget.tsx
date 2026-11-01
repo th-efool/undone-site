@@ -1,5 +1,6 @@
 'use client';
 
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import React, { useState } from 'react';
 import {
   Flame,
@@ -35,6 +36,7 @@ export function SharedSprintWidget({ sprintHook }: SharedSprintWidgetProps) {
   } = sprintHook;
 
   const [selectedDuration, setSelectedDuration] = useState<number>(25);
+  useFailureToast(actionError, 'Could not confirm the sprint action. Check its current state before retrying.', 'RoomSprint');
 
   const isActive = sprint?.status === 'ACTIVE';
   const isPaused = sprint?.status === 'PAUSED';
@@ -76,11 +78,6 @@ export function SharedSprintWidget({ sprintHook }: SharedSprintWidgetProps) {
       </div>
 
       {/* Error alert */}
-      {actionError && (
-        <div className={styles.errorBanner} role="alert">
-          {actionError}
-        </div>
-      )}
 
       {/* Main Content Area */}
       {hasSprint ? (

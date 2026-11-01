@@ -144,15 +144,11 @@ describe('HomeMobile', () => {
     expect(screen.getByTestId('channel-hub')).toBeTruthy();
   });
 
-  it('renders syncError when present with role="alert"', () => {
+  it('does not embed action errors in the mobile page', () => {
     const model = createMockHomeResult({ syncError: 'Network failure syncing changes' });
     render(<HomeMobile model={model} />);
-
-    const alert = screen.getByRole('alert');
-    expect(alert).toBeTruthy();
-    expect(alert.textContent).toContain('Network failure syncing changes');
+    expect(screen.queryByText('Network failure syncing changes')).toBeNull();
   });
-
   it('renders RecentlyCompleted when completed items exist and toggles open/close', () => {
     const model = createMockHomeResult({
       recentlyCompleted: [

@@ -1,3 +1,4 @@
+import { reportSiteFailure } from '@/src/client/feedback/site-failures';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
@@ -132,6 +133,9 @@ export function useHome(props?: {
 
       try {
         await operation();
+      } catch (error) {
+        if (userGenerationRef.current === currentGen && prevUserIdRef.current === currentUid) reportSiteFailure('home');
+        throw error;
       } finally {
         if (userGenerationRef.current === currentGen && prevUserIdRef.current === currentUid) {
           mutationPendingRef.current = false;

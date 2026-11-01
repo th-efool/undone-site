@@ -1,5 +1,7 @@
 'use client';
 
+import { reportSiteFailure } from '@/src/client/feedback/site-failures';
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -304,6 +306,7 @@ export function usePlayback() {
   const controllersRef = useRef<Partial<Record<ChannelId, AbortController | null>>>({});
   const [completionPending, setCompletionPending] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  useFailureToast(completionError, 'Could not confirm progress was saved. Retry saving when ready.', 'FeedCompletion');
   const completing = useRef(false);
 
   const setActiveChannel = useCallback((ch: ChannelId) => {
@@ -536,6 +539,7 @@ export function usePlayback() {
           });
           return;
         }
+        reportSiteFailure('feed');
         console.error('Prefetch error:', error);
         setChannelCaches((prev) => {
           const cur = prev[channelId];

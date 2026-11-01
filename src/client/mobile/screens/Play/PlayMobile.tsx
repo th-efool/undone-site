@@ -1,5 +1,6 @@
 'use client';
 
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Play as PlayIcon,
@@ -22,7 +23,6 @@ import {
   FileText,
   Mic,
   Flag,
-  AlertCircle,
   Tv,
   Video,
   BookOpen,
@@ -617,6 +617,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenFeedback, setFullscreenFeedback] = useState<string | null>(null);
+  useFailureToast(fullscreenFeedback, 'Fullscreen was blocked by your browser. Playback remains available here.', 'Fullscreen');
   const [toolsOpen, setToolsOpen] = useState(false);
 
   // Fullscreen support
@@ -938,12 +939,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
       />
 
       {/* Toast feedback */}
-      {(fullscreenFeedback || playback.completionError) && (
-        <div className={styles.feedbackToast} role="alert">
-          <AlertCircle size={15} />
-          <span>{fullscreenFeedback || playback.completionError}</span>
-        </div>
-      )}
+      {playback.completionError && <button type="button" disabled={playback.completionPending} onClick={() => void playback.completeActiveChunk()}>Retry saving progress</button>}
 
       {/* Secondary Tools Drawer */}
       <PlayMobileToolsSheet
