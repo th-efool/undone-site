@@ -30,7 +30,8 @@ export async function reconcileTextAction(tx: TextArtifactSql, workspaceId: stri
   } else if (typed.type === 'prepare_release' || typed.type === 'commit_release') {
     return textJobStatus(tx, workspaceId, next);
   } else if (next.sources.length && next.processing.error !== 'PROCESSING_CANCELED') {
-    await enqueueTextJobPlanInTransaction(tx, workspaceId, next);
+    const retryFailed = typed.type === 'retry_processing' || typed.type === 'begin_material_processing';
+    await enqueueTextJobPlanInTransaction(tx, workspaceId, next, undefined, { retryFailed });
   } else if (typed.type === 'remove_source') {
     await enqueueTextJobPlanInTransaction(tx, workspaceId, next);
   }

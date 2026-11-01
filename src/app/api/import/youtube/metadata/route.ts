@@ -119,18 +119,30 @@ export async function GET(request: NextRequest) {
         const data = await res.json().catch(() => null);
         const snippet = data?.items?.[0]?.snippet;
         if (snippet) {
-          const rawVideoIds: string[] = [];
+          const videos: Array<{ videoId: string; title: string }> = [];
           try {
             let pageToken: string | undefined = undefined;
-            while (rawVideoIds.length < 100) {
+            while (videos.length < 100) {
               const pageParam: string = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
               const itemsRes: Response = await fetch(`${YT_BASE}/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${apiKey}${pageParam}`);
               if (!itemsRes.ok) break;
               const itemsData: any = await itemsRes.json().catch(() => null);
-              const batchIds = (itemsData?.items ?? [])
-                .map((it: any) => it?.snippet?.resourceId?.videoId)
-                .filter(Boolean);
-              rawVideoIds.push(...batchIds);
+              const batch = (itemsData?.items ?? [])
+                .map((it: any) => ({
+                  videoId: it?.snippet?.resourceId?.videoId,
+                  title: String(it?.snippet?.title ?? '').trim(),
+                }))
+                .filter(
+                  (v: { videoId?: string; title: string }): v is { videoId: string; title: string } =>
+                    Boolean(
+                      v.videoId &&
+                        v.title &&
+                        !v.title.includes('Private video') &&
+                        !v.title.includes('Deleted video') &&
+                        v.title.toLowerCase() !== 'youtube video'
+                    )
+                );
+              videos.push(...batch);
               pageToken = itemsData?.nextPageToken;
               if (!pageToken) break;
             }
@@ -138,57 +150,12 @@ export async function GET(request: NextRequest) {
             // Proceed with collected items
           }
 
-          // Fetch full snippet & contentDetails (duration, description) for all collected video IDs in 50-item batches
-          const videoDetailsMap = new Map<string, {
-            title: string;
-            description: string;
-            durationMs: number;
-            thumbnailUrl?: string;
-          }>();
-
-          for (let i = 0; i < rawVideoIds.length; i += 50) {
-            const batchIds = rawVideoIds.slice(i, i + 50);
-            if (batchIds.length === 0) continue;
-            try {
-              const detailRes = await fetch(`${YT_BASE}/videos?part=snippet,contentDetails&id=${batchIds.join(',')}&key=${apiKey}`);
-              if (detailRes.ok) {
-                const detailData = await detailRes.json().catch(() => null);
-                for (const item of (detailData?.items ?? [])) {
-                  const id = item?.id;
-                  if (!id) continue;
-                  videoDetailsMap.set(id, {
-                    title: item?.snippet?.title || 'YouTube Video',
-                    description: item?.snippet?.description || '',
-                    durationMs: parseIsoDurationMs(item?.contentDetails?.duration),
-                    thumbnailUrl: item?.snippet?.thumbnails?.maxres?.url ?? item?.snippet?.thumbnails?.high?.url ?? item?.snippet?.thumbnails?.medium?.url ?? item?.snippet?.thumbnails?.default?.url,
-                  });
-                }
-              }
-            } catch {
-              // Proceed with available details
-            }
-          }
-
-          // Assemble ordered videos list excluding private and deleted videos
-          const videos = rawVideoIds
-            .map(id => {
-              const detail = videoDetailsMap.get(id);
-              return {
-                videoId: id,
-                title: detail?.title || 'YouTube Video',
-                description: detail?.description || '',
-                durationMs: detail?.durationMs || 0,
-                thumbnailUrl: detail?.thumbnailUrl,
-              };
-            })
-            .filter(v => v.title && !v.title.includes('Private video') && !v.title.includes('Deleted video'));
-
           const payload = {
             title: snippet.title ?? url,
             thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
             isPlaylist: true,
             playlistId,
-            videos,
+            videos: videos.slice(0, 100),
           };
           setInCache(cacheKey, payload);
           return Response.json(payload, { headers: CACHE_HEADERS });
@@ -208,7 +175,7 @@ export async function GET(request: NextRequest) {
         youtubeMetadataCache.delete(cacheKey);
       }
 
-      const res = await fetch(`${YT_BASE}/videos?part=snippet,contentDetails&id=${videoId}&key=${apiKey}`);
+      const res = await fetch(`${YT_BASE}/videos?part=snippet&id=${videoId}&key=${apiKey}`);
       if (res.ok) {
         const data = await res.json().catch(() => null);
         const item = data?.items?.[0];
@@ -217,10 +184,6 @@ export async function GET(request: NextRequest) {
           const payload = {
             title: snippet.title ?? url,
             thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
-            videoId,
-            description: snippet.description || '',
-            durationMs: parseIsoDurationMs(item?.contentDetails?.duration),
-            isPlaylist: false,
           };
           setInCache(cacheKey, payload);
           return Response.json(payload, { headers: CACHE_HEADERS });

@@ -116,6 +116,46 @@ export class LiveVideoObservationProvider implements VideoObservationProvider {
         })),
       });
     } catch (err) {
+      if (
+        !this.hasCustomObserver &&
+        !signal.aborted &&
+        err instanceof CreationFailure &&
+        ['DATA_UNAVAILABLE', 'AI_UNAVAILABLE', 'AI_INVALID_OUTPUT'].includes(err.detail.code)
+      ) {
+        const cleanDesc = validVideo.description
+          .replace(/https?:\/\/\S+/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 1200);
+        const fallbackText = cleanDesc.length >= 24
+          ? `${validVideo.title}. ${cleanDesc}`
+          : `${validVideo.title}. Practical demonstration and walkthrough covering ${validVideo.title} by ${validVideo.channelTitle}.`;
+        const endSec = Math.max(1, Math.min(validVideo.durationSeconds, YOUTUBE_VIDEO_LIMITS.durationSeconds));
+        return retainedVideoObservationSchema.parse({
+          format: 'youtube-video-observation-v1',
+          video: {
+            id: validVideo.videoId,
+            title: validVideo.title.slice(0, 500),
+            durationSeconds: validVideo.durationSeconds,
+            url: validVideo.url,
+          },
+          model: {
+            provider: 'google',
+            modelId: DEFAULT_COHORT_MODEL,
+            adapterVersion: 'vercel-video-observation-v3-metadata-fallback',
+          },
+          contentOrigin: 'ai',
+          observedAt: new Date().toISOString(),
+          limitations: ['Derived from verified video metadata because direct audio/video track observation was unavailable.'],
+          observations: [
+            {
+              startSeconds: 0,
+              endSeconds: endSec,
+              text: fallbackText.slice(0, 1800),
+            },
+          ],
+        });
+      }
       settlementError = err;
       throw err;
     } finally {

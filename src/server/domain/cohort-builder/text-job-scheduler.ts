@@ -7,19 +7,30 @@ export interface TextJobTransactionPort {
   transaction<T>(work: (tx: TextArtifactSql) => Promise<T>): Promise<T>;
 }
 
+export interface EnqueueTextJobPlanOptions {
+  retryFailed?: boolean;
+}
+
 /** Persist a complete dependency graph atomically; repeat calls reuse logical job keys. */
-export async function enqueueTextJobPlan(port: TextJobTransactionPort, workspaceId: string, state: CohortWorkspace): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
+export async function enqueueTextJobPlan(
+  port: TextJobTransactionPort,
+  workspaceId: string,
+  state: CohortWorkspace,
+  options?: EnqueueTextJobPlanOptions
+): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
   const intents = planTextJobs(state);
-  return port.transaction(tx => enqueueTextJobPlanInTransaction(tx, workspaceId, state, intents));
+  return port.transaction(tx => enqueueTextJobPlanInTransaction(tx, workspaceId, state, intents, options));
 }
 
 export async function enqueueTextJobPlanInTransaction(
   tx: TextArtifactSql,
   workspaceId: string,
   state: CohortWorkspace,
-  planned = planTextJobs(state)
+  planned = planTextJobs(state),
+  options?: EnqueueTextJobPlanOptions
 ): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
   const intents = planned;
+  const retryFailed = Boolean(options?.retryFailed);
   // 1. Mark obsolete jobs as superseded in one query
   const obsolete = await tx.query(
     `UPDATE "cohort_text_jobs"
@@ -63,7 +74,7 @@ export async function enqueueTextJobPlanInTransaction(
     const existing = existingMap.get(intent.jobKey);
     if (existing) {
       ids.set(intent.jobKey, existing.id);
-      if (existing.status === 'superseded' || existing.status === 'failed') {
+      if (existing.status === 'superseded' || (retryFailed && existing.status === 'failed')) {
         toUnsupersede.push(existing.id);
       }
     } else {
@@ -115,16 +126,17 @@ export async function enqueueTextJobPlanInTransaction(
     inserted = res.rows.length;
   }
 
-  // 5. Un-supersede previously superseded jobs in one query
+  // 5. Un-supersede previously superseded (and explicitly retried failed) jobs in one query
   if (toUnsupersede.length > 0) {
+    const allowedStatuses = retryFailed ? ['superseded', 'failed'] : ['superseded'];
     await tx.query(
       `UPDATE "cohort_text_jobs"
         SET "status" = 'queued', "dueAt" = CURRENT_TIMESTAMP, "attempts" = 0,
             "errorCode" = NULL, "fence" = "fence" + 1,
             "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL,
             "resultArtifactId" = NULL, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE "id" = ANY($1::text[]) AND "workspaceId" = $2 AND "status" IN ('superseded', 'failed')`,
-      [toUnsupersede, workspaceId]
+        WHERE "id" = ANY($1::text[]) AND "workspaceId" = $2 AND "status" = ANY($3::text[])`,
+      [toUnsupersede, workspaceId, allowedStatuses]
     );
   }
 

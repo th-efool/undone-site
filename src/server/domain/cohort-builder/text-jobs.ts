@@ -51,7 +51,7 @@ export async function claimTextJob(sql: TextArtifactSql, workerId: string, now: 
       "attempts" = j."attempts" + 1, "updatedAt" = $1::timestamp
   FROM candidate WHERE j."id" = candidate."id"
   RETURNING j."id", j."workspaceId", j."stage", j."sourceId", j."sourceVersion",
-    j."dependencyFingerprint", j."fence", j."leaseToken", j."leaseUntil"`,
+    j."dependencyFingerprint", j."fence", j."leaseToken", j."leaseUntil", j."attempts"`,
   [time.at, workerId, token, time.until]);
   const row = result.rows[0];
   return row ? {
@@ -60,6 +60,7 @@ export async function claimTextJob(sql: TextArtifactSql, workerId: string, now: 
     sourceVersion: row.sourceVersion === null ? null : Number(row.sourceVersion),
     dependencyFingerprint: String(row.dependencyFingerprint), fence: Number(row.fence),
     leaseToken: String(row.leaseToken), leaseUntil: new Date(String(row.leaseUntil)),
+    ...(row.attempts !== undefined ? { attempts: Number(row.attempts) } : {}),
   } : null;
 }
 
