@@ -38,8 +38,8 @@ export function ReadyStageView({
   const chunkCount = workspace.chunks?.length ?? 0;
   const sources = workspace.sources ?? [];
 
-  const act = async (action: () => Promise<boolean | void>) => {
-    if (disabled || !ready || lock.current) return;
+  const act = async (action: () => Promise<boolean | void>, requiresReady = true) => {
+    if (disabled || (requiresReady && !ready) || lock.current) return;
     lock.current = true;
     setPending(true);
     try {
@@ -61,7 +61,9 @@ export function ReadyStageView({
   };
 
   const handleBack = async () => {
-    await dispatchAction({ type: 'back_to_starting_point' });
+    const opened = await dispatchAction({ type: 'back_to_starting_point' });
+    if (!opened) return;
+    await dispatchAction({ type: 'choose_starting_point', choice: 'have_material' });
   };
 
   return (
@@ -194,7 +196,7 @@ export function ReadyStageView({
               </button>
               <button
                 disabled={disabled || pending}
-                onClick={() => void act(handleBack)}
+                onClick={() => void act(handleBack, false)}
               >
                 Back to material
               </button>
