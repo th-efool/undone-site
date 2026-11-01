@@ -5,6 +5,11 @@ import { githubRepoUrlSchema, githubRefSchema, githubPathsSchema } from './githu
 import { cohortSeoSchema } from './seo';
 import { sha256 } from './hash';
 import { canRunDeterministicPipeline, runDeterministicPipeline } from './client-pipeline';
+import { isBuildComplete } from './creation-state';
+import {
+  canSwitchStartingPointBranch,
+  normalizePostMutationLifecycle,
+} from './creation-machine';
 
 const text = z.string().trim().min(1).max(4_000);
 const id = z.string().min(1).max(200);
@@ -162,6 +167,7 @@ export const cohortJourneySchema = z.strictObject({
   intentVersion: z.number().int().nonnegative(),
 });
 export type CohortJourney = z.infer<typeof cohortJourneySchema>;
+export type CohortJourneyStep = CohortJourney['step'];
 const journeyResultFields = {
   requestId: id, fingerprint: z.string().min(1).max(200),
   status: z.enum(['queued', 'running', 'ready', 'failed', 'canceled']),
@@ -401,7 +407,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (current.step === 'goal_setup' && action.choice === 'have_goal') {
       return navigationResult('Goal setup already active.');
     }
-    if (['material_input', 'discovery', 'goal_setup'].includes(current.step)) {
+    if (canSwitchStartingPointBranch(current.step)) {
       current.branch = action.choice === 'have_material' ? 'have_material' : 'find_material';
       current.step = action.choice === 'have_material' ? 'material_input' : 'discovery';
       return navigationResult('Starting point switched.');
@@ -506,7 +512,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'open_review') {
     const current = requireStep('ready', 'chat');
     if (current.step === 'ready') {
-      if (next.processing.status !== 'ready' || !next.processing.sourceFingerprint || !next.lessons.length) {
+      if (!isBuildComplete(next)) {
         throw new Error('ASSEMBLY_NOT_READY');
       }
     } else {
@@ -545,6 +551,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (!next.sources.length || (next.journey && !next.journey.processingStarted)) return;
     const stage = next.processing.status === 'ready' ? readyStage : next.processing.status === 'failed' ? 'acquisition' : next.processing.stage;
     next.processing = { ...next.processing, status: 'queued', stage, generation: next.processing.generation + 1, error: null };
+    normalizePostMutationLifecycle(next);
   };
 
   if (action.type === 'set_intent') { invalidateRelease(); if (next.intent !== action.intent && next.journey) { next.journey.intentVersion++; delete next.recommendations; delete next.discovery; } next.intent = action.intent; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Learning intent updated.', undoable: true }; }
@@ -577,6 +584,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       return;
     }
     next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    normalizePostMutationLifecycle(next);
   };
 
   if (action.type === 'add_text_source') {
@@ -769,6 +777,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       next.processing = { ...next.processing, status: 'idle', stage: 'done', error: null };
     } else {
       next.processing = { status: next.sources.length ? 'queued' : 'idle', stage: next.sources.length ? 'acquisition' : 'done', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+      normalizePostMutationLifecycle(next);
     }
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Removed source: ${source.label}`, undoable: true };
   }

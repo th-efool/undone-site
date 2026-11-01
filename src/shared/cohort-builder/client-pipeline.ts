@@ -6,8 +6,13 @@
 
 import { sha256 } from './hash';
 import type { CohortWorkspace, CohortChunk, CohortLesson } from './contracts';
-import { extractSourceConceptTopics, deriveCohortTitle, deriveCohortDescription } from './cohort-metadata';
-import { buildCohortSeo } from './seo';
+import { extractSourceConceptTopics } from './cohort-metadata';
+import { computeSourceEvidenceFingerprint } from './creation-state';
+import {
+  projectAcceptedBuildCompletion,
+  projectAcceptedLessons,
+  validateAcceptedLessonCoverage,
+} from './creation-machine';
 
 export const MAX_UNIT_BYTES = 24 * 1024;
 export const MIN_VIDEO_CHUNK_MS = 60_000; // 1 minute target for video chunks
@@ -24,7 +29,7 @@ export function byteLengthUtf8(str: string): number {
  * Matches `text-pipeline.ts` output exactly.
  */
 export function sourceFingerprint(state: Pick<CohortWorkspace, 'sources'>): string {
-  return sha256(JSON.stringify(state.sources.map(source => [source.id, source.version, source.text])));
+  return computeSourceEvidenceFingerprint(state);
 }
 
 function pushBoundedTextChunks(
@@ -190,9 +195,7 @@ export function buildGeneratedLessons(state: CohortWorkspace): CohortLesson[] {
 
 /** Generated lessons must cite every retained chunk exactly once, in source order. */
 export function validateGeneratedLessonCoverage(lessons: CohortLesson[], chunks: CohortChunk[]): boolean {
-  const chunkIds = new Set(chunks.map(chunk => chunk.id));
-  const cited = lessons.flatMap(lesson => lesson.sourceChunkIds);
-  return cited.length === chunks.length && new Set(cited).size === cited.length && cited.every(id => chunkIds.has(id));
+  return validateAcceptedLessonCoverage(lessons, chunks);
 }
 
 /**
@@ -214,25 +217,7 @@ export function projectGeneratedLessons(
   generated: CohortLesson[],
   validChunkIds: ReadonlySet<string>
 ): CohortLesson[] {
-  const authored = existing
-    .filter(lesson => lesson.pinned || lesson.manualOverride || !lesson.id.startsWith('grounded:'))
-    .map(lesson => lesson.sourceChunkIds.some(id => !validChunkIds.has(id))
-      ? { ...lesson, evidenceStatus: 'orphaned' as const }
-      : { ...lesson, evidenceStatus: 'valid' as const });
-  const protectedIds = new Set(authored.map(lesson => lesson.id));
-  return [
-    ...authored,
-    ...generated.filter(lesson => !protectedIds.has(lesson.id)).map(lesson => {
-      const prior = existing.find(item => item.id === lesson.id);
-      const changed = prior && (prior.title !== lesson.title || prior.objective !== lesson.objective
-        || JSON.stringify(prior.sourceChunkIds) !== JSON.stringify(lesson.sourceChunkIds));
-      return {
-        ...lesson,
-        version: prior ? prior.version + (changed ? 1 : 0) : lesson.version,
-        evidenceStatus: 'valid' as const,
-      };
-    }),
-  ];
+  return projectAcceptedLessons(existing, generated, validChunkIds);
 }
 
 /**
@@ -247,77 +232,61 @@ export function runDeterministicPipeline(state: CohortWorkspace): CohortWorkspac
     throw new Error('SOURCES_NOT_EXTRACTED_FOR_DETERMINISTIC_PIPELINE');
   }
 
-  const next = structuredClone(state);
+  const working = structuredClone(state);
 
   // 1. Acquisition & Checksums
-  for (const source of next.sources) {
-    source.checksum = sha256(source.text);
-    source.state = 'ready';
-  }
+  const acceptedSources = working.sources.map(source => ({
+    id: source.id,
+    version: source.version,
+    checksum: sha256(source.text),
+  }));
 
-  // 2. Understanding & Derived Metadata
-  next.understanding = next.sources.map(source => {
-    const existing = next.understanding?.find(item => item.sourceId === source.id && item.sourceVersion === source.version);
-    return existing ?? {
-      sourceId: source.id,
-      sourceVersion: source.version,
-      topics: extractSourceConceptTopics(source),
-    };
+  // 2. Understanding
+  const understanding = working.sources.map(source => {
+    const existing = working.understanding?.find(
+      item => item.sourceId === source.id && item.sourceVersion === source.version
+    );
+    return (
+      existing ?? {
+        sourceId: source.id,
+        sourceVersion: source.version,
+        topics: extractSourceConceptTopics(source),
+      }
+    );
   });
-  next.title = deriveCohortTitle(next);
-  next.description = deriveCohortDescription(next);
 
   // 3. Chunking
-  const allChunks: CohortChunk[] = next.sources.flatMap(splitSource);
+  const allChunks: CohortChunk[] = working.sources.flatMap(splitSource);
   if (allChunks.length > 1_000) throw new Error('TOO_MANY_CHUNKS');
-  allChunks.forEach(chunk => validateChunk(next, chunk));
-  for (const source of next.sources) {
+  allChunks.forEach(chunk => validateChunk(working, chunk));
+  for (const source of working.sources) {
     validateCoverage(source.text, allChunks.filter(chunk => chunk.sourceId === source.id));
   }
-  next.chunks = allChunks;
+  working.chunks = allChunks;
 
   // 4. Analysis
-  next.analyses = allChunks.map(chunk => {
-    const existing = next.analyses?.find(item => item.chunkId === chunk.id);
-    return existing ?? {
-      chunkId: chunk.id,
-      summary: chunk.text.slice(0, 300),
-      question: `How would you apply this passage: ${chunk.text.slice(0, 160)}?`,
-    };
+  const analyses = allChunks.map(chunk => {
+    const existing = working.analyses?.find(item => item.chunkId === chunk.id);
+    return (
+      existing ?? {
+        chunkId: chunk.id,
+        summary: chunk.text.slice(0, 300),
+        question: `How would you apply this passage: ${chunk.text.slice(0, 160)}?`,
+      }
+    );
   });
+  working.analyses = analyses;
 
-  // 5. Lesson Assembly
-  const generatedLessons = buildGeneratedLessons(next);
-  if (!validateGeneratedLessonCoverage(generatedLessons, next.chunks)) {
-    throw new Error('FABRICATED_LESSON_EVIDENCE');
-  }
-  next.lessons = projectGeneratedLessons(
-    next.lessons ?? [],
+  // 5. Lesson Assembly & Unified Completion Projection
+  const generatedLessons = buildGeneratedLessons(working);
+  return projectAcceptedBuildCompletion(state, {
+    sources: acceptedSources,
+    understanding,
+    chunks: allChunks,
+    analyses,
     generatedLessons,
-    new Set(allChunks.map(c => c.id))
-  );
-
-  // 6. SEO
-  next.seo = buildCohortSeo(next);
-
-  // 7. Complete Processing State
-  const fingerprint = sourceFingerprint(next);
-  next.processing = {
-    status: 'ready',
-    stage: 'done',
-    generation: (next.processing?.generation ?? 0) + 1,
-    sourceFingerprint: fingerprint,
-    error: null,
+    generation: (state.processing?.generation ?? 0) + 1,
     driver: 'durable',
-  };
-
-  next.journey = {
-    version: 1,
-    step: 'ready',
-    branch: next.journey?.branch ?? null,
-    processingStarted: true,
-    intentVersion: next.journey?.intentVersion ?? 0,
-  };
-
-  return next;
+    forceReadyJourneyStep: true,
+  });
 }
