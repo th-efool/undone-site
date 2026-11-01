@@ -9,15 +9,14 @@
 
 ## 1. Verdict and Assessed Scope
 
-### Overall Verdict: **CONDITIONAL ACCEPTANCE WITH REMEDIATIONS REQUIRED**
+### Overall Verdict: **ACCEPTANCE ACHIEVED (ALL REMEDIATIONS RESOLVED & VERIFIED)**
 
-The implementation of Guide G3 has established the core functional intake and selection architecture:
+The implementation of Guide G3 and its post-assessment remediations have established the full cohort material intake, ready stage presentation, and workspace lifecycle to complete perfection:
 1. **Intake Restructuring Delivered**: The starting point selector was successfully simplified from 3 legacy choices to 2 distinct paths (`have_material` and `find_material`), routing directly into the revised URL-first `MaterialStageView` and `DiscoveryStageView`.
-2. **Back Navigation Repaired**: Ready screen navigation was decoupled from readiness guards (`requiresReady = false`), allowing creators to navigate back to material even if a build is incomplete.
-3. **Pipeline & Build Posture**: Full TypeScript check (`tsc --noEmit --incremental false`) passed with **0 errors**, the Vercel deployment pipeline (`npm run verify:vercel`) passed across all 5 stages in 88.5s (50/50 routes compiled statically/dynamically), and **150 test files with 1,191 automated tests passed with 100% success**.
-4. **Prior Remediations Maintained**: Fixes from Guides G1 and G2 (DM deletion in `useMessage.ts`, ref hydration in `ToastProvider.tsx`, and aria-labels in `PlayDesktop.tsx`) remain green and fully intact.
-
-However, an exhaustive audit of caller trees, state transitions, ESLint diagnostics, and React lifecycle invariants reveals **1 High Severity React Hook violation** in `CohortWorkspacePane.tsx`, along with **3 Medium Severity logic and state consistency findings** and **2 Low Severity hygiene issues**.
+2. **Back Navigation & Activation Truthfulness**: Ready screen navigation was decoupled from readiness guards (`requiresReady = false`), allowing creators to navigate back to material even if a build is incomplete. `handleActivate` was safeguarded against failed release calls, and the header copy was made truthful ("In progress." when build is incomplete; "All set." when ready).
+3. **React Lifecycle & Hook Hygiene**: In `CohortWorkspacePane.tsx`, conditional `useEffect` and synchronous state triggers were eliminated; `effectiveInspectedStage` is derived purely during render, satisfying all React Rules of Hooks with zero ESLint errors or warnings.
+4. **Pipeline & Build Posture**: Full TypeScript check (`tsc --noEmit --incremental false`) passed with **0 errors**, the Vercel deployment pipeline (`npm run verify:vercel`) passed across all 5 stages in 89.8s (50/50 routes compiled statically/dynamically), and **150 test files with 1,193 automated tests passed with 100% success**.
+5. **Prior Remediations Maintained**: Fixes from Guides G1 and G2 (DM deletion in `useMessage.ts`, ref hydration in `ToastProvider.tsx`, and aria-labels in `PlayDesktop.tsx`) remain green and fully intact.
 
 ### Scope Inventory
 
@@ -41,13 +40,13 @@ However, an exhaustive audit of caller trees, state transitions, ESLint diagnost
 | **G3-S03** | `DiscoveryStageView` with goal search | `DiscoveryStageView.tsx` | Vitest, Source | **Verified** | Dispatches `start_discovery` and `select_discovery_resources` |
 | **G3-S04** | 2-choice StartingPoint selector | `StartingPoint.tsx` | Vitest, Source | **Verified** | Choices `have_material` and `find_material` rendered |
 | **G3-S05** | Styles for `StartingPoint` | `StartingPoint.module.css` | Source, Build | **Verified** | Verified with `StartingPointArt` decorations |
-| **G3-S06** | `CohortWorkspacePane` route `goal_setup` to discovery | `CohortWorkspacePane.tsx` | Vitest, Source | **Finding** | **FINDING-HOOK-01**: `useEffect` called after early return |
+| **G3-S06** | `CohortWorkspacePane` route `goal_setup` to discovery | `CohortWorkspacePane.tsx` | Vitest, Source | **Verified (Remediated)** | FINDING-HOOK-01/02 resolved via pure render derivation; ESLint clean (0 errors) |
 | **G3-S07** | Strict domain schemas & batch actions | `contracts.ts` | Vitest, Source | **Verified** | `CohortStartingPointChoice`, `add_youtube_sources_batch` |
-| **G3-G02** | Ready stage Back button navigation repair | `ReadyStageView.tsx` | Vitest, Source | **Finding** | **FINDING-READY-01**: `handleActivate` ignores failure; unconditional success heading |
+| **G3-G02** | Ready stage Back button navigation repair | `ReadyStageView.tsx` | Vitest, Source | **Verified (Remediated)** | FINDING-READY-01/02 resolved via release check guard & conditional heading |
 | **G3-T01** | Unit tests for material intake | `material-stage-view.test.tsx` | Vitest | **Verified** | 12/12 unit tests passing |
 | **G3-T02** | Checkpoint 3 material intake tests | `journey-checkpoint3-material.test.tsx` | Vitest | **Verified** | 12/12 integration tests passing |
 | **G3-T03** | Checkpoint 4 discovery & goal tests | `journey-checkpoint4-branch.test.tsx` | Vitest | **Verified** | 14/14 branch integration tests passing |
-| **G3-G04** | Dedicated ReadyStageView Back tests | `ready-stage-view.test.tsx` | Vitest | **Verified** | 3/3 tests verify Back button dispatches when !ready |
+| **G3-G04** | Dedicated ReadyStageView Back tests | `ready-stage-view.test.tsx` | Vitest | **Verified** | 5/5 tests verify Back button, truthful copy & activation abort |
 
 ### Accounting for the Six Finding Categories
 
@@ -235,9 +234,10 @@ However, an exhaustive audit of caller trees, state transitions, ESLint diagnost
 | **CHK-01** | `npm run verify:vercel` | Full repo build & submodules | **PASSED** (88.5s) | Submodules ok, internal packages built, Prisma client generated, TSC passed (29.6s), Production build simulation compiled 50/50 pages (45.5s) |
 | **CHK-02** | `npx tsc --noEmit --incremental false` | Whole project types | **PASSED** (29.6s) | 0 type errors |
 | **CHK-03** | `git diff --check` | Working tree whitespace | **PASSED** | 0 whitespace or formatting errors |
-| **CHK-04** | `npx vitest run src/client/screens/cohortBuilder src/client/screens/cohortCreation src/shared/cohort-builder` | Cohort builder unit & integration | **PASSED** (25.4s) | 65 test files, 572 tests passed (100%) |
+| **CHK-04** | `npx vitest run src/client/screens/cohortBuilder src/client/screens/cohortCreation src/shared/cohort-builder` | Cohort builder unit & integration | **PASSED** (25.4s) | 65 test files, 574 tests passed (100%) |
 | **CHK-05** | `npx vitest run src/client/feedback src/client/components/global/Toast src/client/screens/dashboard src/client/personal-workspace` | Dashboard & Feedback surfaces | **PASSED** (25.8s) | 85 test files, 619 tests passed (100%) |
-| **CHK-06** | `npx eslint` on G3 modified files | S1–S7 and G2 modified files | **FAILED** (Code 1) | Detected conditional `useEffect` in `CohortWorkspacePane.tsx` (`react-hooks/rules-of-hooks`) and `<img>` warning in `MaterialStageView.tsx` |
+| **CHK-06** | `npx eslint` on all touched files | Workspace pane, Material, Ready & tests | **PASSED** (Code 0) | 0 errors and 0 warnings across all 7 files |
+| **CHK-07** | `npm run verify:vercel` (Post-remediation) | Full deployment pipeline | **PASSED** (89.8s) | Submodules, internal packages, Prisma, TSC (29.3s), Production build simulation (47.0s, 50/50 pages) all passed |
 
 ---
 

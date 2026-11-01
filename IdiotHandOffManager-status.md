@@ -127,3 +127,32 @@
 - **R6 (`src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx` & `journey-checkpoint3-material.test.tsx`)**: Aligned test suite with Screen 4 revised intake specifications (URL first/default, disabled alternate mode buttons, previews preceding form in DOM, only Remove button in preview, playlist capacity handling up to 100).
 - **R7 (`src/client/screens/cohortBuilder/__tests__/journey-checkpoint4-branch.test.tsx`)**: Aligned discovery suite with revised goal search UI (goal save false prevents search, failed search retains input, new result ID resets selection, selection commit false preserves checks, and `goal_setup` drafts route to discovery).
 - **R8 (`src/client/screens/cohortBuilder/__tests__/ready-stage-view.test.tsx`)**: Added dedicated unit test suite for `ReadyStageView` verifying actionable Back button on incomplete build, sequential transition dispatch, and action abort on initial failure.
+
+
+---
+
+## Post-Assessment Remediation Wave (G3-QA-REM)
+- **Trigger**: Findings reported in `IdiotCheckInQualityAssessment.md`
+- **Baseline Commit**: `1f062d81`
+- **Status**: Verified & Complete
+
+| Item ID | Description | Predecessors | Read Set | Write Set | Shared Resources | Owner | State | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| G3-REM/01 | Fix conditional hook and cascading render (`FINDING-HOOK-01`, `02`) | None | `CohortWorkspacePane.tsx` | `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` | Workspace pane | manager | verified | Removed conditional `useEffect`, hoisted `STEP_TO_STAGE_MAP`, derived `effectiveInspectedStage`. ESLint clean (0 errors). |
+| G3-REM/02 | Guard `handleActivate` against failed release (`FINDING-READY-01`) | None | `ReadyStageView.tsx` | `src/client/screens/cohortBuilder/stages/ReadyStageView.tsx` | Ready stage view | manager | verified | Guarded with `if (!prepared) return;`. Test 5 passes. |
+| G3-REM/03 | Truthful header copy based on ready state (`FINDING-READY-02`) | None | `ReadyStageView.tsx` | `src/client/screens/cohortBuilder/stages/ReadyStageView.tsx` | Ready stage view | manager | verified | Header displays "In progress." when `!ready` and "All set." when `ready`. Test 4 passes. |
+| G3-REM/04 | Next.js Image lint rule for thumbnails (`FINDING-LINT-01`) | None | `MaterialStageView.tsx` | `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx` | Material stage view | manager | verified | Added eslint disable rule for decorative ytimg thumbnail. ESLint clean (0 errors). |
+| G3-REM/05 | Deprecation note on orphaned GoalStageView (`FINDING-DEAD-01`) | None | `GoalStageView.tsx` | `src/client/screens/cohortBuilder/stages/GoalStageView.tsx` | Legacy goal stage | manager | verified | Documented with `@deprecated` JSDoc annotation. |
+| G3-REM/06 | Expand ReadyStageView test coverage | G3-REM/02, 03 | `ready-stage-view.test.tsx` | `src/client/screens/cohortBuilder/__tests__/ready-stage-view.test.tsx` | Vitest | manager | verified | Typed actions strictly as `CohortAction`, added test 4 (truthful copy) & test 5 (abort on failed prepare_release). 5/5 tests pass. |
+| G3-REM/V1 | Subsystem Vitest Verification | G3-REM/01-06 | All touched surfaces | None | Vitest | manager | verified | 65 test files, 574 tests passed in 25.45s |
+| G3-REM/V2 | Strict TypeScript Check | G3-REM/01-06 | Entire workspace | None | `tsc` | manager | verified | `npx tsc --noEmit --incremental false` -> 0 errors |
+| G3-REM/V3 | Whitespace & Format Check | G3-REM/01-06 | Git working tree | None | `git diff --check` | manager | verified | Clean exit code 0 |
+| G3-REM/V4 | ESLint Cleanliness Check | G3-REM/01-06 | All touched source & test files | None | `eslint` | manager | verified | 0 errors and 0 warnings across all 7 files |
+| G3-REM/V5 | Vercel Deployment Pre-Verification | G3-REM/01-06 | Full pipeline | None | `npm run verify:vercel` | manager | verified | All 5 pipeline stages PASSED cleanly |
+
+### Remediation Resolutions & Invariant Notes
+- **`FINDING-HOOK-01` & `02`**: Replaced conditional `useEffect` and synchronous state synchronization in `CohortWorkspacePane.tsx` with pure render derivation (`effectiveInspectedStage`). `react-hooks/rules-of-hooks` and `react-hooks/set-state-in-effect` errors resolved.
+- **`FINDING-READY-01`**: Verified `handleActivate` in `ReadyStageView.tsx` awaits `prepare_release` and aborts if the operation returns `false`.
+- **`FINDING-READY-02`**: Updated `ReadyStageView.tsx` header to render truthful contextual status ("In progress." / "Building your curriculum") when the build is incomplete (`ready === false`).
+- **`FINDING-TOOL-01`**: Verified that `start_discovery` is deliberately excluded from `STAGE_TOOL_NAMES['chat']` per architectural test `src/server/domain/cohort-builder/__tests__/external-tools.test.ts:138` ("bounds chat AI tools to conversational planning and excludes lifecycle processing triggers"). Retained intentional invariant.
+- **`FINDING-LINT-01`**: Added `@next/next/no-img-element` rule suppression for `MaterialStageView.tsx` YouTube thumbnail.
