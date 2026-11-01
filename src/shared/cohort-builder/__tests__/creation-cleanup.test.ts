@@ -50,6 +50,11 @@ describe('creation cleanup invariants',()=>{
     const ws=ready();
     expect(()=>projectAcceptedBuildCompletion(ws,{sources:[],understanding:ws.understanding,chunks:ws.chunks,analyses:ws.analyses,generatedLessons:ws.lessons,generation:1})).toThrow('INVALID_ACCEPTED_SOURCE');
   });
+  it('rejects an accepted-chunk corruption rather than accepting fabricated ranges',()=>{
+    const ws=ready();
+    const corruptedChunks=[{...ws.chunks[0],start:-1,end:999999}];
+    expect(()=>projectAcceptedBuildCompletion(ws,{sources:ws.sources.map(s=>({id:s.id,version:s.version,checksum:s.checksum??''})),understanding:ws.understanding,chunks:corruptedChunks,analyses:ws.analyses,generatedLessons:ws.lessons,generation:1})).toThrow('INVALID_ACCEPTED_CHUNK');
+  });
   it('projects the entire 100-source job graph',async()=>{
     const ws=ready();ws.sources=Array.from({length:100},(_,i)=>({...ws.sources[0],id:'s'+i}));
     const plan=planTextJobs(ws);expect(plan.length).toBeGreaterThan(101);

@@ -432,9 +432,6 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
   });
 
   // -------------------------------------------------------------------------
-  // 2. GoalStageView Tests
-  // -------------------------------------------------------------------------
-  // -------------------------------------------------------------------------
   // 3. CohortWorkspacePane Integration Tests
   // -------------------------------------------------------------------------
   describe('CohortWorkspacePane integration', () => {
