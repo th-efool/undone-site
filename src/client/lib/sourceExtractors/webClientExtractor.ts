@@ -1,4 +1,4 @@
-﻿import { sha256 } from '@/src/shared/cohort-builder/hash';
+import { sha256 } from '@/src/shared/cohort-builder/hash';
 import type { ClientSourceExtraction } from '@/src/shared/cohort-builder/contracts';
 
 export interface WebExtractionOptions {
@@ -53,7 +53,7 @@ export async function extractWebClient(
       if (tag === 'h1') formatted = `# ${text}`;
       else if (tag === 'h2') formatted = `## ${text}`;
       else if (tag === 'h3') formatted = `### ${text}`;
-      else if (tag === 'li') formatted = `â€¢ ${text}`;
+      else if (tag === 'li') formatted = `• ${text}`;
 
       if (extractedText.length > 0) extractedText += '\n\n';
       const start = extractedText.length;

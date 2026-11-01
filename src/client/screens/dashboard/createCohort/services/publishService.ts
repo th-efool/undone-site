@@ -21,15 +21,6 @@ class PublishService {
     input: PublishCohortInput,
     onStageChange: (stage: PublishStage) => void,
   ): Promise<PublishResultModel> {
-    onStageChange('preparing-assets');
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    onStageChange('search-metadata');
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    onStageChange('creating-community');
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     onStageChange('publishing');
 
     const response = await fetch(apiUrl('/api/cohort/publish'), {

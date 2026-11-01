@@ -2,56 +2,33 @@
 
 ## 1. Guide Identification & Baseline
 
-- **Guide ID**: G1
-- **Guide File**: `D:\ThisPC\Documents\SideQuestHQ\undone-site\IdiotHandOffGuide.md`
-- **Guide SHA256**: `F22BDD535982E797096D828C83BD60EF7F0DE0D29CF5E466B608C85F32BA8E5A`
-- **Guide Stated Readiness**: READY / Authoring and repair completed.
+- **Guide ID**: QA-G2 (Quality Assessment Remediation & UI Polish)
+- **Source Assessment**: `D:\ThisPC\Documents\SideQuestHQ\undone-site\IdiotCheckInQualityAssessment.md`
 - **Repository Root**: `D:\ThisPC\Documents\SideQuestHQ\undone-site`
-- **Baseline Git HEAD**: `b5b9fec34d0c145ec8ba9095c1c206dc77b7def7`
+- **Baseline Git HEAD**: `0665eb3f`
 - **Node Version**: `v24.14.1` (satisfies `>=24 <25`)
 
 ## 2. Work Items & Dependency Graph
 
 | Item ID | Description | Predecessors | Read Set | Exclusive Write Set | Owner | State | Evidence |
 |---|---|---|---|---|---|---|---|
-| G1/S1 | Guard pre-creation system context | Baseline | `src/server/domain/cohort-builder/context.ts` | `src/server/domain/cohort-builder/context.ts` | Worker-1 (`Domain-Context-Engineer`) | verified | Applied exact replacements. Excluded chunks & source excerpts when `processingStarted === false`. Verified in `git diff`. |
-| G1/S2 | Create focused regression test | G1/S1 | `src/server/domain/cohort-builder/context.ts` | `src/server/infrastructure/ai/__tests__/planning-source-context.test.ts` | Worker-1 (`Domain-Context-Engineer`) | verified | Created regression test. Vitest passed (1/1 test passed). |
-| G1/V0 | Baseline verification | Baseline | Repository root | None (Read-only) | Manager | verified | Git HEAD `b5b9fec34d0c145ec8ba9095c1c206dc77b7def7`, Node `v24.14.1`, baseline prompt test passed. |
-| G1/V1 | Planning context test execution | G1/S1, G1/S2 | Test files | None | Manager | verified | Vitest passed for `planning-source-context.test.ts` and `interactive-prompt.test.ts` (exit code 0). |
-| G1/V2 | Static & build integration checks | G1/V1 | Codebase | Build output | Manager | verified | `tsc --noEmit` passed (exit 0); `eslint` passed (exit 0); `git diff --check` clean (exit 0); `npm run build` succeeded (exit 0). |
-| G1/B1 | Lesson addition & explicit review stage | G1/V2 | `contracts.ts`, `CohortInteractionScreen.tsx`, `CurriculumStageView.tsx`, `CohortBuilder.module.css` | Same | Manager | verified | Disconnected `add_lesson` from changing `journey.step` to `'review'`. Added dual-guard `open_review` (accepts chat with lessons and no processing active, while preserving `ASSEMBLY_NOT_READY` check for `ready`). Added `return_to_planning` schema and handler. Added "Review curriculum" button in header tools and "Return to chat" back button in review toolbar. Scoped `.page[data-variant='review'] .rail .tools`. Tested in `contracts.test.ts` (16/16 passed). |
-| G1/B2 | Source metadata persistence & rendering | G1/B1 | `intake.ts`, `intake-draft.ts`, `cohort-intake.ts`, `ChatPane.tsx`, `useComposerAttachments.ts` | Same | Manager | verified | Enabled empty-text restoration in `useComposerAttachments.ts` so pending sources are never dropped. Preserved sources with `text: ''` on draft storage fallback in `intake-draft.ts`. Appended `entity_ref` parts on message submission in `ChatPane.tsx` and partitioned 100-source intakes across multiple messages in `cohort-intake.ts` without truncation. Rendered compact right-aligned attachment chips row above user bubble in `ChatPane.tsx` with paperclip icon for sources. Tested in `useComposerAttachments.test.tsx` (5/5 passed), `intake.test.ts` (12/12 passed), and `ChatPaneTurnAndInteractive.test.tsx` (11/11 passed). |
-| G1/B3 | Attachment durable storage & reload | G1/B2 | `cohort-pdf-upload.ts`, `intake-draft.ts`, `ChatPane.tsx` | Same | Manager | verified | Draft persistence ensures source references survive navigation and reloads. Workspace-owned binary upload pipeline via `/pdf` route guarded by idempotency and owner checks. Restored source cards gracefully handle reload without loss of metadata. |
-| G1/B4 | Material processing authorization gate | G1/B3 | `tools.ts`, `ChatPane.tsx` | Same | Manager | verified | Scoped `chat` stage tools in `tools.ts` strictly to conversational tools (`add_lesson`, `suggest_edits`, `update_cohort_overview`, `request_materials`, `open_review`), removing `begin_material_processing`, `create_own_cohort`, `start_goal_generation`, and `start_discovery`. Tested in `external-tools.test.ts` (13/13 passed). |
-| G1/B5 | Intent precedence over attachment titles | G1/B4 | `cohort-metadata.ts` | `cohort-metadata.ts` | Manager | verified | Updated `deriveCohortTitle` so `cleanedIntentTopic` always takes strict precedence over attachment titles regardless of word count. Updated `deriveCohortDescription` to maintain topic-first framing. Tested in `cohort-metadata.test.ts` (7/7 passed). |
-| G1/V3 | Full end-to-end acceptance | B1-B5 | Test suites & build system | None | Manager | verified | Vitest 8/8 test suites (72/72 tests) passed. `tsc --noEmit --incremental false` passed with 0 errors. `eslint` clean on target files. `git diff --check` clean. `npm run build` succeeded with 50/50 static/dynamic routes compiled. Focus-visible outline on composer textarea fixed. |
+| UI/COMPOSER | Unified compact composer card, removing divided layout, double highlight, and wasted bottom row | Baseline | `ChatPane.tsx`, `CohortBuilder.module.css` | `ChatPane.tsx`, `CohortBuilder.module.css` | UI-Specialist | complete | Refactored composer to single-row flex layout with inline paperclip, expanding textarea, and send button. Verified with 11/11 tests passing in `ChatPaneTurnAndInteractive.test.tsx` and 10/10 in `shell.test.tsx`. |
+| QA/F01 | Remove `commit_release` from AI tools across review/ready/published stages | Baseline | `tools.ts`, `ai-tools-optimization.test.ts` | `tools.ts`, `ai-tools-optimization.test.ts` | Domain-Engineer | complete | Removed `commit_release` from `STAGE_TOOL_NAMES.review`, `ready`, and `published`. Tested with 8/8 tests in `ai-tools-optimization.test.ts`. |
+| QA/F02 | Route consolidation: redirect `/create-cohort` to `/quest/start`, update links | Baseline | `create-cohort/page.tsx`, `CommandPalette.tsx`, `ExploreDesktop.tsx` | Same | App-Router-Engineer | complete | Consolidated all creation entry points into canonical `/quest/start`. Preserved metadata for `tab-titles.test.ts`. |
+| QA/F03 | Fix Mojibake `â€¢` encoding in web client extractor | Baseline | `webClientExtractor.ts` | `webClientExtractor.ts` | Content-Engineer | complete | Replaced corrupted Mojibake sequence with clean bullet `•`. |
+| QA/F04 | Add `'chat'` to `BuilderStage` and state machine selectors | Baseline | `stage-selectors.ts` | `stage-selectors.ts` | State-Engineer | complete | Added `'chat'` to `BuilderStage` union and `computeActiveStage`. Verified with `journey-stages.test.tsx`. |
+| QA/F05 | Improve GitHub client extractor resilience and rate limit messaging | Baseline | `githubClientExtractor.ts` | `githubClientExtractor.ts` | Integration-Engineer | complete | Clear user-facing guidance when GitHub unauthenticated API rate limit is reached. |
+| QA/F06 | Remove fake `setTimeout` progress timers from publish service | Baseline | `publishService.ts` | `publishService.ts` | Services-Engineer | complete | Removed artificial sleep calls; advances to `publishing` directly. |
+| QA/F07 | Delete unused dead hooks (`useQuestline`, `useArchives`, `useEvents`) | Baseline | `src/client/screens/cohort/hooks/` | Same | Cleanup-Specialist | complete | Deleted dead hooks; cleaned up `index.ts` to export only `useCohort`. |
+| QA/F08 | Deduplicate `getEffectiveStage` implementation | QA/F04 | `CohortWorkspacePane.tsx`, `stage-selectors.ts` | `CohortWorkspacePane.tsx` | State-Engineer | complete | Re-exported single implementation from `stage-selectors.ts`. Verified with `CohortWorkspacePane.test.tsx`. |
+| QA/F09 | Replace `window.location.assign` with Next.js router in intake screen | Baseline | `CohortIntakeScreen.tsx` | `CohortIntakeScreen.tsx` | UI-Specialist | complete | Uses Next.js router push with safe fallback. Verified with `intake-screen.test.tsx`. |
+| QA/V0 | Run full test suite | All QA items | All touched test files | Build outputs | Manager | complete | Vitest execution across 22 test files (256 tests) passed with 0 errors. |
+| QA/V1 | Run TypeScript & full Next.js production build | QA/V0 | Whole codebase | Dist / .next | Manager | complete | `tsc --noEmit --incremental false` passed with 0 errors; `npm run build` produced optimized production build with 50/50 static routes. |
 
-## 3. Phase Schedule & Verification Log
+## 3. Phase Schedule
 
-- **Phase 1 (Complete)**: S1 & S2 implementation, V1 context test verification, V2 static and full build gates.
-- **Phase 2 (Complete - B1)**: Manual Review & Preserved Planning:
-  - Disconnect `add_lesson` from changing `journey.step` to `'review'`.
-  - Extend `open_review` with dual guard:
-    - If `step === 'ready'`: enforce `ASSEMBLY_NOT_READY` check (preserving source-generated readiness guards).
-    - If `step === 'chat'`: require `lessons.length > 0` and no active processing (`PROCESSING_ACTIVE`), set `current.step = 'review'`.
-  - Add `return_to_planning` action schema & handle in `contracts.ts` (alias to `close_panel`).
-  - Add explicit "Review curriculum" button in `CohortInteractionScreen.tsx` header when in chat and lessons exist.
-  - Wire `.backBtn` ("Return to chat") in `CurriculumStageView.tsx` toolbar.
-  - Ensure `.canvasHeader .tools` is not suppressed in review mode in `CohortBuilder.module.css`.
-  - Update `contracts.test.ts` to assert that `add_lesson` keeps `journey.step === 'chat'`, and explicit `open_review` is required to open review.
-  - Run verification suite.
-- **Phase 3 (Complete - B2 & B3)**: Source metadata persistence, durable reload & message rendering:
-  - Empty-text restoration in `useComposerAttachments.ts`.
-  - Source metadata retained on draft storage fallback in `intake-draft.ts`.
-  - `entity_ref` part generation on message submission and 100-source chunking in `cohort-intake.ts`.
-  - Right-aligned attachment chips row above user bubble in `ChatPane.tsx`.
-  - Focus-visible outline conflict resolved in `CohortBuilder.module.css` for composer textarea.
-- **Phase 4 (Complete - B4 & B5)**: Tool boundaries & Intent metadata precedence:
-  - Chat tools restricted to conversational tools in `tools.ts`.
-  - Topic-first title and description derivation in `cohort-metadata.ts` regardless of prompt length.
-- **Phase 5 (Complete - V3)**: Full End-to-End Verification:
-  - Vitest: 8 test files, 72 tests passed.
-  - TypeScript: `npx tsc --noEmit --incremental false` exited 0.
-  - ESLint: exited 0 on target files.
-  - Git diff check: clean (exit 0).
-  - Production build: `npm run build` exited 0 with all packages and Next.js routes generated.
+- **Phase 1: UI Polish (UI/COMPOSER)**: [COMPLETE] Modernize the chat composer into a sleek, unified, single-row card.
+- **Phase 2: Security & State Invariants (QA/F01, QA/F04, QA/F08)**: [COMPLETE] Purge `commit_release` from AI tools and fix `BuilderStage` type gaps and duplication.
+- **Phase 3: Route & Navigation Unification (QA/F02, QA/F09)**: [COMPLETE] Redirect `/create-cohort` to `/quest/start`, update Command Palette and Explore links, use `router.push`.
+- **Phase 4: Extraction & Code Cleanup (QA/F03, QA/F05, QA/F06, QA/F07)**: [COMPLETE] Fix Mojibake bullet bug, improve GitHub extractor resilience, remove fake timers, and delete dead hooks.
+- **Phase 5: Verification (QA/V0, QA/V1)**: [COMPLETE] Vitest suite (256 tests), TypeScript checks (0 errors), and production build (50/50 routes).
