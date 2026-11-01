@@ -201,7 +201,7 @@ export function MaterialStageView({workspace,dispatchAction}:MaterialStageViewPr
   <form className={styles.inputPanel} onSubmit={handleAddUrl}>
    <label htmlFor="material-url">Public article or YouTube URL</label>
    <div className={styles.inputRow}><input id="material-url" type="url" required maxLength={2048} pattern="https://.*" placeholder="https://…" value={url} disabled={busy} onChange={e=>setUrl(e.target.value)}/><button disabled={busy||!url.trim()}>Add link</button></div>
-   <div className={styles.options} aria-label="Material input options"><button type="button" aria-pressed="true">Paste a link</button><button type="button" disabled title="Temporarily unavailable">Upload a file</button><button type="button" disabled title="Temporarily unavailable">Paste text</button></div>
+   <div className={styles.options} aria-label="Material input options"><button type="button" aria-pressed="true">Paste a link</button><button type="button" disabled title="Temporarily unavailable">Upload a file</button></div>
   </form>
   <p className={styles.help}>Public YouTube videos, playlists and articles. Up to 100 sources.</p>
   {error&&<p role="alert">{error}</p>}

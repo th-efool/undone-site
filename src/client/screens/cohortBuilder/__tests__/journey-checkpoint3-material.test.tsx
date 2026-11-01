@@ -148,9 +148,7 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     expect(uploadBtn.hasAttribute('disabled')).toBe(true);
     expect(uploadBtn.getAttribute('title')).toBe('Temporarily unavailable');
 
-    const pasteTextBtn = screen.getByRole('button', { name: 'Paste text' });
-    expect(pasteTextBtn.hasAttribute('disabled')).toBe(true);
-    expect(pasteTextBtn.getAttribute('title')).toBe('Temporarily unavailable');
+    expect(screen.queryByRole('button', { name: /Paste text/i })).toBeNull();
 
     expect(container.querySelector('input[type="file"]')).toBeNull();
     expect(container.querySelector('textarea')).toBeNull();

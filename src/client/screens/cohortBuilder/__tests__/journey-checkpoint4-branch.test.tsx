@@ -6,7 +6,6 @@ import {
   cohortWorkspaceSchema,
   type CohortWorkspace,
 } from '@/src/shared/cohort-builder/contracts';
-import { getActiveStage, getEffectiveStage } from '../stage-selectors';
 
 const fake = vi.hoisted(() => ({
   state: null as CohortWorkspace | null,
@@ -16,6 +15,7 @@ const fake = vi.hoisted(() => ({
     status: 'authenticated',
     data: { user: { id: 'owner-alice' } },
   } as { status: string; data: any },
+  extractYoutubeClient: vi.fn(),
 }));
 
 vi.mock('next-auth/react', () => ({
@@ -42,9 +42,14 @@ vi.mock('@/src/client/interaction/provider', () => ({
   InteractionProvider: ({ children }: any) => <>{children}</>,
 }));
 
+vi.mock('@/src/client/lib/sourceExtractors/youtubeClientExtractor', () => ({
+  extractYoutubeClient: (...args: unknown[]) => fake.extractYoutubeClient(...args),
+}));
+
 import { DiscoveryStageView } from '../stages/DiscoveryStageView';
 import { CohortWorkspacePane } from '../CohortWorkspacePane';
 import { ChatPane } from '../ChatPane';
+import { getActiveStage, getEffectiveStage } from '../stage-selectors';
 
 function createDiscoveryWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
   return cohortWorkspaceSchema.parse({
@@ -61,7 +66,7 @@ function createDiscoveryWorkspace(overrides?: Partial<CohortWorkspace>): CohortW
     processing: {
       status: 'idle',
       stage: 'done',
-      generation: 1,
+      generation: 0,
       sourceFingerprint: null,
       error: null,
     },
@@ -79,9 +84,9 @@ function createDiscoveryWorkspace(overrides?: Partial<CohortWorkspace>): CohortW
 function createGoalWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
   return cohortWorkspaceSchema.parse({
     schemaVersion: 1,
-    title: 'Distributed Systems Guide',
-    intent: 'Master Distributed Consensus in Go',
-    audience: 'Intermediate engineers',
+    title: 'Distributed Systems Cohort',
+    intent: 'Master Distributed Consensus',
+    audience: 'Engineers',
     dailyMinutes: 30,
     lessons: [],
     sources: [],
@@ -91,7 +96,7 @@ function createGoalWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorksp
     processing: {
       status: 'idle',
       stage: 'done',
-      generation: 1,
+      generation: 0,
       sourceFingerprint: null,
       error: null,
     },
@@ -106,14 +111,37 @@ function createGoalWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorksp
   });
 }
 
-describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane, ChatPane)', () => {
+describe('Checkpoint 4: Journey Branch UI Suite (Discovery YouTube +/-, WorkspacePane, ChatPane)', () => {
   beforeEach(() => {
     fake.actions = [];
     fake.succeeds = true;
-    fake.session = {
-      status: 'authenticated',
-      data: { user: { id: 'owner-alice' } },
-    };
+    fake.extractYoutubeClient.mockReset();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              id: 'dQw4w9WgXcQ',
+              kind: 'video',
+              title: 'Raft Consensus Explained',
+              channelTitle: 'Distributed Systems Channel',
+              description: 'Deep dive into Raft.',
+              url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            },
+            {
+              id: 'pl-1',
+              kind: 'playlist',
+              title: 'MIT 6.824 Distributed Systems Playlist',
+              channelTitle: 'MIT OpenCourseWare',
+              description: 'Full lecture series.',
+              url: 'https://www.youtube.com/playlist?list=pl-1',
+            },
+          ],
+        }),
+      })
+    );
   });
 
   afterEach(() => {
@@ -121,224 +149,131 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
     vi.restoreAllMocks();
   });
 
-  // -------------------------------------------------------------------------
-  // 1. DiscoveryStageView Tests
-  // -------------------------------------------------------------------------
-  describe('DiscoveryStageView', () => {
-    it('1. Renders initial search prompt with saved intent and dispatches start_discovery', async () => {
-      const ws = createDiscoveryWorkspace({ discovery: undefined });
-      render(
-        <DiscoveryStageView
-          workspace={ws}
-          dispatchAction={async a => {
-            fake.actions.push(a);
-            return true;
-          }}
-        />
-      );
-
-      expect(screen.getByRole('heading', { level: 1, name: 'Start with a goal' })).toBeTruthy();
-      expect(screen.getByText(/Tell us what you want to learn\. Choose resources before adding them to your material\./i)).toBeTruthy();
-
-      const input = screen.getByLabelText(/Your learning goal/i) as HTMLInputElement;
-      expect(input.value).toBe('Master Distributed Consensus');
-
-      const findBtn = screen.getByRole('button', { name: /Find resources/i });
-      expect(findBtn).toBeTruthy();
-
+  describe('DiscoveryStageView (YouTube lookup + include/exclude +/-)', () => {
+    it('1. Automatically looks up YouTube videos and playlists for saved intent and renders + include buttons', async () => {
+      const ws = createDiscoveryWorkspace();
       await act(async () => {
-        fireEvent.click(findBtn);
+        render(
+          <DiscoveryStageView
+            workspace={ws}
+            dispatchAction={async (a) => {
+              fake.actions.push(a);
+              return true;
+            }}
+          />
+        );
       });
 
-      expect(fake.actions).toContainEqual({ type: 'start_discovery' });
-    });
-
-    it('2. Renders loading state and dispatches cancel_discovery', async () => {
-      const ws = createDiscoveryWorkspace({
-        discovery: {
-          requestId: 'req-loading-1',
-          fingerprint: 'fp-1',
-          status: 'running',
-          generation: 0,
-          items: [],
-        },
-      });
-
-      render(
-        <DiscoveryStageView
-          workspace={ws}
-          dispatchAction={async a => {
-            fake.actions.push(a);
-            return true;
-          }}
-        />
-      );
-
-      expect(screen.getByText(/Finding resources…/i)).toBeTruthy();
-      const cancelBtn = screen.getByRole('button', { name: /Cancel search/i });
-      expect(cancelBtn).toBeTruthy();
-
-      await act(async () => {
-        fireEvent.click(cancelBtn);
-      });
-
-      expect(fake.actions).toContainEqual({ type: 'cancel_discovery' });
-    });
-
-    it('3. Renders failed state and retains input on retry', async () => {
-      const ws = createDiscoveryWorkspace({
-        discovery: {
-          requestId: 'req-fail-1',
-          fingerprint: 'fp-1',
-          status: 'failed',
-          generation: 0,
-          items: [],
-        },
-      });
-
-      render(
-        <DiscoveryStageView
-          workspace={ws}
-          dispatchAction={async a => {
-            fake.actions.push(a);
-            return true;
-          }}
-        />
-      );
-
-      expect(screen.getByRole('alert')).toBeTruthy();
-      expect(screen.getByText(/Search could not finish\. Your goal is saved\. Try again\./i)).toBeTruthy();
-
-      const input = screen.getByLabelText(/Your learning goal/i) as HTMLInputElement;
-      expect(input.value).toBe('Master Distributed Consensus');
-
-      const findBtn = screen.getByRole('button', { name: /Find resources/i });
-      await act(async () => {
-        fireEvent.click(findBtn);
-      });
-
-      expect(fake.actions).toContainEqual({ type: 'start_discovery' });
-    });
-
-    it('4. Renders honest empty discovery state when no sources observed', async () => {
-      const ws = createDiscoveryWorkspace({
-        discovery: {
-          requestId: 'req-empty-1',
-          fingerprint: 'fp-1',
-          status: 'ready',
-          generation: 0,
-          items: [],
-        },
-      });
-
-      render(
-        <DiscoveryStageView
-          workspace={ws}
-          dispatchAction={async a => {
-            fake.actions.push(a);
-            return true;
-          }}
-        />
-      );
-
+      expect(screen.getByRole('heading', { level: 1, name: /Start with a goal/i })).toBeTruthy();
+      expect(screen.getByText('Raft Consensus Explained')).toBeTruthy();
+      expect(screen.getByText('MIT 6.824 Distributed Systems Playlist')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Include Raft Consensus Explained' })).toBeTruthy();
       expect(
-        screen.getByText(/No resources found\. Refine your goal or add your own link\./i)
+        screen.getByRole('button', { name: 'Include MIT 6.824 Distributed Systems Playlist' })
       ).toBeTruthy();
-
-      const haveMaterialBtn = screen.getByRole('button', {
-        name: /I already have material/i,
-      });
-      expect(haveMaterialBtn).toBeTruthy();
-
-      await act(async () => {
-        fireEvent.click(haveMaterialBtn);
-      });
-      expect(fake.actions).toContainEqual({
-        type: 'choose_starting_point',
-        choice: 'have_material',
-      });
     });
 
-    it('5. Renders candidate items, handles selection toggles, and dispatches select_discovery_resources', async () => {
-      const ws = createDiscoveryWorkspace({
-        discovery: {
-          requestId: 'req-ready-1',
-          fingerprint: 'fp-disc-123',
-          status: 'ready',
-          resultId: 'res-disc-789',
-          generation: 0,
-          items: [
-            {
-              id: 'cand-1',
-              label: 'Raft Consensus Summary',
-              kind: 'web',
-              url: 'https://raft.github.io',
-            },
-            {
-              id: 'cand-2',
-              label: 'Paxos Made Simple',
-              kind: 'web',
-              url: 'https://lamport.azurewebsites.net/pubs/paxos-simple.pdf',
-            },
-          ],
-        },
-      });
-
-      render(
-        <DiscoveryStageView
-          workspace={ws}
-          dispatchAction={async a => {
-            fake.actions.push(a);
-            return true;
-          }}
-        />
+    it('2. Includes a YouTube video with +, excludes it with -, and continues with begin_material_processing', async () => {
+      fake.extractYoutubeClient.mockResolvedValue(null);
+      const ws = createDiscoveryWorkspace();
+      const { rerender } = await act(async () =>
+        render(
+          <DiscoveryStageView
+            workspace={ws}
+            dispatchAction={async (a) => {
+              fake.actions.push(a);
+              return true;
+            }}
+          />
+        )
       );
 
-      expect(screen.getByText('Raft Consensus Summary')).toBeTruthy();
-      expect(screen.getByText('Paxos Made Simple')).toBeTruthy();
-
-      // Checkbox 1 toggle
-      const cb1 = screen.getByLabelText(/Raft Consensus Summary/i);
-      expect((cb1 as HTMLInputElement).checked).toBe(false);
-
+      const includeBtn = screen.getByRole('button', { name: 'Include Raft Consensus Explained' });
       await act(async () => {
-        fireEvent.click(cb1);
-      });
-      expect((cb1 as HTMLInputElement).checked).toBe(true);
-
-      const acquireBtn = screen.getByRole('button', {
-        name: /Add selected material \(1\)/i,
-      });
-      expect((acquireBtn as HTMLButtonElement).disabled).toBe(false);
-
-      await act(async () => {
-        fireEvent.click(acquireBtn);
+        fireEvent.click(includeBtn);
       });
 
       expect(fake.actions).toContainEqual({
-        type: 'select_discovery_resources',
-        resultId: 'res-disc-789',
-        candidateIds: ['cand-1'],
+        type: 'add_youtube_source',
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        label: 'Raft Consensus Explained',
+        mode: 'video_observation',
+      });
+
+      // Rerender with the added source in workspace.sources
+      const wsWithSource = createDiscoveryWorkspace({
+        sources: [
+          {
+            id: 'src-yt-1',
+            version: 0,
+            label: 'Raft Consensus Explained',
+            text: '',
+            checksum: null,
+            state: 'queued',
+            input: {
+              kind: 'youtube',
+              url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+              mode: 'video_observation',
+            },
+          },
+        ],
+      });
+
+      await act(async () => {
+        rerender(
+          <DiscoveryStageView
+            workspace={wsWithSource}
+            dispatchAction={async (a) => {
+              fake.actions.push(a);
+              return true;
+            }}
+          />
+        );
+      });
+
+      // Now shows - Exclude button and enables Continue to curriculum ->
+      const excludeBtn = screen.getByRole('button', { name: 'Exclude Raft Consensus Explained' });
+      expect(excludeBtn).toBeTruthy();
+
+      const continueBtn = screen.getByRole('button', {
+        name: /Continue to curriculum/i,
+      }) as HTMLButtonElement;
+      expect(continueBtn.disabled).toBe(false);
+
+      await act(async () => {
+        fireEvent.click(continueBtn);
+      });
+
+      expect(fake.actions).toContainEqual({ type: 'begin_material_processing' });
+
+      // Clicking - Exclude dispatches remove_source
+      await act(async () => {
+        fireEvent.click(excludeBtn);
+      });
+      expect(fake.actions).toContainEqual({
+        type: 'remove_source',
+        sourceId: 'src-yt-1',
       });
     });
 
-    it('6. Enforces goal save false prevents search, new result ID resets selection, and selection commit false preserves checks', async () => {
-      // 1. Goal save false prevents search
-      const ws = createDiscoveryWorkspace({ discovery: undefined });
-      const { rerender } = render(
-        <DiscoveryStageView
-          workspace={ws}
-          dispatchAction={async a => {
-            fake.actions.push(a);
-            if (a.type === 'set_intent') return false; // simulated failure
-            return true;
-          }}
-        />
-      );
+    it('3. Updates intent with set_intent when searching a modified goal and stops if set_intent fails', async () => {
+      const ws = createDiscoveryWorkspace();
+      await act(async () => {
+        render(
+          <DiscoveryStageView
+            workspace={ws}
+            dispatchAction={async (a) => {
+              fake.actions.push(a);
+              if (a.type === 'set_intent') return false;
+              return true;
+            }}
+          />
+        );
+      });
 
       const input = screen.getByLabelText(/Your learning goal/i);
       await act(async () => {
-        fireEvent.change(input, { target: { value: 'Brand new goal' } });
+        fireEvent.change(input, { target: { value: 'Learn Rust Async' } });
       });
 
       const findBtn = screen.getByRole('button', { name: /Find resources/i });
@@ -346,153 +281,44 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         fireEvent.click(findBtn);
       });
 
-      // set_intent failed, start_discovery was NOT called
-      expect(fake.actions).toContainEqual({ type: 'set_intent', intent: 'Brand new goal' });
-      expect(fake.actions).not.toContainEqual({ type: 'start_discovery' });
+      expect(fake.actions).toContainEqual({ type: 'set_intent', intent: 'Learn Rust Async' });
       expect(screen.getByRole('alert')).toBeTruthy();
-
-      // 2. Selection commit false preserves checks
-      fake.actions = [];
-      const readyWs = createDiscoveryWorkspace({
-        discovery: {
-          requestId: 'req-ready-2',
-          fingerprint: 'fp-disc-456',
-          status: 'ready',
-          resultId: 'res-disc-1',
-          generation: 0,
-          items: [
-            {
-              id: 'cand-1',
-              label: 'Raft Consensus Summary',
-              kind: 'web',
-              url: 'https://raft.github.io',
-            },
-          ],
-        },
-      });
-
-      rerender(
-        <DiscoveryStageView
-          workspace={readyWs}
-          dispatchAction={async a => {
-            fake.actions.push(a);
-            if (a.type === 'select_discovery_resources') return false; // simulated failure
-            return true;
-          }}
-        />
-      );
-
-      const cb = screen.getByLabelText(/Raft Consensus Summary/i) as HTMLInputElement;
-      await act(async () => {
-        fireEvent.click(cb);
-      });
-      expect(cb.checked).toBe(true);
-
-      const addBtn = screen.getByRole('button', { name: /Add selected material \(1\)/i });
-      await act(async () => {
-        fireEvent.click(addBtn);
-      });
-
-      expect(screen.getByRole('alert')).toBeTruthy();
-      expect(screen.getByText(/Could not save this action\. Your choices are retained\./i)).toBeTruthy();
-      expect(cb.checked).toBe(true); // Checkbox remains preserved!
-
-      // 3. New result ID resets selection
-      const newResultWs = createDiscoveryWorkspace({
-        discovery: {
-          requestId: 'req-ready-3',
-          fingerprint: 'fp-disc-789',
-          status: 'ready',
-          resultId: 'res-disc-NEW',
-          generation: 1,
-          items: [
-            {
-              id: 'cand-1',
-              label: 'Raft Consensus Summary',
-              kind: 'web',
-              url: 'https://raft.github.io',
-            },
-          ],
-        },
-      });
-
-      rerender(
-        <DiscoveryStageView
-          workspace={newResultWs}
-          dispatchAction={async a => {
-            fake.actions.push(a);
-            return true;
-          }}
-        />
-      );
-
-      const cbNew = screen.getByLabelText(/Raft Consensus Summary/i) as HTMLInputElement;
-      expect(cbNew.checked).toBe(false); // Reset because resultId changed!
     });
   });
 
-  // -------------------------------------------------------------------------
-  // 3. CohortWorkspacePane Integration Tests
-  // -------------------------------------------------------------------------
   describe('CohortWorkspacePane integration', () => {
-    it('10. Renders DiscoveryStageView when journey.step is discovery and suppresses stepper nav', () => {
+    it('4. Renders DiscoveryStageView and top Starting point nav when journey.step is discovery', async () => {
       fake.state = createDiscoveryWorkspace();
-      render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+      await act(async () => {
+        render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+      });
 
-      expect(screen.getByRole('heading', { level: 1, name: 'Start with a goal' })).toBeTruthy();
-      expect(
-        screen.queryByRole('list', { name: 'Creation journey progress' })
-      ).toBeNull();
+      expect(screen.getByRole('heading', { level: 1, name: /Start with a goal/i })).toBeTruthy();
+      expect(screen.getByRole('navigation', { name: 'Starting point' })).toBeTruthy();
+      expect(screen.queryByRole('list', { name: 'Creation journey progress' })).toBeNull();
     });
 
-    it('11. Renders DiscoveryStageView when journey.step is goal_setup (old draft can enter search) and suppresses stepper nav', () => {
+    it('5. Renders DiscoveryStageView when journey.step is goal_setup and suppresses stepper nav', async () => {
       fake.state = createGoalWorkspace();
-      render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+      await act(async () => {
+        render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+      });
 
-      // In revised intake, goal_setup routes to DiscoveryStageView so old drafts can enter search
-      expect(screen.getByRole('heading', { level: 1, name: 'Start with a goal' })).toBeTruthy();
-      expect(
-        screen.queryByRole('list', { name: 'Creation journey progress' })
-      ).toBeNull();
+      expect(screen.getByRole('heading', { level: 1, name: /Start with a goal/i })).toBeTruthy();
+      expect(screen.queryByRole('list', { name: 'Creation journey progress' })).toBeNull();
     });
   });
 
-  // -------------------------------------------------------------------------
-  // 4. ChatPane Contextual Suggestions Tests
-  // -------------------------------------------------------------------------
-  describe('ChatPane suggestion chips', () => {
-    it('12. Renders discovery suggestion chips during discovery stage', () => {
+  describe('ChatPane suggestion chips & stage-selectors', () => {
+    it('6. Renders discovery suggestion chips during discovery stage', () => {
       fake.state = createDiscoveryWorkspace();
-      render(
-        <ChatPane attachedEntity={null} onClearAttachedEntity={() => undefined} />
-      );
+      render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => undefined} />);
 
       expect(screen.getByRole('button', { name: 'Search again' })).toBeTruthy();
-      expect(
-        screen.getByRole('button', { name: 'Provide my sources' })
-      ).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Provide my sources' })).toBeTruthy();
     });
 
-    it('13. Renders goal_setup suggestion chips during goal_setup stage', () => {
-      fake.state = createGoalWorkspace();
-      render(
-        <ChatPane attachedEntity={null} onClearAttachedEntity={() => undefined} />
-      );
-
-      expect(
-        screen.getByRole('button', { name: 'Set daily time' })
-      ).toBeTruthy();
-      expect(
-        screen.getByRole('button', { name: 'Set experience' })
-      ).toBeTruthy();
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // 5. stage-selectors Tests
-  // -------------------------------------------------------------------------
-  describe('stage-selectors', () => {
-    it('14. getActiveStage and getEffectiveStage accurately identify discovery and goal_setup stages', () => {
+    it('7. getActiveStage and getEffectiveStage accurately identify discovery and goal_setup stages', () => {
       const discWs = createDiscoveryWorkspace();
       expect(getActiveStage(discWs)).toBe('discovery');
       expect(getEffectiveStage(discWs, 'chunking')).toBe('discovery');

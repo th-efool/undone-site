@@ -221,8 +221,10 @@ function InnerCohortWorkspacePane({
         </div>
       )}
 
-      {/* Top starting point tabs for material_input */}
-      {effectiveStage === 'material_input' && (
+      {/* Top starting point tabs for material_input and discovery */}
+      {(effectiveStage === 'material_input' ||
+        effectiveStage === 'discovery' ||
+        effectiveStage === 'goal_setup') && (
         <nav aria-label="Starting point" className={startingStyles.compact}>
           <button
             type="button"
@@ -237,17 +239,22 @@ function InnerCohortWorkspacePane({
             {
               value: 'have_material' as const,
               label: 'I already have material',
+              active: effectiveStage === 'material_input',
             },
-            { value: 'find_material' as const, label: 'Start with a goal' },
+            {
+              value: 'find_material' as const,
+              label: 'Start with a goal',
+              active:
+                effectiveStage === 'discovery' ||
+                effectiveStage === 'goal_setup',
+            },
           ].map(choice => (
             <button
               key={choice.value}
               type="button"
-              aria-pressed={
-                (workspace.journey?.branch ?? 'have_material') === choice.value
-              }
+              aria-pressed={choice.active}
               onClick={async () => {
-                if (workspace.journey?.branch === choice.value) return;
+                if (choice.active) return;
                 const backed = await dispatchAction({
                   type: 'back_to_starting_point',
                 });
@@ -280,9 +287,6 @@ function InnerCohortWorkspacePane({
       {effectiveStage === 'material_input' && (
         <MaterialStageView
           workspace={workspace}
-          workspaceId={workspaceId}
-          revision={interactionState?.revision}
-          ownerId={propOwnerId}
           dispatchAction={dispatchAction}
         />
       )}

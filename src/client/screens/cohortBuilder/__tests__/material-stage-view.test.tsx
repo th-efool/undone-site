@@ -149,9 +149,9 @@ describe('MaterialStageView (Revised Intake UI)', () => {
     expect(uploadBtn.hasAttribute('disabled')).toBe(true);
     expect(uploadBtn.getAttribute('title')).toBe('Temporarily unavailable');
 
-    const pasteTextBtn = screen.getByRole('button', { name: 'Paste text' });
-    expect(pasteTextBtn.hasAttribute('disabled')).toBe(true);
-    expect(pasteTextBtn.getAttribute('title')).toBe('Temporarily unavailable');
+    expect(screen.queryByRole('button', { name: /Paste text/i })).toBeNull();
+
+
 
     // Strict check: no file input and no textarea
     expect(container.querySelector('input[type="file"]')).toBeNull();
