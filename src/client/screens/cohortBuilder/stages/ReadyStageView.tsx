@@ -104,12 +104,7 @@ export function ReadyStageView({
     act(() => dispatchAction({ type: 'open_review' }));
 
   const handleBack = async () => {
-    const backed = await dispatchAction({ type: 'back_to_starting_point' });
-    if (!backed) return;
-    await dispatchAction({
-      type: 'choose_starting_point',
-      choice: 'have_material',
-    });
+    await dispatchAction({ type: 'open_materials' });
   };
 
   return (
@@ -195,7 +190,7 @@ export function ReadyStageView({
           disabled={!viewModel.canActivate || busy}
           onClick={handleActivate}
         >
-          Go to my feed
+          Review and activate
           <ArrowRight size={17} aria-hidden="true" />
         </button>
         <div className={styles.secondaryActions}>
