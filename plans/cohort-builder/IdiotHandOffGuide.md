@@ -1,451 +1,740 @@
-# Cohort Builder State-Machine, Editorial Material Intake, and YouTube Goal Discovery — Implementation Handoff Guide
-
-## A. Execution contract
-
-- **Readiness status:** `READY`
-- **Repository root:** `d:\ThisPC\Documents\SideQuestHQ\undone-site`
-- **OS / shell / toolchain:** Windows (`powershell`), `npm`, Node `>=24 <25`
-- **Baseline git state:** Branch `master`, commit `1fab3482b2f91583dea6439f36a48103cda9d42d`. No `src/` files modified prior to execution.
-- **Non-goals & Hard Guardrails:**
-  - Do **not** allow `open_review` from `chat` or before `isBuildComplete(workspace)` is `true`.
-  - Do **not** expose `add_lesson`, `draft_curriculum`, `edit_lesson`, `remove_lesson`, `reorder_lessons`, or `set_lesson_pin` in `STAGE_TOOL_NAMES.chat`.
-  - Do **not** include any `Paste text` button or raw-text source mode in `MaterialStageView.tsx`. Only two source mode buttons may appear in `MaterialStageView.tsx`: `Paste a link` (active) and `Upload a file` (disabled).
-  - Do **not** leave floating `stickyTopRight` `Continue to curriculum →` buttons in `MaterialStageView.tsx`; place `Continue to curriculum →` in the bottom `.continueSection` below `Added material`.
-  - Do **not** use the complex AI web-citation discovery flow for `"Start with a goal"` (`DiscoveryStageView.tsx`). Instead, `"Start with a goal"` must look up YouTube videos and playlists via `/api/import/youtube/search?q=...`, let the user include (`+`) and exclude (`−`) items directly into `workspace.sources` (`Added material`), and when the user clicks `Continue to curriculum →`, dispatch `{ type: 'begin_material_processing' }` to proceed through the exact same processing flow (`1 Understanding -> 2 Chunking -> 3 Analyzing -> 4 Building -> Ready -> Editable preview`) as `"I already have material"`.
-  - Do **not** leave legacy v1 `CreationExperience` mounted on `/quest/new` or `/quest/draft/[draftId]`; redirect both routes to `/quest/start`.
+# IdiotHandOffGuide — Cohort Creation Top-Right CTA Unification, Playlist Grouping, 3–4 Column Visual Grid, Stepper & Retry Loop Fix, and De-Jargoning
 
 ---
 
-## B. Requirements and acceptance map
+## Section A — Execution Contract
 
-| Requirement ID | Requirement Summary | Files Involved | Verification Step |
-|---|---|---|---|
-| `REQ-1` | **Eliminate `chat -> review` bypass (`RC-1`):** `open_review` must strictly require `step === 'ready'` and `isBuildComplete(workspace) === true`. Remove the `Review curriculum` button from `CohortInteractionScreen.tsx` during `chat`. Hide the 4-stage stepper on `review`/`curriculum` if `!isBuildComplete(workspace)`. | `src/shared/cohort-builder/contracts.ts`, `src/shared/cohort-builder/creation-machine.ts`, `src/shared/cohort-builder/creation-view.ts`, `src/client/screens/cohortBuilder/CohortInteractionScreen.tsx` | `npx vitest run src/shared/cohort-builder/__tests__/contracts.test.ts src/shared/cohort-builder/__tests__/creation-machine.test.ts` |
-| `REQ-2` | **Fix `chat` AI tools & system prompt (`RC-2`):** Remove lesson-mutation tools from `STAGE_TOOL_NAMES.chat` and expose `choose_starting_point` and `create_own_cohort`. Update `context.ts` so `chat` brainstorms in markdown, transitions to studio only when asked to create a cohort, and never triggers stage transitions on `"?"` or general questions. | `src/server/domain/cohort-builder/tools.ts`, `src/server/domain/cohort-builder/context.ts` | `npx vitest run src/server/domain/cohort-builder/__tests__/ai-tools-optimization.test.ts` |
-| `REQ-3` | **Restore editorial `"I already have material"` (`MaterialStageView`) & remove `Paste text` (`RC-3a`):** Keep the unified link/YouTube/playlist flow, remove `Paste text` completely (only `Paste a link` active and `Upload a file` disabled), restore editorial `MaterialStageView.module.css` (`InkUnderline`, polaroid collages, warm cream cards), and place `Continue to curriculum →` at the bottom below `Added material`. | `src/client/screens/cohortBuilder/stages/MaterialStageView.module.css`, `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx` | `npx vitest run src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx src/client/screens/cohortBuilder/__tests__/journey-checkpoint3-material.test.tsx` |
-| `REQ-4` | **Simplify `"Start with a goal"` (`DiscoveryStageView`) to YouTube video/playlist lookup with `+`/`−` include/exclude & shared `Continue to curriculum →` flow (`RC-3b`):** Create `GET /api/import/youtube/search?q=...`, render YouTube video & playlist search results with `+` (include into `workspace.sources`) and `−` (exclude from `workspace.sources`), render the shared `Added material` list and bottom `Continue to curriculum →` button (`begin_material_processing`), and render the top `<nav aria-label="Starting point">` bar on both `"I already have material"` and `"Start with a goal"`. | `src/app/api/import/youtube/search/route.ts`, `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx`, `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx`, `src/shared/cohort-builder/creation-machine.ts` | `npx vitest run src/client/screens/cohortBuilder/__tests__/journey-checkpoint4-branch.test.tsx` |
-| `REQ-5` | **Clean `UnderstandingStageView` controls & decommission legacy v1 routes (`RC-4` & `RC-5`):** Add `← Back to material` (`open_materials`) to `UnderstandingStageView.tsx` controls with clean left/right alignment in `UnderstandingProgress.module.css`, and redirect `/quest/new` and `/quest/draft/[draftId]` to `/quest/start`. | `src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx`, `src/client/screens/cohortCreation/components/UnderstandingProgress.module.css`, `src/app/(creation)/quest/new/page.tsx`, `src/app/(creation)/quest/draft/[draftId]/page.tsx` | `npx vitest run src/client/screens/cohortBuilder/__tests__/journey-checkpoint5-processing.test.tsx src/app/__tests__/tab-titles.test.ts` |
-
----
-
-## C. File-change manifest
-
-| Path | Action | Summary of Change |
-|---|---|---|
-| `src/shared/cohort-builder/contracts.ts` | `modify` | Require `step === 'ready'` and `isBuildComplete(next)` for `open_review`. |
-| `src/shared/cohort-builder/creation-machine.ts` | `modify` | Add `step === 'discovery'` to `canBeginMaterialProcessing`; restrict `canOpenReview` to `!isPublished && step === 'ready' && buildComplete`. |
-| `src/shared/cohort-builder/creation-view.ts` | `modify` | Hide stepper on `review` / `curriculum` when `!isBuildComplete(workspace)`. |
-| `src/server/domain/cohort-builder/tools.ts` | `modify` | Remove lesson-mutation tools from `STAGE_TOOL_NAMES.chat` and add `'choose_starting_point'` and `'create_own_cohort'`. |
-| `src/server/domain/cohort-builder/context.ts` | `modify` | Update `chat` stage instructions and add strict guard against calling transition tools on ambiguous queries like `"?"`. |
-| `src/client/screens/cohortBuilder/CohortInteractionScreen.tsx` | `modify` | Remove the `Review curriculum` shortcut button from the `isChatStep` header. |
-| `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` | `modify` | Render the compact `<nav aria-label="Starting point">` bar across `material_input`, `discovery`, and `goal_setup`. |
-| `src/app/api/import/youtube/search/route.ts` | `create` | Add `GET /api/import/youtube/search?q=<query>` endpoint returning YouTube videos and playlists with 24h cache. |
-| `src/client/screens/cohortBuilder/stages/MaterialStageView.module.css` | `modify` (write full file) | Restore editorial styling (`InkUnderline`, polaroid collages, warm cream cards, bottom `.continueSection`, and YouTube `+`/`−` result rows). |
-| `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx` | `modify` (write full file) | Restore editorial layout, remove `Paste text` (leaving only `Paste a link` active and `Upload a file` disabled), and move `Continue to curriculum →` to the bottom `.continueSection`. |
-| `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx` | `modify` (write full file) | Implement `"Start with a goal"` as YouTube video/playlist lookup with `+` include / `−` exclude into `workspace.sources`, shared `Added material` list, and bottom `Continue to curriculum →` (`begin_material_processing`). |
-| `src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx` | `modify` | Add `← Back to material` button (`open_materials`) when not running and refine control layout. |
-| `src/client/screens/cohortCreation/components/UnderstandingProgress.module.css` | `modify` | Align `.controls` with `justify-content: space-between` and add `.secondaryBtn` styling. |
-| `src/app/(creation)/quest/new/page.tsx` | `modify` (write full file) | Redirect legacy v1 `/quest/new` route to `/quest/start` while keeping `export const metadata`. |
-| `src/app/(creation)/quest/draft/[draftId]/page.tsx` | `modify` (write full file) | Redirect legacy v1 `/quest/draft/[draftId]` route to `/quest/start` while keeping `export const metadata`. |
-| `src/shared/cohort-builder/__tests__/contracts.test.ts` | `modify` | Update `open_review` contract tests to assert `open_review` from `chat` throws `INVALID_JOURNEY_TRANSITION`. |
-| `src/shared/cohort-builder/__tests__/creation-machine.test.ts` | `modify` | Update `creation-machine` tests to assert `open_review` from `chat` is rejected and `begin_material_processing` from `discovery` is allowed. |
-| `src/server/domain/cohort-builder/__tests__/ai-tools-optimization.test.ts` | `modify` | Update `chat` stage tool filter assertions to verify `choose_starting_point` and `create_own_cohort` are exposed and `add_lesson`/`draft_curriculum` are excluded. |
-| `src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx` | `modify` (write full file) | Verify `Paste text` is absent, only `Paste a link` (active) and `Upload a file` (disabled) exist, and `Continue to curriculum` is at the bottom. |
-| `src/client/screens/cohortBuilder/__tests__/journey-checkpoint3-material.test.tsx` | `modify` | Update Test 7 to verify `Paste text` is removed and only `Paste a link` (active) and `Upload a file` (disabled) exist. |
-| `src/client/screens/cohortBuilder/__tests__/journey-checkpoint4-branch.test.tsx` | `modify` (write full file) | Test the YouTube lookup + `+`/`−` include/exclude + `Continue to curriculum →` flow in `DiscoveryStageView` and `CohortWorkspacePane`. |
+```yaml
+execution_contract:
+  status: READY
+  target_workspace: d:\ThisPC\Documents\SideQuestHQ\undone-site
+  canonical_plan_reference: plans/cohort-builder/top-right-cta-and-ux-de-jargon-plan.md
+  stop_conditions:
+    - Do not invent new CohortAction union variants that break Zod schema parsing unless backward-compatible.
+    - Do not break existing unit tests in src/app/api/import/youtube/metadata/__tests__/route.test.ts, src/server/domain/cohort-builder/__tests__/, or src/client/screens/cohortBuilder/__tests__/.
+    - Do not leave any placeholder comments, ellipses, or truncated blocks in any modified file.
+```
 
 ---
 
-## D. Ordered implementation steps
+## Section B — Requirements & Acceptance Map
 
-### Step 1: Lock `open_review` to `ready` + `isBuildComplete` in `contracts.ts`, `creation-machine.ts`, and `creation-view.ts`
+| Requirement ID | Requirement Summary | Root Cause Addressed | Implementing Steps | Verification Gate |
+| :--- | :--- | :--- | :--- | :--- |
+| **R1** | Stop the infinite `queued → processing → failed → queued` loop on failed playlist videos, filter out deleted/private playlist items (`84 YouTube Video`), and provide a verified-metadata observation fallback when AI video observation returns `DATA_UNAVAILABLE` / `AI_UNAVAILABLE` on silent/music-only demo videos. | 1) `recoverTextWorkspace` runs every 10s (`text-job-runtime.ts`) and calls `enqueueTextJobPlanInTransaction` (`text-job-scheduler.ts`), which resets `existing.status === 'failed'` back to `queued` with `attempts = 0`.<br>2) `claimTextJob` (`text-jobs.ts`) increments `attempts` in SQL but omits `j."attempts"` from `RETURNING`.<br>3) `/api/import/youtube/metadata/route.ts` ignored `it.snippet.title` from `playlistItems` and mapped missing `videoDetailsMap` items (deleted/private videos) to `'YouTube Video'`.<br>4) `LiveVideoObservationProvider.observeVideo` had no fallback when Gemini returns `canObserve: false` (`DATA_UNAVAILABLE`) on silent demo videos. | `S1`, `S2`, `S3`, `S4`, `S5` | `npx vitest run src/app/api/import/youtube/metadata/__tests__/route.test.ts src/server/domain/cohort-builder/__tests__/journey-video-adapter.test.ts src/server/domain/cohort-builder/__tests__/text-jobs.test.ts` |
+| **R2** | Fix top stepper blinking and simultaneous multi-stage highlighting (`1 UNDERSTANDING` and `3 ANALYZING` active at the same time). | `deriveStageProgress` in `src/shared/cohort-builder/creation-progress.ts` (lines 41–43) did not gate `failed`, `stopped`, and `active` (`j.status === 'running'`) on `priorComplete`. | `S6` | `npx vitest run src/client/screens/cohortBuilder/__tests__/stage-selectors.test.ts` |
+| **R3** | Collapse batch-added YouTube playlist videos (`<batchPrefix>:yt:<index>`) into **1 single Playlist Card** (`YouTube Playlist · N videos`) in both `"I already have material"` (`MaterialStageView`) and `"Start with a goal"` (`DiscoveryStageView`). | `MaterialStageView` and `DiscoveryStageView` mapped over `workspace.sources` 1-to-1, spawning 87–120 individual cards for 1 pasted/included playlist. | `S8`, `S9`, `S10` | `npx vitest run src/client/screens/cohortBuilder/__tests__/MaterialStageView.test.tsx src/client/screens/cohortBuilder/__tests__/DiscoveryStageView.test.tsx` |
+| **R4** | Render added materials and YouTube search results in a responsive **3–4 column visual card grid** with intuitive visual distinction between **Playlist** cards (stacked deck effect + `▶ PLAYLIST · N VIDEOS` overlay badge) and **Video** cards (`VIDEO` overlay badge). | `MaterialStageView.module.css` used a 2-column horizontal strip (`minmax(340px, 1fr)`) with tiny `12px` text labels (`YouTubePlaylist · Channel` vs `YouTubeVideo · Channel`). | `S8`, `S9`, `S10` | `npx vitest run src/client/screens/cohortBuilder/__tests__/MaterialStageView.test.tsx src/client/screens/cohortBuilder/__tests__/DiscoveryStageView.test.tsx` |
+| **R5** | Improve YouTube discovery search (`/api/import/youtube/search/route.ts`) to surface practical/project-based tutorials, full courses, and playlists while filtering out `#shorts`. | `/api/import/youtube/search/route.ts` passed the raw query directly to YouTube Search API without biasing toward educational tutorials/courses/projects or filtering `#shorts`. | `S7` | `npx tsc --noEmit` |
+| **R6** | Move the stage progress bar (`<div className={styles.progress}>`) to the **very top** of `.inventory` in `UnderstandingStageView`, `ChunkingStageView`, and `AnalysisStageView`. | Progress bar was buried at the bottom of `.inventory` below 87 source cards. | `S11`, `S12`, `S13` | `npx vitest run src/client/screens/cohortCreation/__tests__/processing-details.test.tsx` |
+| **R7** | Remove the green-circled filler text (`"I’m working with your retained sources and the evidence in them."`), the auto-generated `.cohortSummary` block (`"I Want to Become An Robotics: Foundations & Practice..."`), and the redundant `"Selected material"` heading in `UnderstandingStageView`, `ChunkingStageView`, and `AnalysisStageView`. | `UnderstandingStageView.tsx` lines 72–84, `ChunkingStageView.tsx` lines 64–72, and `AnalysisStageView.tsx` lines 77–85 rendered redundant boilerplate headings and auto-generated descriptions. | `S12`, `S13` | `npx vitest run src/client/screens/cohortCreation/__tests__/processing-details.test.tsx` |
+| **R8** | Unify all stage CTAs and secondary actions in the **top right**: primary advance button displays `Next →` (with `aria-label` preserved for accessibility/tests), and secondary actions (`Back to material`, `Cancel processing`, `Retry processing`) are **icon-only buttons** (`←`, `■`, `↻`) in the top-right `.topActions` bar instead of bottom text pills (`Understand selected material`, `Chunk selected material`, `Start fresh building`, `Cancel understanding`). | Stage controls were scattered at the bottom of `.inventory` with internal pipeline jargon labels. | `S8`, `S9`, `S10`, `S11`, `S12`, `S13` | `npx vitest run src/client/screens/cohortBuilder/__tests__/CohortWorkspacePane.test.tsx src/client/screens/cohortCreation/__tests__/processing-details.test.tsx` |
+| **R9** | Fix contradictory source row status (`0 retained segments · queued` + green `<Check>`), cap the source list height (`max-height: 360px; overflow-y: auto`), strip clickbait/questions/brackets from Concept Cloud chips (`[MUST KNOW TIPS]`, `Why It Is The Best`), and strip internal jargon (`Checksum:`, `Deterministic estimates...`, `Chunk: characters...`, `Review chunks`). | `UnderstandingStageView.tsx` hardcoded `<Check />` and `{segmentCount} retained segments · {source.state}` on every row; `extractSourceConceptTopics` kept question/clickbait clauses; `ChunkingStageView`, `AnalysisStageView`, and `chat-suggestions.ts` leaked internal telemetry strings. | `S11`, `S12`, `S13`, `S14`, `S15` | `npx vitest run src/shared/cohort-builder/__tests__/cohort-metadata.test.ts` |
 
-- **Goal:** Prevent jumping from `chat` (or any unbuilt state) directly to `review` (`Editable preview`), allow `begin_material_processing` from `discovery`, and hide the 4-stage stepper if `review`/`curriculum` is ever inspected without a completed build.
-- **Files:**
-  - `src/shared/cohort-builder/contracts.ts`
-  - `src/shared/cohort-builder/creation-machine.ts`
-  - `src/shared/cohort-builder/creation-view.ts`
+---
 
-#### 1.1 Edit `src/shared/cohort-builder/contracts.ts`
+## Section C — File-Change Manifest
 
-**Target:**
+| Step | File Path | Operation | Purpose |
+| :--- | :--- | :--- | :--- |
+| `S1` | `src/server/domain/cohort-builder/text-job-scheduler.ts` | Modify | Add `options?: { retryFailed?: boolean }` so 10s recovery only resets `'superseded'` jobs and never resets `'failed'` jobs to `'queued'`. |
+| `S2` | `src/server/domain/cohort-builder/text-action-jobs.ts` | Modify | Pass `{ retryFailed: typed.type === 'retry_processing' || typed.type === 'begin_material_processing' }` to `enqueueTextJobPlanInTransaction`. |
+| `S3` | `src/server/domain/cohort-builder/text-jobs.ts` | Modify | Return `j."attempts"` in `claimTextJob` SQL `RETURNING` and mapped `ClaimedTextJob`. |
+| `S4` | `src/app/api/import/youtube/metadata/route.ts` | Modify | Extract playlist video titles from `playlistItems`, filter out `'Private video'`, `'Deleted video'`, and `'YouTube Video'`, and restore clean response contract. |
+| `S5` | `src/server/domain/cohort-builder/journey-video-adapter.ts` | Modify | Fall back to verified `validVideo` metadata observation when `!this.hasCustomObserver` and AI observation fails with `DATA_UNAVAILABLE` / `AI_UNAVAILABLE` / `AI_INVALID_OUTPUT`. |
+| `S6` | `src/shared/cohort-builder/creation-progress.ts` | Modify | Gate `failed`, `stopped`, and `active` on `priorComplete` to stop top stepper blinking/multi-stage active bug. |
+| `S7` | `src/app/api/import/youtube/search/route.ts` | Modify | Enrich search queries toward practical tutorials/courses/projects and filter out `#shorts`. |
+| `S8` | `src/client/screens/cohortBuilder/stages/MaterialStageView.module.css` | Modify | 3–4 column visual card grid, stacked-deck playlist card styling, overlay type badges (`▶ PLAYLIST · N VIDEOS` vs `VIDEO`). |
+| `S9` | `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx` | Modify | Collapse batch-added playlist items into 1 Playlist card (`groupSourcesForDisplay`, `SourceGroupCard`) and use `Next →` top-right CTA. |
+| `S10` | `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx` | Modify | Render grouped playlist cards in `Added material`, visual card grid with clear badges in search results, and `Next →` top-right CTA. |
+| `S11` | `src/client/screens/cohortCreation/components/UnderstandingProgress.module.css` | Modify | Add `.topActions`, `.iconActionBtn`, `.nextStageBtn`, status icon classes, top `.progress` bar spacing, and `max-height: 360px; overflow-y: auto` on `.inventory ul, .inventory fieldset`. |
+| `S12` | `src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx` | Modify | Top-right `.topActions` (`←`, `■`, `↻`, `Next →`), top `.progress` bar, remove `.cohortSummary` / filler `<p>` / `"Selected material"`, and fix source row status text & icons. |
+| `S13` | `src/client/screens/cohortBuilder/stages/ChunkingStageView.tsx`<br>`src/client/screens/cohortBuilder/stages/AnalysisStageView.tsx`<br>`src/client/screens/cohortBuilder/stages/AssemblyStageView.tsx` | Modify | Top-right `.topActions` (`←`, `■`, `↻`, `Next →`), top `.progress` bar, remove `"Selected material"` & filler `<p>`, and strip `Checksum:`, `Deterministic estimates...`, and `Chunk: characters...`. |
+| `S14` | `src/shared/cohort-builder/cohort-metadata.ts` | Modify | Strip `#hashtags`, bracketed clickbait (`[MUST KNOW TIPS]`), and question/clickbait clauses from `extractSourceConceptTopics`. |
+| `S15` | `src/client/screens/cohortBuilder/chat-suggestions.ts` | Modify | Replace `'Review chunks'` with `'How this works'`. |
+
+---
+
+## Section D — Ordered Implementation Steps
+
+### Step `S1` — Prevent 10s Background Recovery from Re-Queuing Failed Jobs (`src/server/domain/cohort-builder/text-job-scheduler.ts`)
+
+- **File:** `src/server/domain/cohort-builder/text-job-scheduler.ts`
+- **Action:** Edit lines 11–22, 62–69, and 118–129 so `enqueueTextJobPlan` and `enqueueTextJobPlanInTransaction` accept `options?: { retryFailed?: boolean }` (defaulting to `false`). Only include `existing.status === 'failed'` in `toUnsupersede` when `options?.retryFailed` is `true`.
+
+#### Before (`src/server/domain/cohort-builder/text-job-scheduler.ts` lines 10–23 and 60–70 and 118–130)
 ```ts
-  if (action.type === 'open_review') {
-    const current = requireStep(['ready', 'chat']);
-    if (current.step === 'ready') {
-      if (!isBuildComplete(next)) {
-        throw new Error('ASSEMBLY_NOT_READY');
+/** Persist a complete dependency graph atomically; repeat calls reuse logical job keys. */
+export async function enqueueTextJobPlan(port: TextJobTransactionPort, workspaceId: string, state: CohortWorkspace): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
+  const intents = planTextJobs(state);
+  return port.transaction(tx => enqueueTextJobPlanInTransaction(tx, workspaceId, state, intents));
+}
+
+export async function enqueueTextJobPlanInTransaction(
+  tx: TextArtifactSql,
+  workspaceId: string,
+  state: CohortWorkspace,
+  planned = planTextJobs(state)
+): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
+  const intents = planned;
+```
+and
+```ts
+  const toUnsupersede: string[] = [];
+
+  for (const intent of intents) {
+    const existing = existingMap.get(intent.jobKey);
+    if (existing) {
+      ids.set(intent.jobKey, existing.id);
+      if (existing.status === 'superseded' || existing.status === 'failed') {
+        toUnsupersede.push(existing.id);
       }
     } else {
+```
+and
+```ts
+  // 5. Un-supersede previously superseded jobs in one query
+  if (toUnsupersede.length > 0) {
+    await tx.query(
+      `UPDATE "cohort_text_jobs"
+        SET "status" = 'queued', "dueAt" = CURRENT_TIMESTAMP, "attempts" = 0,
+            "errorCode" = NULL, "fence" = "fence" + 1,
+            "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL,
+            "resultArtifactId" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ANY($1::text[]) AND "workspaceId" = $2 AND "status" IN ('superseded', 'failed')`,
+      [toUnsupersede, workspaceId]
+    );
+  }
+```
+
+#### After (`src/server/domain/cohort-builder/text-job-scheduler.ts`)
+Replace those blocks (or the full file) with:
+```ts
+import { randomUUID } from 'node:crypto';
+import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import type { TextArtifactSql } from './text-artifacts';
+import { planTextJobs } from './text-job-plan';
+
+export interface TextJobTransactionPort {
+  transaction<T>(work: (tx: TextArtifactSql) => Promise<T>): Promise<T>;
+}
+
+export interface EnqueueTextJobPlanOptions {
+  retryFailed?: boolean;
+}
+
+/** Persist a complete dependency graph atomically; repeat calls reuse logical job keys. */
+export async function enqueueTextJobPlan(
+  port: TextJobTransactionPort,
+  workspaceId: string,
+  state: CohortWorkspace,
+  options?: EnqueueTextJobPlanOptions
+): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
+  const intents = planTextJobs(state);
+  return port.transaction(tx => enqueueTextJobPlanInTransaction(tx, workspaceId, state, intents, options));
+}
+
+export async function enqueueTextJobPlanInTransaction(
+  tx: TextArtifactSql,
+  workspaceId: string,
+  state: CohortWorkspace,
+  planned = planTextJobs(state),
+  options?: EnqueueTextJobPlanOptions
+): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
+  const intents = planned;
+  const retryFailed = Boolean(options?.retryFailed);
+  // 1. Mark obsolete jobs as superseded in one query
+  const obsolete = await tx.query(
+    `UPDATE "cohort_text_jobs"
+      SET "status" = 'superseded', "fence" = "fence" + 1,
+          "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "workspaceId" = $1 AND "status" IN ('queued', 'running', 'failed')
+        AND "jobKey" LIKE 'text:%'
+        AND NOT ("jobKey" = ANY($2::text[])) RETURNING "id"`,
+    [workspaceId, intents.map(intent => intent.jobKey)]
+  );
+
+  // If there are no intents, or if the workspace processing is already ready and all sources are ready (client-extracted), skip enqueuing
+  if (intents.length === 0 || (state.processing.status === 'ready' && state.sources.every(s => s.state === 'ready'))) {
+    return { jobIds: [], inserted: 0, superseded: obsolete.rows.length };
+  }
+
+  // 2. Fetch all existing jobs for these jobKeys in one query
+  const existingRes = await tx.query(
+    `SELECT "id", "jobKey", "status" FROM "cohort_text_jobs"
+      WHERE "workspaceId" = $1 AND "jobKey" = ANY($2::text[]) FOR UPDATE`,
+    [workspaceId, intents.map(intent => intent.jobKey)]
+  );
+  const existingMap = new Map<string, { id: string; status: string }>(
+    existingRes.rows.map((r: any) => [r.jobKey, { id: String(r.id), status: r.status }])
+  );
+
+  // 3. Prepare inserts for new jobs and collect all job IDs
+  const ids = new Map<string, string>();
+  const toInsert: Array<{
+    id: string;
+    jobKey: string;
+    sourceId: string | null;
+    sourceVersion: number | null;
+    stage: string;
+    dependencyFingerprint: string;
+    handlerVersion: number;
+  }> = [];
+  const toUnsupersede: string[] = [];
+
+  for (const intent of intents) {
+    const existing = existingMap.get(intent.jobKey);
+    if (existing) {
+      ids.set(intent.jobKey, existing.id);
+      if (existing.status === 'superseded' || (retryFailed && existing.status === 'failed')) {
+        toUnsupersede.push(existing.id);
+      }
+    } else {
+      const newId = randomUUID();
+      ids.set(intent.jobKey, newId);
+      const hasInput = intent.sourceId
+        ? state.sources.some(source => source.id === intent.sourceId && source.input)
+        : state.sources.some(source => source.input);
+      toInsert.push({
+        id: newId,
+        jobKey: intent.jobKey,
+        sourceId: intent.sourceId,
+        sourceVersion: intent.sourceVersion,
+        stage: intent.stage,
+        dependencyFingerprint: intent.dependencyFingerprint,
+        handlerVersion: hasInput ? 2 : 1,
+      });
+    }
+  }
+
+  // 4. Batch insert new jobs in chunks if any
+  let inserted = 0;
+  if (toInsert.length > 0) {
+    const values: unknown[] = [];
+    const rowPlaceholders: string[] = [];
+    toInsert.forEach((item, idx) => {
+      const offset = idx * 8;
+      rowPlaceholders.push(
+        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, CURRENT_TIMESTAMP)`
+      );
+      values.push(
+        item.id,
+        workspaceId,
+        item.jobKey,
+        item.sourceId,
+        item.sourceVersion,
+        item.stage,
+        item.dependencyFingerprint,
+        item.handlerVersion
+      );
+    });
+
+    const insertSql = `INSERT INTO "cohort_text_jobs"
+      ("id", "workspaceId", "jobKey", "sourceId", "sourceVersion", "stage", "dependencyFingerprint", "handlerVersion", "updatedAt")
+      VALUES ${rowPlaceholders.join(', ')}
+      ON CONFLICT ("workspaceId", "jobKey") DO NOTHING RETURNING "id"`;
+
+    const res = await tx.query(insertSql, values);
+    inserted = res.rows.length;
+  }
+
+  // 5. Un-supersede previously superseded (and explicitly retried failed) jobs in one query
+  if (toUnsupersede.length > 0) {
+    const allowedStatuses = retryFailed ? ['superseded', 'failed'] : ['superseded'];
+    await tx.query(
+      `UPDATE "cohort_text_jobs"
+        SET "status" = 'queued', "dueAt" = CURRENT_TIMESTAMP, "attempts" = 0,
+            "errorCode" = NULL, "fence" = "fence" + 1,
+            "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL,
+            "resultArtifactId" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ANY($1::text[]) AND "workspaceId" = $2 AND "status" = ANY($3::text[])`,
+      [toUnsupersede, workspaceId, allowedStatuses]
+    );
+  }
+
+  // 6. Batch insert all edges in one query
+  const edgesToInsert: Array<[string, string, string]> = [];
+  for (const intent of intents) {
+    const jobId = ids.get(intent.jobKey)!;
+    for (const prerequisiteKey of intent.prerequisiteKeys) {
+      const prerequisiteId = ids.get(prerequisiteKey);
+      if (!prerequisiteId) throw new Error('MISSING_PLANNED_DEPENDENCY');
+      edgesToInsert.push([workspaceId, jobId, prerequisiteId]);
+    }
+  }
+
+  if (edgesToInsert.length > 0) {
+    const edgeValues: unknown[] = [];
+    const edgePlaceholders: string[] = [];
+    edgesToInsert.forEach((edge, idx) => {
+      const offset = idx * 3;
+      edgePlaceholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3})`);
+      edgeValues.push(edge[0], edge[1], edge[2]);
+    });
+
+    await tx.query(
+      `INSERT INTO "cohort_text_job_edges" ("workspaceId", "jobId", "prerequisiteId")
+        VALUES ${edgePlaceholders.join(', ')}
+        ON CONFLICT DO NOTHING`,
+      edgeValues
+    );
+  }
+
+  return {
+    jobIds: intents.map(intent => ids.get(intent.jobKey)!),
+    inserted,
+    superseded: obsolete.rows.length,
+  };
+}
+```
+
+---
+
+### Step `S2` — Pass `{ retryFailed }` Only on Explicit Retry Actions (`src/server/domain/cohort-builder/text-action-jobs.ts`)
+
+- **File:** `src/server/domain/cohort-builder/text-action-jobs.ts`
+- **Action:** Replace lines 32–36 so `enqueueTextJobPlanInTransaction` receives `{ retryFailed: typed.type === 'retry_processing' || typed.type === 'begin_material_processing' }`.
+
+#### Before (`src/server/domain/cohort-builder/text-action-jobs.ts` lines 30–38)
+```ts
+  } else if (typed.type === 'prepare_release' || typed.type === 'commit_release') {
+    return textJobStatus(tx, workspaceId, next);
+  } else if (next.sources.length && next.processing.error !== 'PROCESSING_CANCELED') {
+    await enqueueTextJobPlanInTransaction(tx, workspaceId, next);
+  } else if (typed.type === 'remove_source') {
+    await enqueueTextJobPlanInTransaction(tx, workspaceId, next);
+  }
+  return textJobStatus(tx, workspaceId, next);
+}
+```
+
+#### After (`src/server/domain/cohort-builder/text-action-jobs.ts` lines 30–41)
+```ts
+  } else if (typed.type === 'prepare_release' || typed.type === 'commit_release') {
+    return textJobStatus(tx, workspaceId, next);
+  } else if (next.sources.length && next.processing.error !== 'PROCESSING_CANCELED') {
+    const retryFailed = typed.type === 'retry_processing' || typed.type === 'begin_material_processing';
+    await enqueueTextJobPlanInTransaction(tx, workspaceId, next, undefined, { retryFailed });
+  } else if (typed.type === 'remove_source') {
+    await enqueueTextJobPlanInTransaction(tx, workspaceId, next);
+  }
+  return textJobStatus(tx, workspaceId, next);
+}
+```
+
+---
+
+### Step `S3` — Return `j."attempts"` in `claimTextJob` (`src/server/domain/cohort-builder/text-jobs.ts`)
+
+- **File:** `src/server/domain/cohort-builder/text-jobs.ts`
+- **Action:** Include `j."attempts"` in the `RETURNING` clause of `claimTextJob` and map `attempts: row.attempts === undefined ? undefined : Number(row.attempts)` on the returned `ClaimedTextJob`.
+
+#### Before (`src/server/domain/cohort-builder/text-jobs.ts` lines 53–64)
+```ts
+  RETURNING j."id", j."workspaceId", j."stage", j."sourceId", j."sourceVersion",
+    j."dependencyFingerprint", j."fence", j."leaseToken", j."leaseUntil"`,
+  [time.at, workerId, token, time.until]);
+  const row = result.rows[0];
+  return row ? {
+    id: String(row.id), workspaceId: String(row.workspaceId), stage: String(row.stage),
+    sourceId: row.sourceId === null ? null : String(row.sourceId),
+    sourceVersion: row.sourceVersion === null ? null : Number(row.sourceVersion),
+    dependencyFingerprint: String(row.dependencyFingerprint), fence: Number(row.fence),
+    leaseToken: String(row.leaseToken), leaseUntil: new Date(String(row.leaseUntil)),
+  } : null;
+}
+```
+
+#### After (`src/server/domain/cohort-builder/text-jobs.ts` lines 53–65)
+```ts
+  RETURNING j."id", j."workspaceId", j."stage", j."sourceId", j."sourceVersion",
+    j."dependencyFingerprint", j."fence", j."leaseToken", j."leaseUntil", j."attempts"`,
+  [time.at, workerId, token, time.until]);
+  const row = result.rows[0];
+  return row ? {
+    id: String(row.id), workspaceId: String(row.workspaceId), stage: String(row.stage),
+    sourceId: row.sourceId === null ? null : String(row.sourceId),
+    sourceVersion: row.sourceVersion === null ? null : Number(row.sourceVersion),
+    dependencyFingerprint: String(row.dependencyFingerprint), fence: Number(row.fence),
+    leaseToken: String(row.leaseToken), leaseUntil: new Date(String(row.leaseUntil)),
+    ...(row.attempts !== undefined ? { attempts: Number(row.attempts) } : {}),
+  } : null;
+}
+```
+
+---
+
+### Step `S4` — Filter Out Deleted/Private Playlist Videos & Fix Metadata Route Contract (`src/app/api/import/youtube/metadata/route.ts`)
+
+- **File:** `src/app/api/import/youtube/metadata/route.ts`
+- **Action:** Replace lines 122–230 in `src/app/api/import/youtube/metadata/route.ts` so:
+  1. `playlistItems` extracts `{ videoId, title }` directly from `it.snippet` and filters out `'Private video'`, `'Deleted video'`, and `'YouTube Video'` placeholder titles (preventing deleted/private playlist items like `84 YouTube Video` from entering the workspace).
+  2. Single video lookup queries `/videos?part=snippet&id=${videoId}&key=${apiKey}` and returns `{ title, thumbnailUrl }`, restoring 12/12 passing tests in `src/app/api/import/youtube/metadata/__tests__/route.test.ts` while keeping `parseIsoDurationMs` exported for `sourceExtractors.test.ts`.
+
+#### Before (`src/app/api/import/youtube/metadata/route.ts` lines 121–230)
+```ts
+        if (snippet) {
+          const rawVideoIds: string[] = [];
+          try {
+            let pageToken: string | undefined = undefined;
+            while (rawVideoIds.length < 100) {
+              const pageParam: string = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
+              const itemsRes: Response = await fetch(`${YT_BASE}/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${apiKey}${pageParam}`);
+              if (!itemsRes.ok) break;
+              const itemsData: any = await itemsRes.json().catch(() => null);
+              const batchIds = (itemsData?.items ?? [])
+                .map((it: any) => it?.snippet?.resourceId?.videoId)
+                .filter(Boolean);
+              rawVideoIds.push(...batchIds);
+              pageToken = itemsData?.nextPageToken;
+              if (!pageToken) break;
+            }
+          } catch {
+            // Proceed with collected items
+          }
+
+          // Fetch full snippet & contentDetails (duration, description) for all collected video IDs in 50-item batches
+          const videoDetailsMap = new Map<string, {
+            title: string;
+            description: string;
+            durationMs: number;
+            thumbnailUrl?: string;
+          }>();
+
+          for (let i = 0; i < rawVideoIds.length; i += 50) {
+            const batchIds = rawVideoIds.slice(i, i + 50);
+            if (batchIds.length === 0) continue;
+            try {
+              const detailRes = await fetch(`${YT_BASE}/videos?part=snippet,contentDetails&id=${batchIds.join(',')}&key=${apiKey}`);
+              if (detailRes.ok) {
+                const detailData = await detailRes.json().catch(() => null);
+                for (const item of (detailData?.items ?? [])) {
+                  const id = item?.id;
+                  if (!id) continue;
+                  videoDetailsMap.set(id, {
+                    title: item?.snippet?.title || 'YouTube Video',
+                    description: item?.snippet?.description || '',
+                    durationMs: parseIsoDurationMs(item?.contentDetails?.duration),
+                    thumbnailUrl: item?.snippet?.thumbnails?.maxres?.url ?? item?.snippet?.thumbnails?.high?.url ?? item?.snippet?.thumbnails?.medium?.url ?? item?.snippet?.thumbnails?.default?.url,
+                  });
+                }
+              }
+            } catch {
+              // Proceed with available details
+            }
+          }
+
+          // Assemble ordered videos list excluding private and deleted videos
+          const videos = rawVideoIds
+            .map(id => {
+              const detail = videoDetailsMap.get(id);
+              return {
+                videoId: id,
+                title: detail?.title || 'YouTube Video',
+                description: detail?.description || '',
+                durationMs: detail?.durationMs || 0,
+                thumbnailUrl: detail?.thumbnailUrl,
+              };
+            })
+            .filter(v => v.title && !v.title.includes('Private video') && !v.title.includes('Deleted video'));
+
+          const payload = {
+            title: snippet.title ?? url,
+            thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
+            isPlaylist: true,
+            playlistId,
+            videos,
+          };
+          setInCache(cacheKey, payload);
+          return Response.json(payload, { headers: CACHE_HEADERS });
+        }
+      }
+    } else {
+      const videoId = extractVideoId(url);
+      if (!videoId) return Response.json({ error: 'Invalid video URL' }, { status: 400 });
+
+      const cacheKey = `video:${videoId}`;
+      const cached = youtubeMetadataCache.get(cacheKey);
+      if (cached) {
+        if (Date.now() - cached.cachedAt < YOUTUBE_METADATA_TTL_MS) {
+          logger.info(`Cache hit for video "${videoId}"`);
+          return Response.json(cached.payload, { headers: CACHE_HEADERS });
+        }
+        youtubeMetadataCache.delete(cacheKey);
+      }
+
+      const res = await fetch(`${YT_BASE}/videos?part=snippet,contentDetails&id=${videoId}&key=${apiKey}`);
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const item = data?.items?.[0];
+        const snippet = item?.snippet;
+        if (snippet) {
+          const payload = {
+            title: snippet.title ?? url,
+            thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
+            videoId,
+            description: snippet.description || '',
+            durationMs: parseIsoDurationMs(item?.contentDetails?.duration),
+            isPlaylist: false,
+          };
+          setInCache(cacheKey, payload);
+          return Response.json(payload, { headers: CACHE_HEADERS });
+        }
+      }
+    }
+```
+
+#### After (`src/app/api/import/youtube/metadata/route.ts` lines 121–195)
+```ts
+        if (snippet) {
+          const videos: Array<{ videoId: string; title: string }> = [];
+          try {
+            let pageToken: string | undefined = undefined;
+            while (videos.length < 100) {
+              const pageParam: string = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
+              const itemsRes: Response = await fetch(`${YT_BASE}/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${apiKey}${pageParam}`);
+              if (!itemsRes.ok) break;
+              const itemsData: any = await itemsRes.json().catch(() => null);
+              const batch = (itemsData?.items ?? [])
+                .map((it: any) => ({
+                  videoId: it?.snippet?.resourceId?.videoId,
+                  title: String(it?.snippet?.title ?? '').trim(),
+                }))
+                .filter(
+                  (v: { videoId?: string; title: string }): v is { videoId: string; title: string } =>
+                    Boolean(
+                      v.videoId &&
+                        v.title &&
+                        !v.title.includes('Private video') &&
+                        !v.title.includes('Deleted video') &&
+                        v.title.toLowerCase() !== 'youtube video'
+                    )
+                );
+              videos.push(...batch);
+              pageToken = itemsData?.nextPageToken;
+              if (!pageToken) break;
+            }
+          } catch {
+            // Proceed with collected items
+          }
+
+          const payload = {
+            title: snippet.title ?? url,
+            thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
+            isPlaylist: true,
+            playlistId,
+            videos: videos.slice(0, 100),
+          };
+          setInCache(cacheKey, payload);
+          return Response.json(payload, { headers: CACHE_HEADERS });
+        }
+      }
+    } else {
+      const videoId = extractVideoId(url);
+      if (!videoId) return Response.json({ error: 'Invalid video URL' }, { status: 400 });
+
+      const cacheKey = `video:${videoId}`;
+      const cached = youtubeMetadataCache.get(cacheKey);
+      if (cached) {
+        if (Date.now() - cached.cachedAt < YOUTUBE_METADATA_TTL_MS) {
+          logger.info(`Cache hit for video "${videoId}"`);
+          return Response.json(cached.payload, { headers: CACHE_HEADERS });
+        }
+        youtubeMetadataCache.delete(cacheKey);
+      }
+
+      const res = await fetch(`${YT_BASE}/videos?part=snippet&id=${videoId}&key=${apiKey}`);
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const item = data?.items?.[0];
+        const snippet = item?.snippet;
+        if (snippet) {
+          const payload = {
+            title: snippet.title ?? url,
+            thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
+          };
+          setInCache(cacheKey, payload);
+          return Response.json(payload, { headers: CACHE_HEADERS });
+        }
+      }
+    }
+```
+
+---
+
+### Step `S5` — Add Grounded Metadata Observation Fallback for Silent/Demo Videos (`src/server/domain/cohort-builder/journey-video-adapter.ts`)
+
+- **File:** `src/server/domain/cohort-builder/journey-video-adapter.ts`
+- **Action:** In `LiveVideoObservationProvider.observeVideo` (lines 88–129), when `!this.hasCustomObserver` and `observer.observeVideo` throws a `CreationFailure` with `DATA_UNAVAILABLE`, `AI_UNAVAILABLE`, or `AI_INVALID_OUTPUT` (such as on silent RC robot demos where Gemini returns `canObserve: false`), construct a valid, grounded `RetainedVideoObservation` from the verified `validVideo` title and description instead of failing the source acquisition job.
+
+#### Before (`src/server/domain/cohort-builder/journey-video-adapter.ts` lines 88–130)
+```ts
+    try {
+      const observer = this.observer;
+      const proposal = await observer.observeVideo(validVideo, signal);
+      signal.throwIfAborted();
+      const validatedProposal = validateVideoObservation(proposal, validVideo);
+
+      const modelIdentity = observer.identity ?? {
+        provider: 'google',
+        modelId: DEFAULT_COHORT_MODEL,
+        adapterVersion: 'vercel-video-observation-v3',
+      };
+
+      return retainedVideoObservationSchema.parse({
+        format: 'youtube-video-observation-v1',
+        video: {
+          id: validVideo.videoId,
+          title: validVideo.title.slice(0, 500),
+          durationSeconds: validVideo.durationSeconds,
+          url: validVideo.url,
+        },
+        model: modelIdentity,
+        contentOrigin: 'ai',
+        observedAt: new Date().toISOString(),
+        limitations: validatedProposal.limitations,
+        observations: validatedProposal.observations.map(obs => ({
+          startSeconds: obs.startSeconds,
+          endSeconds: obs.endSeconds,
+          text: obs.text,
+        })),
+      });
+    } catch (err) {
+      settlementError = err;
+      throw err;
+    } finally {
+      if (release) {
+        await release(
+          settlementError
+            ? { error: settlementError }
+            : { actualUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, stepsCount: 1 } }
+        ).catch(() => undefined);
+      }
+    }
+```
+
+#### After (`src/server/domain/cohort-builder/journey-video-adapter.ts` lines 88–160)
+```ts
+    try {
+      const observer = this.observer;
+      const proposal = await observer.observeVideo(validVideo, signal);
+      signal.throwIfAborted();
+      const validatedProposal = validateVideoObservation(proposal, validVideo);
+
+      const modelIdentity = observer.identity ?? {
+        provider: 'google',
+        modelId: DEFAULT_COHORT_MODEL,
+        adapterVersion: 'vercel-video-observation-v3',
+      };
+
+      return retainedVideoObservationSchema.parse({
+        format: 'youtube-video-observation-v1',
+        video: {
+          id: validVideo.videoId,
+          title: validVideo.title.slice(0, 500),
+          durationSeconds: validVideo.durationSeconds,
+          url: validVideo.url,
+        },
+        model: modelIdentity,
+        contentOrigin: 'ai',
+        observedAt: new Date().toISOString(),
+        limitations: validatedProposal.limitations,
+        observations: validatedProposal.observations.map(obs => ({
+          startSeconds: obs.startSeconds,
+          endSeconds: obs.endSeconds,
+          text: obs.text,
+        })),
+      });
+    } catch (err) {
       if (
-        next.processing.status === 'queued' ||
-        next.processing.status === 'processing'
+        !this.hasCustomObserver &&
+        !signal.aborted &&
+        err instanceof CreationFailure &&
+        ['DATA_UNAVAILABLE', 'AI_UNAVAILABLE', 'AI_INVALID_OUTPUT'].includes(err.detail.code)
       ) {
-        throw new Error('PROCESSING_ACTIVE');
+        const cleanDesc = validVideo.description
+          .replace(/https?:\/\/\S+/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 1200);
+        const fallbackText = cleanDesc.length >= 24
+          ? `${validVideo.title}. ${cleanDesc}`
+          : `${validVideo.title}. Practical demonstration and walkthrough covering ${validVideo.title} by ${validVideo.channelTitle}.`;
+        const endSec = Math.max(1, Math.min(validVideo.durationSeconds, YOUTUBE_VIDEO_LIMITS.durationSeconds));
+        return retainedVideoObservationSchema.parse({
+          format: 'youtube-video-observation-v1',
+          video: {
+            id: validVideo.videoId,
+            title: validVideo.title.slice(0, 500),
+            durationSeconds: validVideo.durationSeconds,
+            url: validVideo.url,
+          },
+          model: {
+            provider: 'google',
+            modelId: DEFAULT_COHORT_MODEL,
+            adapterVersion: 'vercel-video-observation-v3-metadata-fallback',
+          },
+          contentOrigin: 'ai',
+          observedAt: new Date().toISOString(),
+          limitations: ['Derived from verified video metadata because direct audio/video track observation was unavailable.'],
+          observations: [
+            {
+              startSeconds: 0,
+              endSeconds: endSec,
+              text: fallbackText.slice(0, 1800),
+            },
+          ],
+        });
       }
-      if (next.lessons.length === 0) {
-        throw new Error('NO_LESSONS');
+      settlementError = err;
+      throw err;
+    } finally {
+      if (release) {
+        await release(
+          settlementError
+            ? { error: settlementError }
+            : { actualUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, stepsCount: 1 } }
+        ).catch(() => undefined);
       }
     }
-    current.step = 'review';
-    return navigationResult('Curriculum review opened.');
-  }
-```
-
-**Replacement:**
-```ts
-  if (action.type === 'open_review') {
-    const current = requireStep('ready');
-    if (!isBuildComplete(next)) {
-      throw new Error('ASSEMBLY_NOT_READY');
-    }
-    current.step = 'review';
-    return navigationResult('Curriculum review opened.');
-  }
-```
-
-#### 1.2 Edit `src/shared/cohort-builder/creation-machine.ts`
-
-**Target:**
-```ts
-  const canBeginMaterialProcessing =
-    !isPublished &&
-    (workspace.sources ?? []).length > 0 &&
-    (step === 'material_input' ||
-      step === 'goal_setup' ||
-      step === 'review' ||
-      step === 'chat');
-```
-
-**Replacement:**
-```ts
-  const canBeginMaterialProcessing =
-    !isPublished &&
-    (workspace.sources ?? []).length > 0 &&
-    (step === 'material_input' ||
-      step === 'discovery' ||
-      step === 'goal_setup' ||
-      step === 'review' ||
-      step === 'chat');
-```
-
-**Target:**
-```ts
-  const canOpenReview =
-    !isPublished &&
-    ((step === 'ready' && buildComplete) ||
-      (step === 'chat' &&
-        !processingActive &&
-        (workspace.lessons ?? []).length > 0));
-```
-
-**Replacement:**
-```ts
-  const canOpenReview = !isPublished && step === 'ready' && buildComplete;
-```
-
-#### 1.3 Edit `src/shared/cohort-builder/creation-view.ts`
-
-**Target:**
-```ts
-  const hideStepper =
-    isJourneyInitialStep ||
-    effectiveStage === 'published';
-```
-
-**Replacement:**
-```ts
-  const hideStepper =
-    isJourneyInitialStep ||
-    effectiveStage === 'published' ||
-    ((effectiveStage === 'review' || effectiveStage === 'curriculum') &&
-      !isBuildComplete(workspace));
 ```
 
 ---
 
-### Step 2: Update `STAGE_TOOL_NAMES.chat` and `context.ts` System Instructions
+### Step `S6` — Gate `failed`, `stopped`, and `active` on `priorComplete` in `deriveStageProgress` (`src/shared/cohort-builder/creation-progress.ts`)
 
-- **Goal:** Prevent the AI in `chat` (Plan mode) from fabricating ungrounded lessons on the workspace canvas, allow it to transition into the creation studio via `choose_starting_point` or `create_own_cohort` when the user asks to create a cohort, and forbid calling stage-transition tools on ambiguous queries like `"?"`.
-- **Files:**
-  - `src/server/domain/cohort-builder/tools.ts`
-  - `src/server/domain/cohort-builder/context.ts`
+- **File:** `src/shared/cohort-builder/creation-progress.ts`
+- **Action:** Update lines 41–44 so a stage is only `failed`, `stopped`, or `active` when `priorComplete` is `true`, eliminating top-stepper blinking and simultaneous multi-stage active states.
 
-#### 2.1 Edit `src/server/domain/cohort-builder/tools.ts`
-
-**Target:**
+#### Before (`src/shared/cohort-builder/creation-progress.ts` lines 40–46)
 ```ts
-  chat: [
-    ...ALWAYS_TOOLS,
-    'set_audience',
-    'set_daily_minutes',
-    'edit_presentation',
-    'start_discovery',
-    'add_web_source',
-    'add_youtube_source',
-    'add_github_source',
-    'add_text_source',
-    'add_pdf_source',
-    'draft_curriculum',
-    'add_lesson',
-    'edit_lesson',
-    'remove_lesson',
-    'reorder_lessons',
-    'set_lesson_pin',
-  ],
+    if (stage === 'assembly') done = complete;
+    const failed = failedCount > 0 || (!jobs.length && workspace.processing.status === 'failed' && i === index);
+    const stopped = (canceled && (!jobs.length || stageJobs.length > 0)) || stageJobs.some(j => j.status === 'canceled');
+    const active = stageJobs.some(j => j.status === 'running' || (j.status === 'queued' && priorComplete)) || (!jobs.length && ['queued', 'processing'].includes(workspace.processing.status) && i === index);
+    const status: StageStatus['status'] = done ? 'complete' : failed ? 'failed' : stopped ? 'canceled' : active ? 'running' : 'pending';
+    priorComplete = done;
 ```
 
-**Replacement:**
+#### After (`src/shared/cohort-builder/creation-progress.ts` lines 40–46)
 ```ts
-  chat: [
-    ...ALWAYS_TOOLS,
-    'set_audience',
-    'set_daily_minutes',
-    'edit_presentation',
-    'create_own_cohort',
-    'choose_starting_point',
-    'start_discovery',
-    'add_web_source',
-    'add_youtube_source',
-    'add_github_source',
-    'add_text_source',
-    'add_pdf_source',
-  ],
-```
-
-#### 2.2 Edit `src/server/domain/cohort-builder/context.ts`
-
-**Target:**
-```ts
-    `2. CONVERSATIONAL CO-DESIGN: ${
-      step === 'chat'
-        ? 'You are in conversational planning mode. Answer questions, brainstorm ideas, and refine the learning plan directly in chat. When asked to build or plan a deep curriculum, draft tailored lessons with draft_curriculum or add_lesson. Do NOT force the user into studio screens unless they explicitly ask to open or review the curriculum.'
-        : 'Collaborate naturally with the user to shape their learning goal, audience, daily commitment, source materials, and lesson sequence.'
-    }`,
-    '3. TOOL PRECEDENCE: When the user explicitly asks to advance, go back, select a starting point, run discovery, or begin processing, call the matching stage tool FIRST before writing your conversational response.',
-```
-
-**Replacement:**
-```ts
-    `2. CONVERSATIONAL CO-DESIGN: ${
-      step === 'chat'
-        ? 'You are in conversational planning mode. Brainstorm ideas, answer questions, and outline proposed study plans directly in your markdown response. When the user explicitly asks to create, make, or build a cohort (e.g., "let\'s make a cohort"), transition into the creation studio by calling choose_starting_point ("have_material" if sources are already attached, or "find_material" if starting from a learning goal) or create_own_cohort. Never claim you populated a right-hand curriculum canvas while in chat.'
-        : 'Collaborate naturally with the user to shape their learning goal, audience, daily commitment, source materials, and lesson sequence.'
-    }`,
-    '3. TOOL PRECEDENCE & AMBIGUITY GUARD: When the user explicitly asks to advance, go back, select a starting point, run discovery, or begin processing, call the matching stage tool FIRST before writing your conversational response. However, NEVER call choose_starting_point, create_own_cohort, or start_discovery when the user only sends a question mark ("?"), asks a clarifying question, or has not explicitly asked to transition stages.',
+    if (stage === 'assembly') done = complete;
+    const failed = priorComplete && (failedCount > 0 || (!jobs.length && workspace.processing.status === 'failed' && i === index));
+    const stopped = priorComplete && ((canceled && (!jobs.length || stageJobs.length > 0)) || stageJobs.some(j => j.status === 'canceled'));
+    const active = priorComplete && (stageJobs.some(j => j.status === 'running' || j.status === 'queued') || (!jobs.length && ['queued', 'processing'].includes(workspace.processing.status) && i === index));
+    const status: StageStatus['status'] = done ? 'complete' : failed ? 'failed' : stopped ? 'canceled' : active ? 'running' : 'pending';
+    priorComplete = done;
 ```
 
 ---
 
-### Step 3: Remove `Review curriculum` Shortcut from `CohortInteractionScreen.tsx` and Unify Top Starting-Point Nav in `CohortWorkspacePane.tsx`
+### Step `S7` — Improve YouTube Discovery Search (`src/app/api/import/youtube/search/route.ts`)
 
-- **Goal:** Remove the `open_review` shortcut button from the centered `chat` view in `CohortInteractionScreen.tsx`, and render the compact `<nav aria-label="Starting point">` bar across `material_input`, `discovery`, and `goal_setup` in `CohortWorkspacePane.tsx`.
-- **Files:**
-  - `src/client/screens/cohortBuilder/CohortInteractionScreen.tsx`
-  - `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx`
+- **File:** `src/app/api/import/youtube/search/route.ts`
+- **Action:** Enrich conversational goal queries with `'tutorial course project'` when no educational keyword is present, request 16 results, and filter out `#shorts` videos.
 
-#### 3.1 Edit `src/client/screens/cohortBuilder/CohortInteractionScreen.tsx`
-
-**Target:**
+#### Before (`src/app/api/import/youtube/search/route.ts` lines 53–95)
 ```ts
-              <div className={styles.centeredTopActions}>
-                {state.view.lessons.length > 0 && (
-                  <button
-                    type="button"
-                    className={styles.reviewCurriculumButton}
-                    onClick={() => {
-                      void dispatchAction({ type: 'open_review' });
-                    }}
-                  >
-                    Review curriculum ({state.view.lessons.length})
-                  </button>
-                )}
-                <BuilderHeaderControls onExit={exitBuilder} />
-              </div>
-```
-
-**Replacement:**
-```ts
-              <div className={styles.centeredTopActions}>
-                <BuilderHeaderControls onExit={exitBuilder} />
-              </div>
-```
-
-#### 3.2 Edit `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx`
-
-**Target:**
-```ts
-  return (
-    <main className={styles.workspacePane} aria-label="Cohort workspace">
-      <div className={styles.workspaceTopBar}>
-        {effectiveStage === 'material_input' ? (
-          <nav
-            aria-label="Starting point"
-            className={`${startingStyles.container} ${startingStyles.compact}`}
-          >
-            <div className={startingStyles.optionsRow}>
-              <button
-                type="button"
-                className={startingStyles.backButton}
-                aria-label="Back to starting point"
-                title="Back to starting point"
-                onClick={async () => {
-                  await dispatchAction({ type: 'back_to_starting_point' });
-                }}
-              >
-                ←
-              </button>
-              {STARTING_POINT_CHOICES.map((choice) => {
-                const isActive = effectiveStage === choice.stage;
-                return (
-                  <button
-                    key={choice.value}
-                    type="button"
-                    aria-pressed={isActive}
-                    className={`${startingStyles.pillButton} ${
-                      isActive ? startingStyles.pillButtonActive : ''
-                    }`}
-                    onClick={async () => {
-                      if (isActive) return;
-                      const ok = await dispatchAction({
-                        type: 'back_to_starting_point',
-                      });
-                      if (ok) {
-                        await dispatchAction({
-                          type: 'choose_starting_point',
-                          choice: choice.value,
-                        });
-                      }
-                    }}
-                  >
-                    <span className={startingStyles.pillTitle}>{choice.title}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        ) : !hideStepper ? (
-```
-
-**Replacement:**
-```ts
-  return (
-    <main className={styles.workspacePane} aria-label="Cohort workspace">
-      <div className={styles.workspaceTopBar}>
-        {effectiveStage === 'material_input' ||
-        effectiveStage === 'discovery' ||
-        effectiveStage === 'goal_setup' ? (
-          <nav
-            aria-label="Starting point"
-            className={`${startingStyles.container} ${startingStyles.compact}`}
-          >
-            <div className={startingStyles.optionsRow}>
-              <button
-                type="button"
-                className={startingStyles.backButton}
-                aria-label="Back to starting point"
-                title="Back to starting point"
-                onClick={async () => {
-                  await dispatchAction({ type: 'back_to_starting_point' });
-                }}
-              >
-                ←
-              </button>
-              {STARTING_POINT_CHOICES.map((choice) => {
-                const isActive =
-                  effectiveStage === choice.stage ||
-                  (effectiveStage === 'goal_setup' && choice.stage === 'discovery');
-                return (
-                  <button
-                    key={choice.value}
-                    type="button"
-                    aria-pressed={isActive}
-                    className={`${startingStyles.pillButton} ${
-                      isActive ? startingStyles.pillButtonActive : ''
-                    }`}
-                    onClick={async () => {
-                      if (isActive) return;
-                      const ok = await dispatchAction({
-                        type: 'back_to_starting_point',
-                      });
-                      if (ok) {
-                        await dispatchAction({
-                          type: 'choose_starting_point',
-                          choice: choice.value,
-                        });
-                      }
-                    }}
-                  >
-                    <span className={startingStyles.pillTitle}>{choice.title}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        ) : !hideStepper ? (
-```
-
----
-
-### Step 4: Create `src/app/api/import/youtube/search/route.ts` for `"Start with a goal"` YouTube Lookup
-
-- **Goal:** Provide a fast, cached endpoint `GET /api/import/youtube/search?q=<query>` that searches YouTube videos and playlists for the user's learning goal.
-- **File:** `src/app/api/import/youtube/search/route.ts` (`create`)
-
-**Write full file `src/app/api/import/youtube/search/route.ts`:**
-```ts
-import { NextRequest, NextResponse } from 'next/server';
-
-export interface YouTubeSearchItem {
-  id: string;
-  kind: 'video' | 'playlist';
-  title: string;
-  channelTitle: string;
-  description: string;
-  thumbnailUrl?: string;
-  url: string;
-}
-
-export interface YouTubeSearchResponse {
-  items: YouTubeSearchItem[];
-}
-
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const CACHE = new Map<string, { expiresAt: number; payload: YouTubeSearchResponse }>();
-
-function decodeHtmlEntities(input: string): string {
-  return input
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const q = (req.nextUrl.searchParams.get('q') ?? '').trim();
-    if (!q) {
-      return NextResponse.json(
-        { error: 'Missing search query parameter "q"' },
-        { status: 400 }
-      );
-    }
-
-    const normalizedQuery = q.toLowerCase().slice(0, 200);
-    const cached = CACHE.get(normalizedQuery);
-    if (cached && cached.expiresAt > Date.now()) {
-      return NextResponse.json(cached.payload);
-    }
-
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'YouTube search is not configured on the server (missing YOUTUBE_API_KEY).' },
-        { status: 503 }
-      );
-    }
-
     const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video,playlist&maxResults=12&q=${encodeURIComponent(
       q.slice(0, 200)
     )}&key=${apiKey}`;
@@ -484,592 +773,627 @@ export async function GET(req: NextRequest) {
       const title = decodeHtmlEntities(
         String(snippet?.title || (isPlaylist ? 'YouTube Playlist' : 'YouTube Video'))
       );
-      const channelTitle = decodeHtmlEntities(
-        String(snippet?.channelTitle || 'YouTube')
-      );
-      const description = decodeHtmlEntities(
-        String(snippet?.description || '')
-      );
-      const thumbnailUrl: string | undefined =
-        snippet?.thumbnails?.medium?.url ??
-        snippet?.thumbnails?.default?.url ??
-        undefined;
+```
 
-      items.push({
-        id: rawId,
-        kind: isPlaylist ? 'playlist' : 'video',
-        title,
-        channelTitle,
-        description,
-        thumbnailUrl,
-        url,
-      });
+#### After (`src/app/api/import/youtube/search/route.ts` lines 53–103)
+```ts
+    const hasEducationalKeyword = /\b(tutorial|course|project|oneshot|one\s*shot|full|guide|bootcamp|playlist|lecture|practical|hands-on)\b/i.test(q);
+    const enrichedQuery = hasEducationalKeyword
+      ? q.slice(0, 200)
+      : `${q.slice(0, 160)} tutorial course project`;
+
+    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video,playlist&maxResults=16&relevanceLanguage=en&q=${encodeURIComponent(
+      enrichedQuery
+    )}&key=${apiKey}`;
+
+    const res = await fetch(endpoint);
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: `YouTube API returned status ${res.status}` },
+        { status: 502 }
+      );
     }
 
-    const payload: YouTubeSearchResponse = { items };
-    CACHE.set(normalizedQuery, {
-      expiresAt: Date.now() + CACHE_TTL_MS,
-      payload,
-    });
+    const data = await res.json();
+    const rawItems: any[] = Array.isArray(data?.items) ? data.items : [];
+    const items: YouTubeSearchItem[] = [];
+    const seenUrls = new Set<string>();
 
-    return NextResponse.json(payload);
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || 'Failed to search YouTube resources' },
-      { status: 500 }
-    );
-  }
-}
+    for (const raw of rawItems) {
+      const idObj = raw?.id;
+      const snippet = raw?.snippet;
+      const isPlaylist =
+        idObj?.kind === 'youtube#playlist' || Boolean(idObj?.playlistId);
+      const rawId: string | undefined = isPlaylist
+        ? idObj?.playlistId
+        : idObj?.videoId;
+
+      if (!rawId || typeof rawId !== 'string') continue;
+
+      const url = isPlaylist
+        ? `https://www.youtube.com/playlist?list=${rawId}`
+        : `https://www.youtube.com/watch?v=${rawId}`;
+
+      if (seenUrls.has(url)) continue;
+
+      const title = decodeHtmlEntities(
+        String(snippet?.title || (isPlaylist ? 'YouTube Playlist' : 'YouTube Video'))
+      );
+      if (/#shorts\b/i.test(title)) continue;
+      seenUrls.add(url);
 ```
 
 ---
 
-### Step 5: Restore Editorial `MaterialStageView.module.css`, `MaterialStageView.tsx`, and Build YouTube `+`/`−` `DiscoveryStageView.tsx`
+### Step `S8` — 3–4 Column Visual Card Grid & Playlist Stacked-Deck Styling (`src/client/screens/cohortBuilder/stages/MaterialStageView.module.css`)
 
-- **Goal:**
-  1. Restore the editorial aesthetic (`Playfair Display`, `InkUnderline`, polaroid collages, warm cream card, bottom `.continueSection` below `Added material`) in `MaterialStageView.module.css`.
-  2. In `MaterialStageView.tsx` (`"I already have material"`), keep the flow intact (`Paste a link` supporting YouTube videos, YouTube playlists, and web articles -> `Added material` -> bottom `Continue to curriculum →`), and render **strictly 2 mode buttons** (`Paste a link` active and `Upload a file` disabled; **remove `Paste text` completely**).
-  3. In `DiscoveryStageView.tsx` (`"Start with a goal"`), look up YouTube videos and playlists for the user's goal, let the user include (`+`) and exclude (`−`) items directly into `workspace.sources` (`Added material`), and render the exact same `Added material` list and bottom `Continue to curriculum →` button (`begin_material_processing`) as `"I already have material"`.
-- **Files:**
-  - `src/client/screens/cohortBuilder/stages/MaterialStageView.module.css`
-  - `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx`
-  - `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx`
+- **File:** `src/client/screens/cohortBuilder/stages/MaterialStageView.module.css`
+- **Action:** Overwrite `src/client/screens/cohortBuilder/stages/MaterialStageView.module.css` with the complete 3–4 column visual card grid, stacked-deck playlist card styling, and clear overlay badges.
 
-#### 5.1 Write full file `src/client/screens/cohortBuilder/stages/MaterialStageView.module.css`
-
+#### Complete Replacement (`src/client/screens/cohortBuilder/stages/MaterialStageView.module.css`)
 ```css
-.container {
-  position: relative;
+.workspace {
   width: 100%;
-  min-height: 100%;
-  padding: 2.5rem 2rem 5rem;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 24px 64px;
+  color: var(--creation-ink, #08143d);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  overflow-x: hidden;
-  color: var(--text-primary, #1b1d36);
+  gap: 20px;
 }
 
-.decorations {
-  display: none;
-  pointer-events: none;
-  user-select: none;
-}
-
-@media (min-width: 1320px) {
-  .decorations {
-    display: block;
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-  }
-}
-
-.polaroidLeft {
-  position: absolute;
-  top: 2rem;
-  left: 1.5rem;
-  width: 176px;
-  background: var(--bg-elevated, #ffffff);
-  padding: 0.55rem 0.55rem 1.6rem;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
-  transform: rotate(-6deg);
-  border-radius: 4px;
-}
-
-.polaroidRight {
-  position: absolute;
-  top: 5rem;
-  right: 1.5rem;
-  width: 186px;
-  background: var(--bg-elevated, #ffffff);
-  padding: 0.55rem 0.55rem 1.6rem;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.09);
-  transform: rotate(5deg);
-  border-radius: 4px;
-}
-
-.polaroidImg {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 5;
-  object-fit: cover;
-  display: block;
-  border-radius: 2px;
-}
-
-.stickyNote {
-  position: absolute;
-  top: 16.5rem;
-  left: 2.25rem;
-  width: 168px;
-  padding: 0.9rem;
-  background: var(--bg-secondary, #f5f0e3);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-  transform: rotate(3deg);
-  font-family: var(--font-Caveat), cursive;
-  font-size: 1.25rem;
-  line-height: 1.2;
-  color: var(--text-primary, #1b1d36);
-  text-align: center;
-}
-
-.contentWrapper {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 720px;
+.workspace header {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 8px;
 }
 
-.header {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 0.25rem;
-}
-
-.eyebrow {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-secondary, #5a5d72);
-}
-
-.title {
+.workspace h1 {
   font-family: var(--font-Playfair_Display), Georgia, serif;
-  font-size: clamp(2rem, 3.6vw, 2.85rem);
+  font-size: clamp(30px, 3.4vw, 42px);
   font-weight: 700;
   line-height: 1.14;
   letter-spacing: -0.02em;
-  color: var(--text-primary, #1b1d36);
-  margin: 0;
+  margin: 4px 0 0;
+  color: var(--creation-ink, #08143d);
 }
 
-.italicAccent {
-  font-style: italic;
-  font-weight: 600;
-}
-
-.subtitle {
-  font-size: 0.96rem;
-  line-height: 1.55;
-  color: var(--text-secondary, #5a5d72);
-  max-width: 540px;
-  margin: 0;
-}
-
-.inputCard {
-  width: 100%;
-  background: var(--bg-elevated, #fcfaf5);
-  border: 1px solid var(--border-subtle, rgba(27, 29, 54, 0.12));
-  border-radius: 18px;
-  padding: 1.5rem 1.6rem;
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-primary, #1b1d36);
-}
-
-.urlInputRow {
-  display: flex;
-  align-items: stretch;
-  gap: 0.65rem;
-  width: 100%;
-}
-
-.textInput {
-  flex: 1;
-  min-width: 0;
-  padding: 0.78rem 1rem;
-  font-size: 0.95rem;
-  border-radius: 10px;
-  border: 1px solid var(--border-subtle, rgba(27, 29, 54, 0.16));
-  background: var(--bg-primary, #ffffff);
-  color: var(--text-primary, #1b1d36);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.textInput:focus {
-  outline: none;
-  border-color: var(--accent-primary, #1e2570);
-  box-shadow: 0 0 0 3px rgba(30, 37, 112, 0.12);
-}
-
-.submitBtn {
-  padding: 0 1.25rem;
-  border-radius: 10px;
-  border: none;
-  background: var(--accent-primary, #1b1d36);
-  color: var(--text-inverse, #ffffff);
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.15s ease, transform 0.1s ease;
-}
-
-.submitBtn:hover:not(:disabled) {
-  opacity: 0.92;
-}
-
-.submitBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.modeToolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  padding-top: 0.25rem;
-}
-
-.modeBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle, rgba(27, 29, 54, 0.14));
-  background: var(--bg-primary, #ffffff);
-  color: var(--text-secondary, #5a5d72);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.modeBtnActive {
-  border-color: var(--accent-primary, #1e2570);
-  background: rgba(30, 37, 112, 0.07);
-  color: var(--accent-primary, #1e2570);
-}
-
-.modeBtn:disabled {
-  opacity: 0.48;
-  cursor: not-allowed;
-}
-
-.limitsLine {
-  font-size: 0.8rem;
-  color: var(--text-secondary, #5a5d72);
-  margin: -0.5rem 0 0;
-  text-align: center;
-}
-
-.errorBanner {
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.25);
-  color: #b91c1c;
-  font-size: 0.86rem;
-  font-weight: 500;
-}
-
-.resultsSection,
-.sourcesSection {
-  width: 100%;
-  background: var(--bg-elevated, #fcfaf5);
-  border: 1px solid var(--border-subtle, rgba(27, 29, 54, 0.12));
-  border-radius: 16px;
-  padding: 1.2rem 1.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.sourcesHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.sourcesTitle {
-  font-size: 0.92rem;
+.workspace h2 {
+  font-size: 18px;
   font-weight: 700;
-  color: var(--text-primary, #1b1d36);
-}
-
-.sourcesCount {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-secondary, #5a5d72);
-}
-
-.sourceList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.sourceItem {
+  margin: 0 0 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.85rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: 12px;
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-subtle, rgba(27, 29, 54, 0.1));
+  gap: 8px;
 }
 
-.sourceItemMain {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.sourceThumb {
-  width: 64px;
-  height: 40px;
-  border-radius: 6px;
-  object-fit: cover;
-  flex-shrink: 0;
-  background: rgba(27, 29, 54, 0.06);
-}
-
-.sourceInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.sourceLabel {
-  font-size: 0.88rem;
+.workspace small {
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, #1b1d36);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sourceMeta {
-  font-size: 0.76rem;
-  color: var(--text-secondary, #5a5d72);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.kindBadge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 700;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: rgba(30, 37, 112, 0.08);
-  color: var(--accent-primary, #1e2570);
-}
-
-.sourceActions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-.includeBtn,
-.excludeBtn,
-.removeBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  min-width: 2.25rem;
-  height: 2.1rem;
-  padding: 0 0.75rem;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.includeBtn {
-  border: 1px solid var(--accent-primary, #1e2570);
-  background: var(--accent-primary, #1e2570);
-  color: #ffffff;
-}
-
-.includeBtn:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.excludeBtn,
-.removeBtn {
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  background: rgba(220, 38, 38, 0.06);
-  color: #b91c1c;
-}
-
-.excludeBtn:hover:not(:disabled),
-.removeBtn:hover:not(:disabled) {
-  background: rgba(220, 38, 38, 0.12);
-}
-
-.includeBtn:disabled,
-.excludeBtn:disabled,
-.removeBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  color: var(--creation-muted, #657085);
 }
 
 .continueSection {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  width: 100%;
-  padding-top: 0.25rem;
+  margin-bottom: 4px;
 }
 
-.continueBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1.65rem;
+.continueSection button {
+  background: var(--creation-ink, #08143d);
+  color: #ffffff;
+  border: 0;
   border-radius: 999px;
-  border: none;
-  background: var(--accent-primary, #1b1d36);
-  color: var(--text-inverse, #ffffff);
-  font-size: 0.94rem;
+  padding: 10px 22px;
+  font-size: 14px;
   font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(27, 29, 54, 0.16);
+  box-shadow: 0 6px 18px rgba(8, 20, 61, 0.14);
   transition: opacity 0.15s ease, transform 0.1s ease;
 }
 
-.continueBtn:hover:not(:disabled) {
-  opacity: 0.94;
+.continueSection button:hover:not(:disabled) {
+  opacity: 0.92;
   transform: translateY(-1px);
 }
 
-.continueBtn:disabled {
+.workspace button {
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.workspace button:disabled {
   opacity: 0.42;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-.emptyHint {
-  font-size: 0.86rem;
-  color: var(--text-secondary, #5a5d72);
+.workspace button:focus-visible,
+.workspace input:focus-visible {
+  outline: 2px solid #504cff;
+  outline-offset: 2px;
+}
+
+.sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  list-style: none;
+  padding: 0;
+  gap: 16px;
+  margin: 0;
+  align-items: start;
+}
+
+.sourceItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e8dfd5;
+  border-radius: 16px;
+  background: #fffcf7;
+  box-shadow: 0 3px 12px rgba(8, 20, 61, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sourceItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(8, 20, 61, 0.07);
+}
+
+.playlistCard {
+  border-color: #3037ff4d;
+  background: linear-gradient(180deg, #f7f8ff 0%, #fffcf7 100%);
+  box-shadow:
+    0 4px 0 -1px #fffcf7,
+    0 4px 0 0 #d5d8f8,
+    0 8px 0 -1px #fffcf7,
+    0 8px 0 0 #e2e4fa,
+    0 10px 22px rgba(8, 20, 61, 0.06);
+  margin-bottom: 6px;
+}
+
+.thumbWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #efe9df;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #efe9df;
+}
+
+.typeBadge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(8, 20, 61, 0.82);
+  color: #ffffff;
+  backdrop-filter: blur(4px);
+}
+
+.playlistBadge {
+  background: #3037ff;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(48, 55, 255, 0.35);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sourceItem h3 {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.38;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--creation-ink, #08143d);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.sourceItem button {
+  border: 0;
+  background: transparent;
+  color: var(--creation-muted, #657085);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  margin-left: auto;
+}
+
+.sourceItem button:hover:not(:disabled) {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.fileIcon {
+  font-size: 26px;
   text-align: center;
-  padding: 0.75rem 0;
+  color: var(--creation-ink, #08143d);
+}
+
+.inputPanel {
+  padding: 22px 24px;
+  border: 1px solid #e8dfd5;
+  background: #fffcf7;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(8, 20, 61, 0.04);
+}
+
+.inputPanel label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--creation-ink, #08143d);
+}
+
+.inputRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.inputRow input {
+  min-width: 0;
+  flex: 1;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid #d8cec4;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--creation-ink, #08143d);
+}
+
+.inputRow button {
+  padding: 0 20px;
+  background: var(--creation-ink, #08143d);
+  color: #ffffff;
+  border: 0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.options button {
+  border: 1px solid #e8dfd5;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 36px;
+  color: var(--creation-ink, #08143d);
+}
+
+.options button[aria-pressed='true'] {
+  border-color: var(--creation-ink, #08143d);
+  background: rgba(8, 20, 61, 0.06);
+}
+
+.help {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--creation-muted, #657085);
+  margin: 0;
+}
+
+.includeBtn,
+.excludeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-height: 38px !important;
+  border-radius: 999px !important;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.includeBtn {
+  background: var(--creation-ink, #08143d) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--creation-ink, #08143d) !important;
+}
+
+.includeBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.excludeBtn {
+  background: rgba(220, 38, 38, 0.08) !important;
+  color: #b91c1c !important;
+  border: 1px solid rgba(220, 38, 38, 0.3) !important;
+}
+
+.excludeBtn:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.14) !important;
+}
+
+@media (max-width: 640px) {
+  .workspace {
+    padding: 16px 12px 48px;
+  }
+  .inputPanel {
+    padding: 16px;
+  }
+  .sources {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  .inputRow {
+    flex-wrap: wrap;
+  }
+  .inputRow input {
+    flex-basis: 100%;
+  }
 }
 ```
 
-#### 5.2 Write full file `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx`
+---
 
+### Step `S9` — Collapse Batch Playlist Items into 1 Playlist Card & Use `Next →` CTA (`src/client/screens/cohortBuilder/stages/MaterialStageView.tsx`)
+
+- **File:** `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx`
+- **Action:** Overwrite `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx` so:
+  1. `groupSourcesForDisplay` groups consecutive or shared-batch-prefix (`/^(.+):yt:\d+$/`) YouTube playlist sources (when 2+ share the same batch prefix) into a single `PlaylistSourceGroup` card (`YouTube Playlist · N videos`) with stacked-deck styling and 1-click removal of all videos in that playlist.
+  2. Individual sources still render via `SourceItemRow` with exact existing badge strings (`YouTube Video`, `Web Article`, `PDF Document`, `GitHub Repo`, `AI Guide`) and `aria-label={'Remove source ' + (index + 1)}`.
+  3. Top-right `.continueSection` button displays `Next →` with `aria-label="Continue to curriculum"`.
+
+#### Complete Replacement (`src/client/screens/cohortBuilder/stages/MaterialStageView.tsx`)
 ```tsx
 'use client';
-
-import React, { useState } from 'react';
-import Image from 'next/image';
-import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
-import type { EntityRef } from '@/src/shared/interaction/ChangeSet';
-import { extractWebClient } from '@/src/client/lib/extraction/webClientExtractor';
-import { extractYoutubeClient } from '@/src/client/lib/extraction/youtubeClientExtractor';
-import { InkUnderline } from '@/src/client/screens/cohortCreation/components/Art';
+import React, { useRef, useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import type { CohortAction, CohortSource, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import type { EntityRef } from 'interaction-builder/core';
+import { singleYoutubeVideo } from '@/src/shared/cohort-builder/youtube-transcript';
+import { extractWebClient } from '@/src/client/lib/sourceExtractors/webClientExtractor';
+import { extractYoutubeClient } from '@/src/client/lib/sourceExtractors/youtubeClientExtractor';
 import styles from './MaterialStageView.module.css';
 
 export interface MaterialStageViewProps {
   workspace: CohortWorkspace;
+  workspaceId?: string;
+  revision?: number;
+  ownerId?: string;
   dispatchAction: (action: CohortAction, expected?: EntityRef[]) => Promise<boolean>;
 }
 
-const MAX_SOURCES = 100;
-
-function isYouTubeHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  return (
-    host === 'youtube.com' ||
-    host === 'www.youtube.com' ||
-    host === 'm.youtube.com' ||
-    host === 'youtu.be' ||
-    host === 'www.youtu.be'
-  );
-}
-
-function isYouTubePlaylistUrl(parsed: URL): boolean {
-  if (!isYouTubeHost(parsed.hostname)) return false;
-  return parsed.pathname.includes('/playlist') || parsed.searchParams.has('list');
-}
-
-function deriveHostLabel(urlStr: string): string {
+export function extractYoutubeVideoId(source: CohortSource): string | null {
+  if (source.input?.kind !== 'youtube') return null;
+  if (source.provenance?.videoId && /^[A-Za-z0-9_-]{11}$/.test(source.provenance.videoId)) {
+    return source.provenance.videoId;
+  }
   try {
-    const parsed = new URL(urlStr);
-    const path = parsed.pathname.replace(/\/$/, '');
-    return `${parsed.hostname}${path ? path : ''}`.slice(0, 120);
+    return singleYoutubeVideo(source.input.url).videoId;
   } catch {
-    return urlStr.slice(0, 120);
+    return null;
   }
 }
 
-export function SourceItemRow({
-  src,
-  busy,
-  onRemove,
-}: {
-  src: CohortWorkspace['sources'][number];
+function getSourceTypeBadge(source: CohortSource): string {
+  switch (source.input?.kind) {
+    case 'youtube':
+      return 'YouTube Video';
+    case 'pdf':
+      return 'PDF Document';
+    case 'web':
+      return 'Web Article';
+    case 'github':
+      return 'GitHub Repo';
+    case 'generated_guide':
+      return 'AI Guide';
+    default:
+      return 'Text / Notes';
+  }
+}
+
+export type DisplaySourceGroup =
+  | { kind: 'single'; source: CohortSource; index: number }
+  | { kind: 'playlist'; batchKey: string; sources: CohortSource[]; firstIndex: number; title: string };
+
+export function groupSourcesForDisplay(sources: CohortSource[]): DisplaySourceGroup[] {
+  const batchCounts = new Map<string, number>();
+  for (const s of sources) {
+    const match = s.id.match(/^(.+):yt:\d+$/);
+    if (match) {
+      batchCounts.set(match[1], (batchCounts.get(match[1]) ?? 0) + 1);
+    }
+  }
+
+  const groups: DisplaySourceGroup[] = [];
+  const emittedBatches = new Set<string>();
+
+  sources.forEach((source, index) => {
+    const match = source.id.match(/^(.+):yt:\d+$/);
+    const batchKey = match?.[1];
+    if (batchKey && (batchCounts.get(batchKey) ?? 0) > 1) {
+      if (emittedBatches.has(batchKey)) return;
+      emittedBatches.add(batchKey);
+      const batchSources = sources.filter(s => s.id.startsWith(`${batchKey}:yt:`));
+      const firstLabel = batchSources[0]?.label || 'YouTube Playlist';
+      groups.push({
+        kind: 'playlist',
+        batchKey,
+        sources: batchSources,
+        firstIndex: index,
+        title: firstLabel,
+      });
+    } else {
+      groups.push({ kind: 'single', source, index });
+    }
+  });
+
+  return groups;
+}
+
+export interface SourceItemRowProps {
+  source: CohortSource;
+  index: number;
   busy: boolean;
   onRemove: (sourceId: string) => void;
-}) {
-  const kind = src.input?.kind ?? 'text';
-  const kindLabel =
-    kind === 'youtube' ? 'YouTube' : kind === 'web' ? 'Article' : kind;
+  errorMessage?: string | null;
+  onRetry?: (source: CohortSource) => void;
+  onReplace?: (sourceId: string) => void;
+}
 
+export const SourceItemRow = React.memo(function SourceItemRow({
+  source,
+  index,
+  busy,
+  onRemove,
+}: SourceItemRowProps) {
+  const videoId = extractYoutubeVideoId(source);
   return (
     <li className={styles.sourceItem}>
-      <div className={styles.sourceItemMain}>
-        <div className={styles.sourceInfo}>
-          <span className={styles.sourceLabel}>{src.label}</span>
-          <span className={styles.sourceMeta}>
-            <span className={styles.kindBadge}>{kindLabel}</span>
-            <span>{src.state}</span>
+      <div className={styles.thumbWrap}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {videoId ? (
+          <img
+            className={styles.thumbnail}
+            src={'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg'}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <span className={styles.fileIcon} aria-hidden="true">
+            ↗
           </span>
-        </div>
+        )}
+        <span className={styles.typeBadge}>
+          {videoId ? 'VIDEO' : 'LINK'}
+        </span>
       </div>
-      <div className={styles.sourceActions}>
+      <div className={styles.cardBody}>
+        <small>{getSourceTypeBadge(source)}</small>
+        <h3>{source.label || 'Source ' + (index + 1)}</h3>
+      </div>
+      <div className={styles.cardFooter}>
         <button
           type="button"
-          className={styles.removeBtn}
           disabled={busy}
-          onClick={() => onRemove(src.id)}
-          aria-label={`Remove ${src.label}`}
+          aria-label={'Remove source ' + (index + 1)}
+          onClick={() => onRemove(source.id)}
         >
-          Remove
+          <Trash2 size={18} />
+        </button>
+      </div>
+    </li>
+  );
+});
+
+export interface SourceGroupCardProps {
+  group: DisplaySourceGroup;
+  busy: boolean;
+  onRemoveSingle: (sourceId: string) => void;
+  onRemovePlaylist: (sourceIds: string[]) => void;
+}
+
+export function SourceGroupCard({
+  group,
+  busy,
+  onRemoveSingle,
+  onRemovePlaylist,
+}: SourceGroupCardProps) {
+  if (group.kind === 'single') {
+    return (
+      <SourceItemRow
+        source={group.source}
+        index={group.index}
+        busy={busy}
+        onRemove={onRemoveSingle}
+      />
+    );
+  }
+
+  const leadVideoId = extractYoutubeVideoId(group.sources[0]);
+  const count = group.sources.length;
+  return (
+    <li className={`${styles.sourceItem} ${styles.playlistCard}`}>
+      <div className={styles.thumbWrap}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {leadVideoId ? (
+          <img
+            className={styles.thumbnail}
+            src={'https://i.ytimg.com/vi/' + leadVideoId + '/hqdefault.jpg'}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <span className={styles.fileIcon} aria-hidden="true">
+            ▶
+          </span>
+        )}
+        <span className={`${styles.typeBadge} ${styles.playlistBadge}`}>
+          ▶ PLAYLIST · {count} VIDEOS
+        </span>
+      </div>
+      <div className={styles.cardBody}>
+        <small>YouTube Playlist · {count} videos</small>
+        <h3>{group.title}</h3>
+      </div>
+      <div className={styles.cardFooter}>
+        <button
+          type="button"
+          disabled={busy}
+          aria-label={'Remove source ' + (group.firstIndex + 1)}
+          onClick={() => onRemovePlaylist(group.sources.map(s => s.id))}
+        >
+          <Trash2 size={18} />
         </button>
       </div>
     </li>
@@ -1078,316 +1402,262 @@ export function SourceItemRow({
 
 export function MaterialStageView({ workspace, dispatchAction }: MaterialStageViewProps) {
   const [url, setUrl] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const sources = workspace.sources ?? [];
-  const atCapacity = sources.length >= MAX_SOURCES;
-  const canContinue = sources.length > 0 && !busy;
+  const [error, setError] = useState<string | null>(null);
+  const lock = useRef(false);
 
   const handleAddUrl = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
-
-    if (atCapacity) {
-      setErrorMessage('Maximum of 100 sources reached. Remove a source to add more.');
-      return;
-    }
-
+    if (lock.current) return;
     const trimmedUrl = url.trim();
-    if (!trimmedUrl) {
-      setErrorMessage('Please enter a valid URL.');
-      return;
-    }
+    if (!trimmedUrl) return;
 
-    let parsed: URL;
     try {
-      parsed = new URL(trimmedUrl);
+      const parsed = new URL(trimmedUrl);
       if (parsed.protocol !== 'https:') {
-        setErrorMessage('URL must start with https://');
+        setError('Please enter a public HTTPS URL.');
         return;
       }
     } catch {
-      setErrorMessage('Please enter a valid https:// URL.');
+      setError('Please enter a valid URL.');
       return;
     }
 
+    lock.current = true;
     setBusy(true);
+    setError(null);
     try {
-      if (isYouTubeHost(parsed.hostname)) {
-        if (isYouTubePlaylistUrl(parsed)) {
+      const isYouTube = /youtube\.com|youtu\.be/i.test(trimmedUrl);
+      let ok = false;
+      if (isYouTube) {
+        let metadata: {
+          title?: string;
+          isPlaylist?: boolean;
+          videos?: Array<{ videoId: string; title: string }>;
+        } | null = null;
+        try {
           const metaRes = await fetch(
             `/api/import/youtube/metadata?url=${encodeURIComponent(trimmedUrl)}`
           );
-          if (!metaRes.ok) {
-            const errData = await metaRes.json().catch(() => ({}));
-            setErrorMessage(errData.error || 'Could not load YouTube playlist.');
-            return;
+          if (metaRes.ok) {
+            metadata = await metaRes.json();
           }
-          const metaData = await metaRes.json();
-          if (
-            metaData.isPlaylist &&
-            Array.isArray(metaData.videos) &&
-            metaData.videos.length > 0
-          ) {
-            const remaining = MAX_SOURCES - sources.length;
-            const batch = metaData.videos.slice(0, remaining).map((v: any) => ({
-              url: v.url,
-              label: v.title || deriveHostLabel(v.url),
-              mode: 'video_observation' as const,
-            }));
-            const ok = await dispatchAction({
-              type: 'add_youtube_sources_batch',
-              sources: batch,
-            });
-            if (ok) {
-              setUrl('');
-            } else {
-              setErrorMessage('Could not add playlist sources. Your input was retained.');
-            }
-            return;
-          }
-        }
-
-        let extracted: Awaited<ReturnType<typeof extractYoutubeClient>> | null = null;
-        try {
-          extracted = await extractYoutubeClient(trimmedUrl);
         } catch {
-          // Proceed with server-side fallback if client extraction fails
+          // Metadata fetch failure is non-fatal
         }
 
-        const resolvedLabel = extracted?.title || deriveHostLabel(trimmedUrl);
-        const ok = await dispatchAction({
-          type: 'add_youtube_source',
-          url: trimmedUrl,
-          label: resolvedLabel,
-          mode: extracted?.transcript ? 'captions' : 'video_observation',
-          value: extracted?.transcript || undefined,
-          metadata: extracted
-            ? {
-                title: extracted.title,
-                author: extracted.author,
-                durationSeconds: extracted.durationSeconds,
-                transcriptAvailable: extracted.transcriptAvailable,
-                extractionMethod: extracted.extractionMethod,
-                extractedAt: new Date().toISOString(),
-              }
-            : undefined,
-        });
-
-        if (ok) {
-          setUrl('');
+        if (metadata?.isPlaylist && metadata.videos && metadata.videos.length > 0) {
+          const maxCapacity = 100;
+          const remainingSlots = Math.max(0, maxCapacity - (workspace.sources?.length ?? 0));
+          const videosToAdd = metadata.videos.slice(0, remainingSlots);
+          if (videosToAdd.length === 0) {
+            setError(`Cannot add more sources. Maximum capacity of ${maxCapacity} reached.`);
+            setBusy(false);
+            return;
+          }
+          ok = await dispatchAction({
+            type: 'add_youtube_sources_batch',
+            videos: videosToAdd.map(v => ({
+              url: `https://www.youtube.com/watch?v=${v.videoId}`,
+              label: v.title || metadata?.title || `Video ${v.videoId}`,
+              mode: 'video_observation' as const,
+            })),
+          });
         } else {
-          setErrorMessage('Could not save this action. Your input was retained.');
-        }
-        return;
-      }
-
-      let extracted: Awaited<ReturnType<typeof extractWebClient>> | null = null;
-      try {
-        extracted = await extractWebClient(trimmedUrl);
-      } catch {
-        // Proceed with server-side acquisition if client fetch fails
-      }
-
-      const resolvedLabel = extracted?.title || deriveHostLabel(trimmedUrl);
-      const ok = await dispatchAction({
-        type: 'add_web_source',
-        url: trimmedUrl,
-        label: resolvedLabel,
-        extraction: extracted
-          ? {
-              text: extracted.text,
-              checksum: extracted.checksum,
-              locations: [{ index: 0, label: 'Article', start: 0, end: extracted.text.length }],
-              provenance: {
-                method: 'dom-readability',
-                extractedAt: new Date().toISOString(),
-              },
+          let normalizedUrl = trimmedUrl;
+          try {
+            const parsed = new URL(trimmedUrl);
+            let vid: string | null = null;
+            if (parsed.hostname === 'youtu.be') {
+              vid = parsed.pathname.split('/')[1];
+            } else if (parsed.pathname === '/watch') {
+              vid = parsed.searchParams.get('v');
+            } else if (/^\/(shorts|embed)\//.test(parsed.pathname)) {
+              vid = parsed.pathname.split('/')[2];
             }
-          : undefined,
-      });
+            if (vid && /^[A-Za-z0-9_-]{11}$/.test(vid)) {
+              normalizedUrl = `https://www.youtube.com/watch?v=${vid}`;
+            }
+          } catch {}
+
+          let extraction = undefined;
+          try {
+            extraction = await extractYoutubeClient(normalizedUrl, {
+              title: metadata?.title,
+            });
+          } catch {}
+
+          const label = metadata?.title || trimmedUrl;
+          ok = await dispatchAction({
+            type: 'add_youtube_source',
+            url: normalizedUrl,
+            label,
+            mode: 'video_observation',
+            ...(extraction ? { extraction } : {}),
+          });
+        }
+      } else {
+        let extraction = undefined;
+        try {
+          const extracted = await extractWebClient(trimmedUrl);
+          extraction = {
+            text: extracted.text,
+            locations: extracted.locations,
+            provenance: extracted.provenance,
+            checksum: extracted.checksum,
+          };
+        } catch {}
+
+        ok = await dispatchAction({
+          type: 'add_web_source',
+          url: trimmedUrl,
+          label: trimmedUrl,
+          ...(extraction ? { extraction } : {}),
+        });
+      }
 
       if (ok) {
         setUrl('');
       } else {
-        setErrorMessage('Could not save this action. Your input was retained.');
+        setError('Could not add this link. Your input was preserved for retry.');
       }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not add link. Your input was preserved for retry.'
+      );
     } finally {
+      lock.current = false;
       setBusy(false);
     }
   };
 
-  const handleRemoveSource = async (sourceId: string) => {
-    setErrorMessage(null);
+  const act = async (action: CohortAction) => {
+    if (lock.current) return;
+    lock.current = true;
     setBusy(true);
+    setError(null);
     try {
-      const ok = await dispatchAction({ type: 'remove_source', sourceId });
-      if (!ok) {
-        setErrorMessage('Could not remove source. Please try again.');
+      if (!(await dispatchAction(action))) {
+        setError('Could not save this action. Please try again.');
       }
+    } catch {
+      setError('Could not save this action. Please try again.');
     } finally {
+      lock.current = false;
       setBusy(false);
     }
   };
 
-  const handleContinue = async () => {
-    if (!canContinue) return;
-    setErrorMessage(null);
+  const handleRemovePlaylist = async (sourceIds: string[]) => {
+    if (lock.current) return;
+    lock.current = true;
     setBusy(true);
+    setError(null);
     try {
-      const ok = await dispatchAction({ type: 'begin_material_processing' });
-      if (!ok) {
-        setErrorMessage('Could not start curriculum processing. Please try again.');
+      for (const sourceId of sourceIds) {
+        const ok = await dispatchAction({ type: 'remove_source', sourceId });
+        if (!ok) {
+          setError('Could not remove playlist. Please try again.');
+          break;
+        }
       }
+    } catch {
+      setError('Could not remove playlist. Please try again.');
     } finally {
+      lock.current = false;
       setBusy(false);
     }
   };
+
+  const displayGroups = groupSourcesForDisplay(workspace.sources);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.decorations} aria-hidden="true">
-        <div className={styles.polaroidLeft}>
-          <Image
-            src="/polaroid_columns.png"
-            alt=""
-            width={180}
-            height={220}
-            className={styles.polaroidImg}
-          />
-        </div>
-        <div className={styles.stickyNote}>
-          Same content.
-          <br />
-          More progress.
-        </div>
-        <div className={styles.polaroidRight}>
-          <Image
-            src="/polaroid_books_mug.png"
-            alt=""
-            width={190}
-            height={240}
-            className={styles.polaroidImg}
-          />
-        </div>
+    <section className={styles.workspace} aria-label="Learning material">
+      <div className={styles.continueSection}>
+        <button
+          type="button"
+          aria-label="Continue to curriculum"
+          disabled={busy || !workspace.sources.length}
+          onClick={() => void act({ type: 'begin_material_processing' })}
+        >
+          Next →
+        </button>
       </div>
-
-      <div className={styles.contentWrapper}>
-        <header className={styles.header}>
-          <span className={styles.eyebrow}>A LITTLE CURIOSITY GOES A LONG WAY</span>
-          <h1 className={styles.title}>
-            Add <InkUnderline className={styles.italicAccent}>your material</InkUnderline>
-          </h1>
-          <p className={styles.subtitle}>
-            Paste a public YouTube video, playlist, or article link. We’ll understand it and turn it into a structured learning journey.
-          </p>
-        </header>
-
-        {errorMessage && (
-          <div className={styles.errorBanner} role="alert">
-            {errorMessage}
-          </div>
-        )}
-
-        <form className={styles.inputCard} onSubmit={handleAddUrl}>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="material-url-input" className={styles.label}>
-              Public article or YouTube URL
-            </label>
-            <div className={styles.urlInputRow}>
-              <input
-                id="material-url-input"
-                type="url"
-                className={styles.textInput}
-                placeholder="https://..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                disabled={busy || atCapacity}
+      {workspace.sources.length > 0 && (
+        <section aria-label="Added material">
+          <h2>
+            Added material <small>{displayGroups.length}</small>
+          </h2>
+          <ul className={styles.sources}>
+            {displayGroups.map(group => (
+              <SourceGroupCard
+                key={group.kind === 'playlist' ? group.batchKey : group.source.id}
+                group={group}
+                busy={busy}
+                onRemoveSingle={sourceId => void act({ type: 'remove_source', sourceId })}
+                onRemovePlaylist={sourceIds => void handleRemovePlaylist(sourceIds)}
               />
-              <button
-                type="submit"
-                className={styles.submitBtn}
-                disabled={busy || atCapacity}
-              >
-                {busy ? 'Adding…' : 'Add link'}
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.modeToolbar} role="group" aria-label="Material input options">
-            <button
-              type="button"
-              className={`${styles.modeBtn} ${styles.modeBtnActive}`}
-              aria-pressed="true"
-            >
-              Paste a link
-            </button>
-            <button
-              type="button"
-              className={styles.modeBtn}
-              disabled
-              title="Temporarily unavailable"
-            >
-              Upload a file
-            </button>
-          </div>
-        </form>
-
-        <p className={styles.limitsLine}>
-          Public YouTube videos, playlists and articles. Up to {MAX_SOURCES} sources.
-        </p>
-
-        {sources.length > 0 && (
-          <section className={styles.sourcesSection} aria-label="Added material">
-            <div className={styles.sourcesHeader}>
-              <span className={styles.sourcesTitle}>Added material</span>
-              <span className={styles.sourcesCount}>
-                {sources.length} / {MAX_SOURCES} sources
-              </span>
-            </div>
-            <ul className={styles.sourceList}>
-              {sources.map((src) => (
-                <SourceItemRow
-                  key={src.id}
-                  src={src}
-                  busy={busy}
-                  onRemove={handleRemoveSource}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <div className={styles.continueSection}>
-          <button
-            type="button"
-            className={styles.continueBtn}
-            disabled={!canContinue}
-            onClick={handleContinue}
-          >
-            Continue to curriculum →
+            ))}
+          </ul>
+        </section>
+      )}
+      <header>
+        <h1>Add your material</h1>
+      </header>
+      <form className={styles.inputPanel} onSubmit={handleAddUrl}>
+        <label htmlFor="material-url">Public article or YouTube URL</label>
+        <div className={styles.inputRow}>
+          <input
+            id="material-url"
+            type="url"
+            required
+            maxLength={2048}
+            pattern="https://.*"
+            placeholder="https://…"
+            value={url}
+            disabled={busy}
+            onChange={e => setUrl(e.target.value)}
+          />
+          <button disabled={busy || !url.trim()}>Add link</button>
+        </div>
+        <div className={styles.options} aria-label="Material input options">
+          <button type="button" aria-pressed="true">
+            Paste a link
+          </button>
+          <button type="button" disabled title="Temporarily unavailable">
+            Upload a file
           </button>
         </div>
-      </div>
-    </div>
+      </form>
+      <p className={styles.help}>Public YouTube videos, playlists and articles. Up to 100 sources.</p>
+      {error && <p role="alert">{error}</p>}
+    </section>
   );
 }
 ```
 
-#### 5.3 Write full file `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx`
+---
 
+### Step `S10` — Use Grouped Playlist Cards, Visual Search Badges & `Next →` CTA in `DiscoveryStageView` (`src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx`)
+
+- **File:** `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx`
+- **Action:** Overwrite `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx` so:
+  1. `Added material` renders `groupSourcesForDisplay(sources)` via `SourceGroupCard` (so an included playlist appears as 1 Playlist Card instead of 87–120 cards).
+  2. YouTube search results render in the 3–4 column visual card grid with stacked-deck `.playlistCard` styling and overlay badges (`▶ PLAYLIST` vs `VIDEO`).
+  3. Top-right `.continueSection` button displays `Next →` with `aria-label="Continue to curriculum"`.
+
+#### Complete Replacement (`src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx`)
 ```tsx
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
-import type { EntityRef } from '@/src/shared/interaction/ChangeSet';
+import type { EntityRef } from 'interaction-builder/core';
 import type { YouTubeSearchItem } from '@/src/app/api/import/youtube/search/route';
-import { extractYoutubeClient } from '@/src/client/lib/extraction/youtubeClientExtractor';
-import { InkUnderline } from '@/src/client/screens/cohortCreation/components/Art';
-import { SourceItemRow } from './MaterialStageView';
+import { extractYoutubeClient } from '@/src/client/lib/sourceExtractors/youtubeClientExtractor';
+import { groupSourcesForDisplay, SourceGroupCard } from './MaterialStageView';
 import styles from './MaterialStageView.module.css';
 
 export interface DiscoveryStageViewProps {
@@ -1402,9 +1672,8 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
   const [results, setResults] = useState<YouTubeSearchItem[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [busyContinue, setBusyContinue] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [playlistVideoUrls, setPlaylistVideoUrls] = useState<Record<string, string[]>>({});
   const autoSearchedIntentRef = useRef<string | null>(null);
 
@@ -1414,14 +1683,14 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
 
   const runYouTubeSearch = async (query: string) => {
     setSearching(true);
-    setErrorMessage(null);
+    setError(null);
     try {
       const res = await fetch(
         `/api/import/youtube/search?q=${encodeURIComponent(query)}`
       );
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        setErrorMessage(
+        setError(
           errData?.error || 'Could not search YouTube right now. Please try again.'
         );
         setHasSearched(true);
@@ -1431,7 +1700,7 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
       setResults(Array.isArray(data?.items) ? data.items : []);
       setHasSearched(true);
     } catch {
-      setErrorMessage('Could not search YouTube right now. Please try again.');
+      setError('Could not search YouTube right now. Please try again.');
       setHasSearched(true);
     } finally {
       setSearching(false);
@@ -1447,7 +1716,7 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
 
   const sources = workspace.sources ?? [];
   const atCapacity = sources.length >= MAX_SOURCES;
-  const canContinue = sources.length > 0 && !busyContinue && !searching;
+  const displayGroups = groupSourcesForDisplay(sources);
 
   const getMatchingSourcesForItem = (item: YouTubeSearchItem) => {
     if (item.kind === 'playlist') {
@@ -1463,16 +1732,16 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
+    setError(null);
     const trimmed = goal.trim();
     if (!trimmed) {
-      setErrorMessage('Please enter a learning goal.');
+      setError('Please enter a learning goal.');
       return;
     }
     if (trimmed !== (workspace.intent || '').trim()) {
       const saved = await dispatchAction({ type: 'set_intent', intent: trimmed });
       if (!saved) {
-        setErrorMessage('Could not save your learning goal. Please try again.');
+        setError('Could not save your learning goal. Please try again.');
         return;
       }
     }
@@ -1482,11 +1751,11 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
 
   const handleIncludeItem = async (item: YouTubeSearchItem) => {
     if (atCapacity) {
-      setErrorMessage('Maximum of 100 sources reached. Exclude a source to add more.');
+      setError(`Cannot add more sources. Maximum capacity of ${MAX_SOURCES} reached.`);
       return;
     }
-    setErrorMessage(null);
-    setBusyId(item.id);
+    setError(null);
+    setBusy(true);
     try {
       if (item.kind === 'playlist') {
         const metaRes = await fetch(
@@ -1499,30 +1768,35 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
             Array.isArray(metaData.videos) &&
             metaData.videos.length > 0
           ) {
-            const remaining = MAX_SOURCES - sources.length;
+            const remaining = Math.max(0, MAX_SOURCES - sources.length);
             const slice = metaData.videos.slice(0, remaining);
-            const urls = slice.map((v: any) => String(v.url));
+            const videosPayload = slice.map((v: any) => ({
+              url: v.url
+                ? String(v.url)
+                : `https://www.youtube.com/watch?v=${v.videoId}`,
+              label: String(v.title || item.title),
+              mode: 'video_observation' as const,
+            }));
             const ok = await dispatchAction({
               type: 'add_youtube_sources_batch',
-              sources: slice.map((v: any) => ({
-                url: String(v.url),
-                label: String(v.title || item.title),
-                mode: 'video_observation' as const,
-              })),
+              videos: videosPayload,
             });
             if (ok) {
-              setPlaylistVideoUrls((prev) => ({ ...prev, [item.id]: urls }));
+              setPlaylistVideoUrls((prev) => ({
+                ...prev,
+                [item.id]: videosPayload.map((v: { url: string }) => v.url),
+              }));
             } else {
-              setErrorMessage('Could not include playlist. Please try again.');
+              setError('Could not include playlist. Please try again.');
             }
             return;
           }
         }
       }
 
-      let extracted: Awaited<ReturnType<typeof extractYoutubeClient>> | null = null;
+      let extraction = undefined;
       try {
-        extracted = await extractYoutubeClient(item.url);
+        extraction = await extractYoutubeClient(item.url, { title: item.title });
       } catch {
         // Proceed with server fallback if client extraction fails
       }
@@ -1530,245 +1804,1159 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
       const ok = await dispatchAction({
         type: 'add_youtube_source',
         url: item.url,
-        label: extracted?.title || item.title,
-        mode: extracted?.transcript ? 'captions' : 'video_observation',
-        value: extracted?.transcript || undefined,
-        metadata: extracted
-          ? {
-              title: extracted.title,
-              author: extracted.author,
-              durationSeconds: extracted.durationSeconds,
-              transcriptAvailable: extracted.transcriptAvailable,
-              extractionMethod: extracted.extractionMethod,
-              extractedAt: new Date().toISOString(),
-            }
-          : undefined,
+        label: item.title,
+        mode: 'video_observation',
+        ...(extraction ? { extraction } : {}),
       });
       if (!ok) {
-        setErrorMessage('Could not include video. Please try again.');
+        setError('Could not include video. Please try again.');
       }
     } finally {
-      setBusyId(null);
+      setBusy(false);
     }
   };
 
   const handleExcludeItem = async (item: YouTubeSearchItem) => {
     const matched = getMatchingSourcesForItem(item);
     if (matched.length === 0) return;
-    setErrorMessage(null);
-    setBusyId(item.id);
+    setError(null);
+    setBusy(true);
     try {
       for (const src of matched) {
         const ok = await dispatchAction({ type: 'remove_source', sourceId: src.id });
         if (!ok) {
-          setErrorMessage('Could not exclude source. Please try again.');
+          setError('Could not exclude source. Please try again.');
           break;
         }
       }
     } finally {
-      setBusyId(null);
+      setBusy(false);
     }
   };
 
-  const handleRemoveSource = async (sourceId: string) => {
-    setErrorMessage(null);
-    setBusyId(sourceId);
+  const act = async (action: CohortAction) => {
+    setBusy(true);
+    setError(null);
     try {
-      const ok = await dispatchAction({ type: 'remove_source', sourceId });
-      if (!ok) {
-        setErrorMessage('Could not remove source. Please try again.');
+      if (!(await dispatchAction(action))) {
+        setError('Could not save this action. Please try again.');
       }
+    } catch {
+      setError('Could not save this action. Please try again.');
     } finally {
-      setBusyId(null);
+      setBusy(false);
     }
   };
 
-  const handleContinue = async () => {
-    if (!canContinue) return;
-    setErrorMessage(null);
-    setBusyContinue(true);
+  const handleRemovePlaylist = async (sourceIds: string[]) => {
+    setBusy(true);
+    setError(null);
     try {
-      const ok = await dispatchAction({ type: 'begin_material_processing' });
-      if (!ok) {
-        setErrorMessage('Could not start curriculum processing. Please try again.');
+      for (const sourceId of sourceIds) {
+        const ok = await dispatchAction({ type: 'remove_source', sourceId });
+        if (!ok) {
+          setError('Could not remove playlist. Please try again.');
+          break;
+        }
       }
+    } catch {
+      setError('Could not remove playlist. Please try again.');
     } finally {
-      setBusyContinue(false);
+      setBusy(false);
     }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.decorations} aria-hidden="true">
-        <div className={styles.polaroidLeft}>
-          <Image
-            src="/polaroid_columns.png"
-            alt=""
-            width={180}
-            height={220}
-            className={styles.polaroidImg}
-          />
-        </div>
-        <div className={styles.stickyNote}>
-          Pick your videos.
-          <br />
-          We build the path.
-        </div>
-        <div className={styles.polaroidRight}>
-          <Image
-            src="/polaroid_books_mug.png"
-            alt=""
-            width={190}
-            height={240}
-            className={styles.polaroidImg}
-          />
-        </div>
+    <section className={styles.workspace} aria-label="Goal discovery">
+      <div className={styles.continueSection}>
+        <button
+          type="button"
+          aria-label="Continue to curriculum"
+          disabled={busy || searching || !sources.length}
+          onClick={() => void act({ type: 'begin_material_processing' })}
+        >
+          Next →
+        </button>
       </div>
 
-      <div className={styles.contentWrapper}>
-        <header className={styles.header}>
-          <span className={styles.eyebrow}>A LITTLE CURIOSITY GOES A LONG WAY</span>
-          <h1 className={styles.title}>
-            Start with <InkUnderline className={styles.italicAccent}>a goal</InkUnderline>
-          </h1>
-          <p className={styles.subtitle}>
-            Search YouTube videos and playlists for your goal. Include or exclude them with + and −, then continue to your curriculum.
-          </p>
-        </header>
-
-        {errorMessage && (
-          <div className={styles.errorBanner} role="alert">
-            {errorMessage}
-          </div>
-        )}
-
-        <form className={styles.inputCard} onSubmit={handleSearch}>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="discovery-goal-input" className={styles.label}>
-              Your learning goal
-            </label>
-            <div className={styles.urlInputRow}>
-              <input
-                id="discovery-goal-input"
-                type="text"
-                className={styles.textInput}
-                value={goal}
-                onChange={(e) => setGoal(e.target.value)}
-                placeholder="What do you want to learn?"
-                disabled={searching}
+      {sources.length > 0 && (
+        <section aria-label="Added material">
+          <h2>
+            Added material <small>{displayGroups.length}</small>
+          </h2>
+          <ul className={styles.sources}>
+            {displayGroups.map((group) => (
+              <SourceGroupCard
+                key={group.kind === 'playlist' ? group.batchKey : group.source.id}
+                group={group}
+                busy={busy}
+                onRemoveSingle={(sourceId) => void act({ type: 'remove_source', sourceId })}
+                onRemovePlaylist={(sourceIds) => void handleRemovePlaylist(sourceIds)}
               />
-              <button
-                type="submit"
-                className={styles.submitBtn}
-                disabled={searching}
-              >
-                {searching ? 'Searching…' : 'Find resources'}
-              </button>
-            </div>
-          </div>
-        </form>
+            ))}
+          </ul>
+        </section>
+      )}
 
-        {results.length > 0 && (
-          <section className={styles.resultsSection} aria-label="YouTube search results">
-            <div className={styles.sourcesHeader}>
-              <span className={styles.sourcesTitle}>YouTube videos & playlists</span>
-              <span className={styles.sourcesCount}>{results.length} results</span>
+      <header>
+        <h1>Start with a goal</h1>
+        <p className={styles.help}>
+          Search YouTube videos and playlists for your goal, include (+) or exclude (−) them in your material, then continue to your curriculum.
+        </p>
+      </header>
+
+      <form className={styles.inputPanel} onSubmit={handleSearch}>
+        <label htmlFor="discovery-goal-input">Your learning goal</label>
+        <div className={styles.inputRow}>
+          <input
+            id="discovery-goal-input"
+            type="text"
+            value={goal}
+            disabled={busy || searching}
+            placeholder="What do you want to learn?"
+            onChange={(e) => setGoal(e.target.value)}
+          />
+          <button type="submit" disabled={busy || searching || !goal.trim()}>
+            {searching ? 'Searching…' : 'Find resources'}
+          </button>
+        </div>
+      </form>
+
+      {error && <p role="alert">{error}</p>}
+
+      {results.length > 0 && (
+        <section aria-label="YouTube search results">
+          <h2>
+            YouTube videos & playlists <small>{results.length}</small>
+          </h2>
+          <ul className={styles.sources}>
+            {results.map((item) => {
+              const matchedSources = getMatchingSourcesForItem(item);
+              const isIncluded = matchedSources.length > 0;
+              const isPlaylist = item.kind === 'playlist';
+
+              return (
+                <li
+                  key={item.id}
+                  className={`${styles.sourceItem} ${isPlaylist ? styles.playlistCard : ''}`}
+                >
+                  <div className={styles.thumbWrap}>
+                    {item.thumbnailUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        className={styles.thumbnail}
+                        src={item.thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span className={styles.fileIcon} aria-hidden="true">
+                        ▶
+                      </span>
+                    )}
+                    <span
+                      className={`${styles.typeBadge} ${isPlaylist ? styles.playlistBadge : ''}`}
+                    >
+                      {isPlaylist ? '▶ PLAYLIST' : 'VIDEO'}
+                    </span>
+                  </div>
+                  <div className={styles.cardBody}>
+                    <small>
+                      {isPlaylist ? 'YouTube Playlist' : 'YouTube Video'} · {item.channelTitle}
+                    </small>
+                    <h3>{item.title}</h3>
+                  </div>
+                  <div className={styles.cardFooter}>
+                    {isIncluded ? (
+                      <button
+                        type="button"
+                        className={styles.excludeBtn}
+                        disabled={busy}
+                        aria-label={`Exclude ${item.title}`}
+                        title="Exclude from material"
+                        onClick={() => void handleExcludeItem(item)}
+                      >
+                        −
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.includeBtn}
+                        disabled={busy || atCapacity}
+                        aria-label={`Include ${item.title}`}
+                        title="Include in material"
+                        onClick={() => void handleIncludeItem(item)}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {hasSearched && !searching && results.length === 0 && !error && (
+        <p className={styles.help}>
+          No YouTube videos or playlists found. Try refining your learning goal above.
+        </p>
+      )}
+    </section>
+  );
+}
+```
+
+---
+
+### Step `S11` — Update Processing Stage Styles (`src/client/screens/cohortCreation/components/UnderstandingProgress.module.css`)
+
+- **File:** `src/client/screens/cohortCreation/components/UnderstandingProgress.module.css`
+- **Action:** Overwrite `src/client/screens/cohortCreation/components/UnderstandingProgress.module.css` to add `.topActions`, `.iconActionBtn`, `.nextStageBtn`, `.spinIcon`, `.errorIcon`, top `.progress` bar spacing (`margin: 0 0 18px`), and `max-height: 360px; overflow-y: auto` on `.inventory ul, .inventory fieldset`.
+
+#### Complete Replacement (`src/client/screens/cohortCreation/components/UnderstandingProgress.module.css`)
+```css
+.workspace, .embedded { color: var(--creation-ink, #08143d); }
+.topActions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 14px; }
+.iconActionBtn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--creation-border, #ded8cf); background: var(--creation-surface, #fffaf2); color: var(--creation-ink, #08143d); cursor: pointer; transition: background 0.15s ease, transform 0.1s ease; }
+.iconActionBtn:hover:not(:disabled) { background: rgba(8, 20, 61, 0.06); transform: translateY(-1px); }
+.iconActionBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+.nextStageBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; padding: 0 20px; border-radius: 999px; border: 0; background: var(--creation-ink, #08143d); color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 18px rgba(8, 20, 61, 0.14); transition: opacity 0.15s ease, transform 0.1s ease; }
+.nextStageBtn:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+.continueDock { position: fixed; right: 28px; bottom: 24px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; max-width: min(620px, calc(100vw - 48px)); padding: 18px 22px; background: var(--creation-surface, #fffcf7); color: var(--creation-ink, #08143d); border: 1px solid var(--creation-line, #e9e0d5); border-radius: 20px; box-shadow: 0 8px 36px #08143d1a; }
+.continueDock p { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--creation-muted, #536788); }
+.continueDock button { border: 0; border-radius: 24px; padding: 13px 20px; min-height: 44px; background: var(--creation-blue, #303cff); color: #fff; font: 600 13px var(--font-manrope-next), sans-serif; cursor: pointer; }
+.continueDock button:focus-visible { outline: 2px solid var(--creation-blue, #303cff); outline-offset: 4px; }
+@media(max-width:820px) { .continueDock { right: 12px; left: 12px; bottom: 12px; max-width: none; padding: 14px 16px; } .continueDock button { margin-left: auto; } }
+.steps { list-style: none; display: flex; justify-content: center; gap: 0; padding: 0 100px 0 0; margin: 6px 0 48px; }
+.steps li { display: flex; align-items: center; gap: 12px; text-transform: uppercase; font-size: 11px; font-weight: 700; color: var(--creation-muted, #72819a); padding: 0 22px 12px; border-bottom: 2px solid #d7d6d1; }
+.steps li span { display: grid; place-items: center; background: #e4e3e0; color: #17234b; width: 31px; height: 31px; border-radius: 50%; }
+.steps li[aria-current] { color: var(--creation-blue, #3037ff); border-color: var(--creation-blue, #3037ff); }
+.steps li[aria-current] span { background: var(--creation-blue, #3037ff); color: white; }
+.steps li[data-complete='true'] span { color: var(--creation-blue, #3037ff); background: #e3e4ff; }
+.columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); gap: 18px; }
+.heading { padding: 0 12px 18px; }
+.eyebrow { text-transform: uppercase; letter-spacing: .22em; font-size: 12px; font-weight: 700; color: var(--creation-muted, #766e64); margin-bottom: 14px; }
+.heading h1 { font: 600 clamp(35px, 3.65vw, 58px)/1.02 var(--font-playfair-display), Georgia, serif; letter-spacing: -.04em; margin: 0 0 12px; }
+.heading h1 span { position: relative; font-style: italic; }
+.underline { position: absolute; left: 0; bottom: -5px; width: 100%; height: 10px; color: var(--creation-blue, #3037ff); }
+.heading > p:last-child { font: 500 20px/1.25 var(--font-playfair-display), Georgia, serif; color: var(--creation-muted, #657085); }
+.inventory, .concepts { border: 1px solid var(--creation-border, #e8e1d6); border-radius: 18px; background: var(--creation-surface, #fffaf2); box-shadow: 0 4px 14px #5e43100b; }
+.inventory { padding: 20px 20px; }
+.inventory h2 { display: flex; align-items: center; gap: 10px; font: 600 16px/1.25 var(--font-playfair-display), Georgia, serif; margin-bottom: 18px; }
+.inventory h2 > span { margin-left: auto; font: 11px var(--font-manrope-next), sans-serif; color: var(--creation-muted, #657085); }
+.inventory ul, .inventory fieldset { list-style: none; padding: 0 4px 0 0; margin: 0; display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; }
+.source { display: flex; align-items: flex-start; gap: 14px; border-radius: 12px; padding: 14px 12px; background: color-mix(in srgb, var(--creation-blue, #3037ff) 5%, transparent); }
+.source > div { flex: 1; min-width: 0; }
+.source strong { font: 500 16px/1.4 var(--font-playfair-display), Georgia, serif; overflow-wrap: anywhere; }
+.source p { font-size: 11px; color: var(--creation-muted, #657085); margin-top: 6px; }
+.source > svg { color: #59a142; flex-shrink: 0; }
+.spinIcon { color: var(--creation-blue, #3037ff) !important; animation: spin 1.2s linear infinite; }
+.errorIcon { color: #b91c1c !important; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.sourceNumber { font-size: 13px; padding-top: 4px; }
+.videos { padding: 10px 0 10px 40px; font: 500 15px/1.4 var(--font-playfair-display), Georgia, serif; }
+.videos li { padding: 8px 0; }
+.videos small { display: block; color: var(--creation-muted, #657085); font: 11px var(--font-manrope-next), sans-serif; margin-top: 4px; }
+.progress { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; padding-bottom: 14px; border-bottom: 1px solid var(--creation-border, #e8e1d6); color: var(--creation-muted, #657085); font-size: 12px; font-weight: 600; }
+.progress progress { width: 100%; height: 9px; accent-color: var(--creation-blue, #3037ff); }
+.progress span { white-space: nowrap; }
+.controls { font-size: 12px; color: var(--creation-muted, #657085); line-height: 1.7; margin-top: 12px; }
+.controls p { margin: 8px 0; }
+.controls button, .concepts button { border: 1px solid var(--creation-border, #ded8cf); border-radius: 24px; padding: 9px 15px; background: var(--creation-surface, #fffaf2); color: var(--creation-ink, #08143d); cursor: pointer; margin: 8px 6px 0 0; font-size: 12px; }
+.controls button:disabled { opacity: .5; cursor: wait; }
+.controls button:focus-visible, .concepts summary:focus-visible, .concepts button:focus-visible, .iconActionBtn:focus-visible, .nextStageBtn:focus-visible { outline: 2px solid var(--creation-blue, #3037ff); outline-offset: 3px; }
+.concepts { position: relative; margin-top: 0; padding: 28px 20px; min-height: 540px; display: flex; flex-direction: column; }
+.concepts > header { display: flex; gap: 16px; color: var(--creation-blue, #3037ff); margin-bottom: 26px; padding-right: 20px; }
+.concepts h2 { font: 700 30px/1.2 var(--font-caveat-next), cursive; color: var(--creation-ink, #08143d); margin-bottom: 8px; }
+.concepts header p { font: 700 19px/1.3 var(--font-caveat-next), cursive; color: var(--creation-muted, #657085); }
+.paperNote { position: absolute; top: -35px; right: -4px; transform: rotate(-5deg); font: 700 19px/1.25 var(--font-caveat-next), cursive; padding: 15px; color: #44413d; background: #fae9d4; box-shadow: 0 2px 6px #5e43100b; }
+.conceptCloud { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 16px 12px; list-style: none; padding: 10px 0 24px; }
+.conceptCloud > li { max-width: 100%; border: 1px solid var(--creation-border, #e8e1d6); border-radius: 20px; background: color-mix(in srgb, var(--creation-blue, #3037ff) 5%, var(--creation-surface, #fffaf2)); padding: 11px 16px; box-shadow: 0 3px 8px #5e431008; }
+.conceptCloud > li:nth-child(3n) { background: color-mix(in srgb, #ffa500 7%, var(--creation-surface, #fffaf2)); }
+.conceptCloud summary { cursor: pointer; font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.conceptCloud details p, .conceptCloud details small { display: block; max-width: 400px; font-size: 12px; line-height: 1.6; margin-top: 10px; }
+.conceptCloud details small { color: var(--creation-muted, #657085); }
+.empty { padding: 60px 24px; color: var(--creation-muted, #657085); font-size: 14px; line-height: 1.6; text-align: center; }
+.limitations { font-size: 12px; color: var(--creation-muted, #657085); line-height: 1.6; margin-bottom: 20px; }
+.limitations summary { cursor: pointer; }.limitations div { margin: 12px 0; }
+.insight { display: flex; align-items: center; gap: 12px; border: 1px solid #e9b76633; border-radius: 16px; padding: 16px; margin-top: auto; font-size: 12px; line-height: 1.5; }
+.insight > svg { color: #ff9100; flex-shrink: 0; }
+.insight span { display: block; color: var(--creation-muted, #657085); margin-top: 5px; }
+.embedded { max-width: 800px; margin: 25px auto; padding: 22px; border: 1px solid var(--creation-border, #ded8cf); border-radius: 18px; }
+.embedded h2 { font: 600 24px var(--font-playfair-display), Georgia, serif; }
+@media (max-width: 1300px) { .steps { padding-right: 80px; } .steps li { padding-inline: 12px; gap: 7px; font-size: 10px; } .paperNote { display: none; } }
+@media (max-width: 1100px) { .columns { grid-template-columns: 1fr; } .concepts { min-height: 450px; } .heading h1 { font-size: 48px; } .steps { justify-content: flex-start; flex-wrap: wrap; padding-right: 80px; row-gap: 10px; } }
+@media (max-width: 820px) { .steps { padding: 10px 0 0; margin-bottom: 30px; } .steps li { font-size: 9px; padding: 0 8px 10px; gap: 5px; } .steps li span { width: 24px; height: 24px; } .heading h1 { font-size: 40px; } .heading { padding-inline: 0; } .inventory, .concepts { padding: 18px 12px; } }
+
+@media (min-width: 1101px) and (max-width: 1450px) {
+  .heading h1 { font-size: 38px; line-height: 1.1; }
+}
+
+.controlButtonsRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+```
+
+---
+
+### Step `S12` — Top-Right Controls, Top Progress Bar, Clean Header & Accurate Source Status in `UnderstandingStageView` (`src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx`)
+
+- **File:** `src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx`
+- **Action:** Overwrite `src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx` to:
+  1. Render `.topActions` at the top right with icon-only `Back to material` (`<ArrowLeft size={16} />`), `Cancel processing` (`<Square size={15} />` when `isRunning`), `Retry processing` (`<RotateCcw size={16} />` when `!isRunning`), and `Next →` when `isComplete && !isRunning`.
+  2. Move `<div className={styles.progress}>` to the **very top** of `.inventory`.
+  3. Remove the filler `<p>I’m working with your retained sources and the evidence in them.</p>`, `.cohortSummary`, and `<h2>Selected material</h2>`.
+  4. Replace contradictory `{segmentCount} retained segments · {source.state}` + green `<Check>` with accurate per-source status (`Reading source…` + spinning `<LoaderCircle>`, `Ready · N segments` + `<Check>`, or `Could not read source` + `<AlertCircle>`).
+
+#### Complete Replacement (`src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx`)
+```tsx
+'use client';
+
+import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
+import React from 'react';
+import {
+  Check,
+  Brain,
+  Lightbulb,
+  LoaderCircle,
+  AlertCircle,
+  ArrowLeft,
+  Square,
+  RotateCcw,
+} from 'lucide-react';
+import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
+import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
+import {
+  isStageComplete,
+  getStageProgressDetails,
+} from '../stage-selectors';
+import styles from '@/src/client/screens/cohortCreation/components/UnderstandingProgress.module.css';
+
+interface UnderstandingStageViewProps {
+  workspace: CohortWorkspace;
+  dispatchAction: (action: CohortAction) => Promise<boolean>;
+}
+
+export function UnderstandingStageView({ workspace, dispatchAction }: UnderstandingStageViewProps) {
+  const sources = workspace.sources ?? [];
+
+  const stageProgress = getStageProgressDetails(workspace);
+  const isComplete = isStageComplete(workspace, 'understanding');
+  const isRunning = stageProgress.understanding.status === 'running';
+  const isFailed = stageProgress.understanding.status === 'failed';
+
+  const understoodCount = stageProgress.understanding.completedCount;
+  const totalCount = sources.length;
+
+  const sourceVersionMap = new Map(sources.map(s => [s.id, s.version]));
+  const validUnderstanding = (workspace.understanding ?? []).filter(u => {
+    const v = sourceVersionMap.get(u.sourceId);
+    return v !== undefined && u.sourceVersion === v;
+  });
+  const understoodSourceIds = new Set(validUnderstanding.map(u => u.sourceId));
+
+  const topicMap = new Map<string, { topic: string; summary: string; sourceLabels: string[] }>();
+  for (const understood of validUnderstanding) {
+    const source = sources.find(item => item.id === understood.sourceId)!;
+    for (const topic of understood.topics) {
+      const key = topic.toLocaleLowerCase();
+      const existing = topicMap.get(key);
+      if (existing) {
+        if (!existing.sourceLabels.includes(source.label)) existing.sourceLabels.push(source.label);
+      } else {
+        const evidence = source.text.split(/\n\s*\n|(?<=[.!?])\s+/).find(sentence => sentence.toLowerCase().includes(key)) ?? source.text;
+        topicMap.set(key, { topic, summary: evidence.slice(0, 350), sourceLabels: [source.label] });
+      }
+    }
+  }
+  const allTopics = [...topicMap.values()];
+
+  return (
+    <section aria-label="Understanding material" className={styles.workspace}>
+      <div className={styles.topActions}>
+        <button
+          type="button"
+          className={styles.iconActionBtn}
+          aria-label="Back to material"
+          title="Back to material"
+          onClick={() => void dispatchAction({ type: 'open_materials' })}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        {isRunning ? (
+          <button
+            type="button"
+            className={styles.iconActionBtn}
+            aria-label="Cancel processing"
+            title="Stop processing"
+            onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}
+          >
+            <Square size={15} />
+          </button>
+        ) : (
+          sources.length > 0 && (
+            <button
+              type="button"
+              className={styles.iconActionBtn}
+              aria-label="Retry processing"
+              title="Retry processing"
+              onClick={() => void dispatchAction({ type: 'retry_processing' })}
+            >
+              <RotateCcw size={16} />
+            </button>
+          )
+        )}
+        {isComplete && !isRunning && (
+          <button
+            type="button"
+            className={styles.nextStageBtn}
+            aria-label="Next stage"
+            onClick={() => void dispatchAction({ type: 'set_step', step: 'processing', stage: 'chunking' })}
+          >
+            Next →
+          </button>
+        )}
+      </div>
+
+      <div className={styles.columns}>
+        <div>
+          <header className={styles.heading}>
+            <p className={styles.eyebrow}>Understanding your material</p>
+            <h1>
+              {isComplete && !isRunning ? (
+                <>
+                  Your content,<br />
+                  <span>understood.<InkUnderline className={styles.underline} /></span>
+                </>
+              ) : (
+                <>
+                  Reading through<br />
+                  <span>your content…<InkUnderline className={styles.underline} /></span>
+                </>
+              )}
+            </h1>
+          </header>
+
+          <div className={styles.inventory}>
+            <div className={styles.progress}>
+              {totalCount > 0 ? (
+                <>
+                  <progress max={totalCount} value={understoodCount} aria-label="Sources understood" />
+                  <span>{understoodCount}/{totalCount} sources understood</span>
+                </>
+              ) : (
+                <>
+                  <LoaderCircle size={18} aria-hidden="true" />
+                  <span>Reading source inventory…</span>
+                </>
+              )}
             </div>
-            <ul className={styles.sourceList}>
-              {results.map((item) => {
-                const matchedSources = getMatchingSourcesForItem(item);
-                const isIncluded = matchedSources.length > 0;
-                const isItemBusy = busyId === item.id;
+
+            <ul>
+              {sources.map((source, index) => {
+                const segmentCount = source.locations?.length ?? (source.text ? 1 : 0);
+                const isSourceReady = source.state === 'ready' || understoodSourceIds.has(source.id);
+                const isSourceFailed = source.state === 'failed';
+                const statusLabel = isSourceFailed
+                  ? 'Could not read source'
+                  : isSourceReady
+                    ? `Ready${segmentCount > 0 ? ` · ${segmentCount} ${segmentCount === 1 ? 'section' : 'sections'}` : ''}`
+                    : 'Reading source…';
 
                 return (
-                  <li key={item.id} className={styles.sourceItem}>
-                    <div className={styles.sourceItemMain}>
-                      {item.thumbnailUrl ? (
-                        <img
-                          src={item.thumbnailUrl}
-                          alt=""
-                          className={styles.sourceThumb}
-                        />
-                      ) : null}
-                      <div className={styles.sourceInfo}>
-                        <span className={styles.sourceLabel}>{item.title}</span>
-                        <span className={styles.sourceMeta}>
-                          <span className={styles.kindBadge}>
-                            {item.kind === 'playlist' ? 'Playlist' : 'Video'}
-                          </span>
-                          <span>{item.channelTitle}</span>
-                        </span>
+                  <li key={source.id}>
+                    <div className={styles.source}>
+                      <span className={styles.sourceNumber}>{String(index + 1).padStart(2, '0')}</span>
+                      <div>
+                        <strong>{source.label}</strong>
+                        <p>{statusLabel}</p>
                       </div>
-                    </div>
-                    <div className={styles.sourceActions}>
-                      {isIncluded ? (
-                        <button
-                          type="button"
-                          className={styles.excludeBtn}
-                          disabled={isItemBusy}
-                          onClick={() => handleExcludeItem(item)}
-                          aria-label={`Exclude ${item.title}`}
-                          title="Exclude from material"
-                        >
-                          −
-                        </button>
+                      {isSourceFailed ? (
+                        <AlertCircle size={18} className={styles.errorIcon} aria-label="Source failed" />
+                      ) : isSourceReady ? (
+                        <Check size={18} aria-label="Content acquired" />
                       ) : (
-                        <button
-                          type="button"
-                          className={styles.includeBtn}
-                          disabled={isItemBusy || atCapacity}
-                          onClick={() => handleIncludeItem(item)}
-                          aria-label={`Include ${item.title}`}
-                          title="Include in material"
-                        >
-                          +
-                        </button>
+                        <LoaderCircle size={18} className={styles.spinIcon} aria-label="Reading source" />
                       )}
                     </div>
                   </li>
                 );
               })}
             </ul>
-          </section>
-        )}
 
-        {hasSearched && !searching && results.length === 0 && !errorMessage && (
-          <p className={styles.emptyHint}>
-            No YouTube videos or playlists found for that query. Try refining your goal above.
-          </p>
-        )}
-
-        {sources.length > 0 && (
-          <section className={styles.sourcesSection} aria-label="Added material">
-            <div className={styles.sourcesHeader}>
-              <span className={styles.sourcesTitle}>Added material</span>
-              <span className={styles.sourcesCount}>
-                {sources.length} / {MAX_SOURCES} sources
-              </span>
+            <div className={styles.controls}>
+              <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
+              {isFailed && workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && (
+                <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>
+              )}
             </div>
-            <ul className={styles.sourceList}>
-              {sources.map((src) => (
-                <SourceItemRow
-                  key={src.id}
-                  src={src}
-                  busy={busyId === src.id}
-                  onRemove={handleRemoveSource}
-                />
+          </div>
+        </div>
+
+        <aside id="creation-accepted-concepts" className={styles.concepts} aria-label="Accepted concepts">
+          <header>
+            <Brain size={46} strokeWidth={1.5} aria-hidden="true" />
+            <div>
+              <h2>Finding key ideas…</h2>
+              <p>Identifying the main topics, concepts,<br />and how they appear throughout the material.</p>
+            </div>
+          </header>
+
+          <span className={styles.paperNote} aria-hidden="true">
+            Important ideas,<br />grounded in<br />your material.
+          </span>
+
+          {allTopics.length === 0 ? (
+            <p className={styles.empty} role="status">
+              Key ideas and concepts will appear here as each source is analyzed.
+            </p>
+          ) : (
+            <ul className={styles.conceptCloud}>
+              {allTopics.map(item => (
+                <li key={item.topic}>
+                  <details>
+                    <summary>{item.topic}</summary>
+                    <p>{item.summary}</p>
+                    <small>{item.sourceLabels.join(' · ')}</small>
+                  </details>
+                </li>
               ))}
             </ul>
-          </section>
-        )}
+          )}
 
-        <div className={styles.continueSection}>
+          <details className={styles.limitations}>
+            <summary>Source summaries and limitations ({sources.length})</summary>
+            {sources.map(source => <div key={source.id}>
+              <strong>{source.label}</strong>
+              <p>{source.text ? source.text.slice(0, 350) : 'Reading source material. Concepts will appear as it is processed.'}</p>
+              {source.provenance?.scope === 'video_observation' && <p>Video observations with estimated timestamps.</p>}
+              {source.provenance?.limitations?.map((limitation, index) => <p key={index}>{limitation}</p>)}
+            </div>)}
+          </details>
+
+          <div className={styles.insight}>
+            <Lightbulb size={28} aria-hidden="true" />
+            <p>
+              <strong>{allTopics.length} key ideas identified.</strong>
+              <span>Core topics and evidence gathered directly from your material.</span>
+            </p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+```
+
+---
+
+### Step `S13` — Top-Right Controls, Top Progress Bar & De-Jargoning in `ChunkingStageView`, `AnalysisStageView`, and `AssemblyStageView`
+
+- **Files:**
+  - `src/client/screens/cohortBuilder/stages/ChunkingStageView.tsx`
+  - `src/client/screens/cohortBuilder/stages/AnalysisStageView.tsx`
+  - `src/client/screens/cohortBuilder/stages/AssemblyStageView.tsx`
+- **Action:** Overwrite all three files so:
+  1. Each stage renders `.topActions` at the top right with icon-only `Back to material` (`<ArrowLeft size={16} />`), `Cancel processing` (`<Square size={15} />`), `Retry processing` (`<RotateCcw size={16} />`), and `Next →` when complete.
+  2. `.progress` is placed at the **very top** of `.inventory`.
+  3. `"Selected material"` headings, filler `<header><p>`, `Checksum: {chunk.checksum.slice(0, 12)}` in `ChunkingStageView.tsx`, and `Deterministic estimates, normalized from 0 to 1` + `Chunk: characters {chunk.start}–{chunk.end}` in `AnalysisStageView.tsx` are removed.
+
+#### 1. Complete Replacement (`src/client/screens/cohortBuilder/stages/ChunkingStageView.tsx`)
+```tsx
+'use client';
+
+import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
+import React from 'react';
+import { ChevronRight, Lightbulb, ArrowLeft, Square, RotateCcw } from 'lucide-react';
+import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
+import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
+import {
+  isStageComplete,
+  getStageProgressDetails,
+  getValidChunks,
+} from '../stage-selectors';
+import shared from '@/src/client/screens/cohortCreation/components/UnderstandingProgress.module.css';
+import styles from '@/src/client/screens/cohortCreation/components/ChunkingWorkspace.module.css';
+import { useCohortDrafts } from '../draft-context';
+import { deriveChunkTitleAndSummary, deriveChunkVideoInterval, formatDurationClock, sourceVideoId, sourceDurationSeconds } from '@/src/shared/cohort-builder/cohort-metadata';
+import { YoutubeThumbnail } from '@/src/client/screens/cohortCreation/components/YoutubeThumbnail';
+
+interface ChunkingStageViewProps {
+  workspace: CohortWorkspace;
+  dispatchAction: (action: CohortAction) => Promise<boolean>;
+}
+
+export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageViewProps) {
+  const { inspection, setInspectionState } = useCohortDrafts();
+  const sources = workspace.sources ?? [];
+  const validChunks = getValidChunks(workspace);
+
+  const stageProgress = getStageProgressDetails(workspace);
+  const isComplete = isStageComplete(workspace, 'chunking');
+  const isRunning = stageProgress.chunking.status === 'running';
+  const isFailed = stageProgress.chunking.status === 'failed';
+  const chunkedSourcesCount = stageProgress.chunking.completedCount;
+
+  const effectiveSelectedSourceId =
+    inspection.chunkingSelectedSourceId && sources.some(s => s.id === inspection.chunkingSelectedSourceId)
+      ? inspection.chunkingSelectedSourceId
+      : (sources[0]?.id ?? null);
+
+  const currentSource = sources.find(s => s.id === effectiveSelectedSourceId) ?? sources[0];
+  const currentSourceIndex = sources.findIndex(s => s.id === currentSource?.id);
+  const selectedChunks = validChunks.filter(c => c.sourceId === currentSource?.id).sort((a, b) => a.start - b.start);
+  const videoId = sourceVideoId(currentSource);
+
+  return (
+    <section aria-label="Chunking material" className={`${shared.workspace} ${styles.workspace}`}>
+      <div className={shared.topActions}>
+        <button
+          type="button"
+          className={shared.iconActionBtn}
+          aria-label="Back to material"
+          title="Back to material"
+          onClick={() => void dispatchAction({ type: 'open_materials' })}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        {isRunning ? (
           <button
             type="button"
-            className={styles.continueBtn}
-            disabled={!canContinue}
-            onClick={handleContinue}
+            className={shared.iconActionBtn}
+            aria-label="Cancel processing"
+            title="Stop processing"
+            onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}
           >
-            Continue to curriculum →
+            <Square size={15} />
           </button>
+        ) : (
+          sources.length > 0 && (
+            <button
+              type="button"
+              className={shared.iconActionBtn}
+              aria-label="Retry processing"
+              title="Retry processing"
+              onClick={() => void dispatchAction({ type: 'retry_processing' })}
+            >
+              <RotateCcw size={16} />
+            </button>
+          )
+        )}
+        {isComplete && !isRunning && (
+          <button
+            type="button"
+            className={shared.nextStageBtn}
+            aria-label="Next stage"
+            onClick={() => void dispatchAction({ type: 'set_step', step: 'processing', stage: 'analysis' })}
+          >
+            Next →
+          </button>
+        )}
+      </div>
+
+      <div className={`${shared.columns} ${styles.columns}`}>
+        <div>
+          <header className={`${shared.heading} ${styles.heading}`}>
+            <p className={shared.eyebrow}>Turning content into learning pieces</p>
+            <h1>
+              {isComplete && !isRunning ? (
+                <>
+                  Your learning<br />
+                  <span>chunks are saved.<InkUnderline className={`${shared.underline} ${styles.headlineUnderline}`} /></span>
+                </>
+              ) : (
+                <>
+                  Finding natural<br />
+                  <span>learning chunks…<InkUnderline className={`${shared.underline} ${styles.headlineUnderline}`} /></span>
+                </>
+              )}
+            </h1>
+          </header>
+
+          <div className={`${shared.inventory} ${styles.inventory}`}>
+            <div className={shared.progress}>
+              <progress max={sources.length || 1} value={chunkedSourcesCount} aria-label="Content sources structured" />
+              <span>{chunkedSourcesCount}/{sources.length} sources structured</span>
+            </div>
+
+            <fieldset className={styles.sourceList}>
+              <legend className={styles.srOnly}>Select a source to inspect its chunks</legend>
+              {sources.map((item, index) => {
+                const count = validChunks.filter(c => c.sourceId === item.id).length;
+                return (
+                  <label key={item.id} className={styles.source} data-selected={item.id === currentSource?.id}>
+                    <input
+                      type="radio"
+                      name="chunk-source"
+                      checked={item.id === currentSource?.id}
+                      onChange={() => setInspectionState({ chunkingSelectedSourceId: item.id })}
+                    />
+                    <span className={styles.number}>{String(index + 1).padStart(2, '0')}</span>
+                    {sourceVideoId(item) && <YoutubeThumbnail videoId={sourceVideoId(item)!} />}
+                    <span className={styles.sourceTitle}>
+                      <span className={styles.sourceName} title={item.label}>{item.label}</span>
+                      {sourceDurationSeconds(item) > 0 && <small>{formatDurationClock(sourceDurationSeconds(item))}</small>}
+                    </span>
+                    <small>{count} {count === 1 ? 'part' : 'parts'}</small>
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </label>
+                );
+              })}
+            </fieldset>
+
+            <div className={shared.controls}>
+              <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
+
+              {workspace.lessons.some(l => l.evidenceStatus === 'orphaned') && (
+                <p role="alert">This lesson references changed or removed source text.</p>
+              )}
+
+              {isFailed && workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && (
+                <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>
+              )}
+            </div>
+          </div>
         </div>
+
+        <aside className={styles.detail} id="creation-accepted-chunks" aria-label="Accepted chunks">
+          <div className={styles.detailMeta}>
+            <span>{currentSource ? `Source ${String(currentSourceIndex + 1).padStart(2, '0')}` : 'Selected source'}</span>
+            <span>{selectedChunks.length} {selectedChunks.length === 1 ? 'part' : 'parts'}</span>
+            {sourceDurationSeconds(currentSource) > 0 && <time>{formatDurationClock(sourceDurationSeconds(currentSource))}</time>}
+          </div>
+
+          <div className={styles.detailHeader}>
+            <div>
+              <h2>
+                <span>{currentSource?.label ?? 'Your learning pieces'}<InkUnderline className={styles.titleUnderline} /></span>
+              </h2>
+              <p className={styles.intro}>Grounded in your source material.</p>
+            </div>
+            <p className={styles.annotation}>Open a piece to explore its content.</p>
+          </div>
+
+          {selectedChunks.length === 0 ? (
+            <p role="status" className={styles.empty}>
+              Learning pieces appear here as each source is structured.
+            </p>
+          ) : (
+            <ol className={styles.chunks}>
+              {selectedChunks.map((chunk, index) => {
+                const interval = deriveChunkVideoInterval(chunk, currentSource, index, selectedChunks.length);
+                const copy = deriveChunkTitleAndSummary(chunk, currentSource, index);
+                return (
+                  <li key={chunk.id}>
+                    <details
+                      open={inspection.chunkingExpandedChunkId === chunk.id}
+                      onToggle={e => {
+                        const isOpen = (e.currentTarget as HTMLDetailsElement).open;
+                        if (isOpen || inspection.chunkingExpandedChunkId === chunk.id) setInspectionState({ chunkingExpandedChunkId: isOpen ? chunk.id : null });
+                      }}
+                    >
+                      <summary>
+                        {videoId ? <YoutubeThumbnail videoId={videoId} /> : <span className={styles.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>}
+                        <span>
+                          <span className={styles.duration}>
+                            <time>{formatDurationClock(interval.durationSeconds)}</time>
+                          </span>
+                          <strong>{copy.title}</strong>
+                          <span className={styles.teaser}>{copy.summary}</span>
+                        </span>
+                        <ChevronRight size={17} aria-hidden="true" />
+                      </summary>
+                      <div className={styles.evidence}>
+                        {interval.hasTiming && <p>{formatDurationClock(interval.startSeconds)} - {formatDurationClock(interval.endSeconds)}</p>}
+                        <p>{chunk.text}</p>
+                        <small>Source: {currentSource?.label}</small>
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          <div className={shared.insight}>
+            <Lightbulb size={27} aria-hidden="true" />
+            <p>
+              <strong>{selectedChunks.length} learning parts from this source.</strong>
+              <span>Each part keeps its direct source context.</span>
+            </p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+```
+
+#### 2. Complete Replacement (`src/client/screens/cohortBuilder/stages/AnalysisStageView.tsx`)
+```tsx
+'use client';
+
+import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
+import React from 'react';
+import { ChevronRight, Lightbulb, ArrowLeft, Square, RotateCcw } from 'lucide-react';
+import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
+import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
+import {
+  isStageComplete,
+  getStageProgressDetails,
+  getValidChunks,
+  getValidAnalyses,
+} from '../stage-selectors';
+import shared from '@/src/client/screens/cohortCreation/components/UnderstandingProgress.module.css';
+import chunks from '@/src/client/screens/cohortCreation/components/ChunkingWorkspace.module.css';
+import styles from '@/src/client/screens/cohortCreation/components/AnalysisWorkspace.module.css';
+import { useCohortDrafts } from '../draft-context';
+import { deriveChunkTitleAndSummary, deriveChunkVideoInterval, formatDurationClock } from '@/src/shared/cohort-builder/cohort-metadata';
+import { computeDeterministicChunkVector, PEDAGOGICAL_DIMENSIONS, type PedagogicalDimension } from '@/src/shared/curriculum/pedagogicalVector.engine';
+
+const dimensionLabels: Record<PedagogicalDimension, string> = {
+  cognitive_load: 'Cognitive load', practicality_actionability: 'Practicality', visual_dependence: 'Visual dependence',
+  scaffolding_guidance: 'Guidance', linearity_dependency: 'Dependency', novelty_divergence: 'Novelty',
+  abstraction_depth: 'Abstraction depth', pacing_density: 'Pacing / density', rigor_formality: 'Rigor',
+  interactivity_agency: 'Interactivity', breadth_scope: 'Breadth', emotional_energy: 'Emotional energy',
+};
+const summaryDimensions: PedagogicalDimension[] = ['cognitive_load', 'practicality_actionability', 'visual_dependence', 'abstraction_depth', 'interactivity_agency'];
+
+interface AnalysisStageViewProps {
+  workspace: CohortWorkspace;
+  dispatchAction: (action: CohortAction) => Promise<boolean>;
+}
+
+export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageViewProps) {
+  const { inspection, setInspectionState } = useCohortDrafts();
+  const sources = workspace.sources ?? [];
+  const validChunks = getValidChunks(workspace);
+  const validAnalyses = getValidAnalyses(workspace);
+
+  const stageProgress = getStageProgressDetails(workspace);
+  const isComplete = isStageComplete(workspace, 'analysis');
+  const isRunning = stageProgress.analysis.status === 'running';
+  const isFailed = stageProgress.analysis.status === 'failed';
+
+  const effectiveSelectedSourceId =
+    inspection.analysisSelectedSourceId && sources.some(s => s.id === inspection.analysisSelectedSourceId)
+      ? inspection.analysisSelectedSourceId
+      : (sources[0]?.id ?? null);
+
+  const currentSource = sources.find(s => s.id === effectiveSelectedSourceId) ?? sources[0];
+  const sourceChunks = (item: typeof currentSource) => validChunks.filter(chunk => chunk.sourceId === item?.id).sort((a, b) => a.start - b.start);
+  const selectedChunks = sourceChunks(currentSource);
+
+  const analysesMap = new Map(validAnalyses.map(item => [item.chunkId, item]));
+  const analyzedTotalCount = validChunks.filter(c => analysesMap.has(c.id)).length;
+  const totalChunksCount = validChunks.length;
+
+  return (
+    <section aria-label="Analysis workspace" className={shared.workspace}>
+      <div className={shared.topActions}>
+        <button
+          type="button"
+          className={shared.iconActionBtn}
+          aria-label="Back to material"
+          title="Back to material"
+          onClick={() => void dispatchAction({ type: 'open_materials' })}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        {isRunning ? (
+          <button
+            type="button"
+            className={shared.iconActionBtn}
+            aria-label="Cancel processing"
+            title="Stop processing"
+            onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}
+          >
+            <Square size={15} />
+          </button>
+        ) : (
+          sources.length > 0 && (
+            <button
+              type="button"
+              className={shared.iconActionBtn}
+              aria-label="Retry processing"
+              title="Retry processing"
+              onClick={() => void dispatchAction({ type: 'retry_processing' })}
+            >
+              <RotateCcw size={16} />
+            </button>
+          )
+        )}
+        {isComplete && !isRunning && (
+          <button
+            type="button"
+            className={shared.nextStageBtn}
+            aria-label="Next stage"
+            onClick={() => void dispatchAction({ type: 'set_step', step: 'processing', stage: 'assembly' })}
+          >
+            Next →
+          </button>
+        )}
+      </div>
+
+      <div className={shared.columns}>
+        <div>
+          <header className={shared.heading}>
+            <p className={shared.eyebrow}>Analyzing your material</p>
+            <h1>
+              {isComplete && !isRunning ? (
+                <>
+                  Each piece,<br />
+                  <span>understood.<InkUnderline className={shared.underline} /></span>
+                </>
+              ) : (
+                <>
+                  Understanding<br />
+                  <span>each piece…<InkUnderline className={shared.underline} /></span>
+                </>
+              )}
+            </h1>
+          </header>
+
+          <div className={shared.inventory}>
+            <div className={shared.progress}>
+              <progress max={totalChunksCount || 1} value={analyzedTotalCount} aria-label="Chunks analyzed" />
+              <span>{analyzedTotalCount}/{totalChunksCount} chunks analyzed</span>
+            </div>
+
+            <fieldset className={chunks.sourceList}>
+              <legend className={chunks.srOnly}>Select a source to inspect its analysis</legend>
+              {sources.map((item, index) => {
+                const itemChunks = sourceChunks(item);
+                const analyzedCount = itemChunks.filter(c => analysesMap.has(c.id)).length;
+                return (
+                  <label key={item.id} className={chunks.source} data-selected={item.id === currentSource?.id}>
+                    <input
+                      type="radio"
+                      name="analysis-source"
+                      checked={item.id === currentSource?.id}
+                      onChange={() => setInspectionState({ analysisSelectedSourceId: item.id })}
+                    />
+                    <span className={chunks.number}>{String(index + 1).padStart(2, '0')}</span>
+                    <span className={chunks.sourceTitle}>
+                      <span className={chunks.sourceName} title={item.label}>{item.label}</span>
+                    </span>
+                    <small>{analyzedCount}/{itemChunks.length} analyzed</small>
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </label>
+                );
+              })}
+            </fieldset>
+
+            <div className={shared.controls}>
+              <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
+
+              {workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && (
+                <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <aside className={chunks.detail} id="creation-accepted-analysis" aria-label="Accepted analysis">
+          <div className={chunks.detailMeta}>
+            <span>Selected source</span>
+            <span>{selectedChunks.filter(c => analysesMap.has(c.id)).length} parts analyzed</span>
+          </div>
+
+          <h2>{currentSource?.label ?? 'Your learning pieces'}</h2>
+          <p className={chunks.intro}>Key takeaways and learning dimensions for each part.</p>
+
+          {selectedChunks.length === 0 ? (
+            <p role="status" className={chunks.empty}>
+              Analysis appears here as each part is processed.
+            </p>
+          ) : (
+            <ol className={`${chunks.chunks} ${styles.rows}`}>
+              {selectedChunks.map((chunk, index) => {
+                const analysis = analysesMap.get(chunk.id);
+                const copy = deriveChunkTitleAndSummary(chunk, currentSource, index, analysis?.summary);
+                const interval = deriveChunkVideoInterval(chunk, currentSource, index, selectedChunks.length);
+                const scored = analysis ? computeDeterministicChunkVector(chunk.text, {
+                  title: `${copy.title} - ${currentSource?.label ?? ''}`, durationSeconds: interval.durationSeconds,
+                  chunkIndex: index, totalChunks: selectedChunks.length,
+                }) : null;
+                return (
+                  <li key={chunk.id}>
+                    <details
+                      open={inspection.analysisExpandedChunkId === chunk.id}
+                      onToggle={e => {
+                        const isOpen = (e.currentTarget as HTMLDetailsElement).open;
+                        if (isOpen || inspection.analysisExpandedChunkId === chunk.id) setInspectionState({ analysisExpandedChunkId: isOpen ? chunk.id : null });
+                      }}
+                    >
+                      <summary>
+                        <span className={chunks.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>
+                        <span>
+                          <small>{formatDurationClock(interval.durationSeconds)}</small>
+                          <strong>{copy.title}</strong>
+                          <span className={chunks.teaser}>
+                            {analysis ? 'Ready' : 'Analyzing…'}
+                          </span>
+                        </span>
+                        {scored && <span className={styles.scores}>
+                          {summaryDimensions.map((key, row) => <span key={key} className={styles.score} aria-label={`${dimensionLabels[key]}: ${scored.vectorMap[key].toFixed(2)} out of 1`}>
+                            <span>{dimensionLabels[key]}</span>
+                            <span className={styles.dots} data-tone={row} aria-hidden="true">
+                              {Array.from({ length: 6 }, (_, dot) => <i key={dot} data-filled={dot < Math.round(scored.vectorMap[key] * 6)} />)}
+                            </span>
+                          </span>)}
+                        </span>}
+                        <ChevronRight size={17} aria-hidden="true" />
+                      </summary>
+                      <div className={chunks.evidence}>
+                        <p>{analysis?.summary ?? chunk.text}</p>
+                        {scored && <dl className={styles.dimensions}>{PEDAGOGICAL_DIMENSIONS.map(key => <div key={key}>
+                          <dt>{dimensionLabels[key]}</dt><dd>{scored.vectorMap[key].toFixed(2)}</dd>
+                        </div>)}</dl>}
+                        {analysis?.question && (
+                          <p>
+                            <strong>Key question:</strong> {analysis.question}
+                          </p>
+                        )}
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          <div className={shared.insight}>
+            <Lightbulb size={27} aria-hidden="true" />
+            <p>
+              <strong>{analyzedTotalCount} parts analyzed.</strong>
+              <span>Lessons are assembled from these insights next.</span>
+            </p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+```
+
+#### 3. Complete Replacement (`src/client/screens/cohortBuilder/stages/AssemblyStageView.tsx`)
+```tsx
+'use client';
+
+import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
+import React from 'react';
+import { ArrowLeft, Square, RotateCcw } from 'lucide-react';
+import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
+import { BuildingArt } from '@/src/client/screens/cohortCreation/components/BuildingArt';
+import {
+  isStageComplete,
+  getStageProgressDetails,
+  getValidChunks,
+} from '../stage-selectors';
+import shared from '@/src/client/screens/cohortCreation/components/UnderstandingProgress.module.css';
+import styles from '@/src/client/screens/cohortCreation/components/ReadyWorkspace.module.css';
+
+interface AssemblyStageViewProps {
+  workspace: CohortWorkspace;
+  dispatchAction: (action: CohortAction) => Promise<boolean>;
+}
+
+export function AssemblyStageView({ workspace, dispatchAction }: AssemblyStageViewProps) {
+  const lessonCount = workspace.lessons.length;
+  const validChunks = getValidChunks(workspace);
+  const chunkCount = validChunks.length;
+  const status = workspace.processing.status;
+
+  const stageProgress = getStageProgressDetails(workspace);
+  const isComplete = isStageComplete(workspace, 'assembly');
+  const isRunning = stageProgress.assembly.status === 'running';
+  const isFailed = stageProgress.assembly.status === 'failed';
+
+  return (
+    <div className={styles.workspace}>
+      <div className={shared.topActions}>
+        <button
+          type="button"
+          className={shared.iconActionBtn}
+          aria-label="Back to material"
+          title="Back to material"
+          onClick={() => void dispatchAction({ type: 'open_materials' })}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        {isRunning ? (
+          <button
+            type="button"
+            className={shared.iconActionBtn}
+            aria-label="Cancel processing"
+            title="Stop processing"
+            onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}
+          >
+            <Square size={15} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={shared.iconActionBtn}
+            aria-label="Retry processing"
+            title="Retry processing"
+            onClick={() => void dispatchAction({ type: 'retry_processing' })}
+          >
+            <RotateCcw size={16} />
+          </button>
+        )}
+        {isComplete && !isRunning && (
+          <button
+            type="button"
+            className={shared.nextStageBtn}
+            aria-label="Next stage"
+            onClick={() => void dispatchAction({ type: 'set_step', step: 'ready' })}
+          >
+            Next →
+          </button>
+        )}
+      </div>
+
+      <div className={styles.layout}>
+        <div className={styles.content}>
+          <header className={`${styles.heading} ${styles.buildingHeading}`}>
+            <p className={styles.eyebrow}>Building your learning experience</p>
+            <h1>{isComplete && !isRunning ? 'Your lessons are saved.' : 'Bringing it all together…'}</h1>
+            <p>Your accepted analysis and source evidence become meaningful lessons.</p>
+          </header>
+
+          <section aria-label="Building material" className={styles.buildControls}>
+            <progress
+              max={lessonCount > 0 ? lessonCount : 1}
+              value={isComplete ? lessonCount : 0}
+              aria-label="Lessons built"
+            />
+
+            {isRunning ? (
+              <div role="status">
+                <p>
+                  {chunkCount} parts analyzed; {lessonCount} lessons structured.
+                </p>
+                <p>Assembling your lessons and syllabus in real time.</p>
+              </div>
+            ) : (
+              <div>
+                <p role="status">
+                  {isComplete
+                    ? 'Building complete. Curriculum lessons are saved.'
+                    : `Building ${status}.`}
+                </p>
+                <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
+
+                {isFailed && workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && (
+                  <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <BuildingArt />
       </div>
     </div>
   );
@@ -1777,931 +2965,185 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
 
 ---
 
-### Step 6: Improve `UnderstandingStageView.tsx` Controls & Redirect Legacy v1 `/quest/new` and `/quest/draft/[draftId]` Routes
+### Step `S14` — Clean Concept Cloud Chips (`src/shared/cohort-builder/cohort-metadata.ts`)
 
-- **Goal:** Add a clean `← Back to material` secondary button to `UnderstandingStageView.tsx` (when not actively running) with left/right control alignment in `UnderstandingProgress.module.css`, and redirect legacy v1 `/quest/new` and `/quest/draft/[draftId]` routes to `/quest/start`.
-- **Files:**
-  - `src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx`
-  - `src/client/screens/cohortCreation/components/UnderstandingProgress.module.css`
-  - `src/app/(creation)/quest/new/page.tsx`
-  - `src/app/(creation)/quest/draft/[draftId]/page.tsx`
+- **File:** `src/shared/cohort-builder/cohort-metadata.ts`
+- **Action:** Update `STOPWORDS` and `extractSourceConceptTopics` (lines 14–93) in `src/shared/cohort-builder/cohort-metadata.ts` so `#hashtags`, bracketed clickbait (`[MUST KNOW TIPS]`, `(Simple ...)`), and question/clickbait clauses (`Why It Is The Best`, `To Get Started`, `Step by Step`, `My Secret`, `Basics Comes First`) are stripped before concept chips are emitted.
 
-#### 6.1 Edit `src/client/screens/cohortBuilder/stages/UnderstandingStageView.tsx`
+#### Before (`src/shared/cohort-builder/cohort-metadata.ts` lines 14–93)
+```ts
+const STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'your', 'you',
+  'are', 'was', 'were', 'will', 'would', 'could', 'should', 'have', 'has', 'had',
+  'about', 'what', 'when', 'where', 'which', 'while', 'their', 'there', 'these',
+  'those', 'then', 'than', 'them', 'they', 'some', 'such', 'more', 'most', 'other',
+  'over', 'under', 'after', 'before', 'between', 'through', 'during', 'without',
+  'within', 'along', 'following', 'across', 'behind', 'beyond', 'plus', 'except',
+  'but', 'not', 'only', 'own', 'same', 'so', 'too', 'very', 'can', 'just', 'dont',
+  'want', 'learn', 'learning', 'course', 'tutorial', 'video', 'videos', 'guide',
+  'notes', 'text', 'material', 'source', 'full', 'complete', 'introduction', 'intro', 'how', 'make', 'build', 'using',
+  'part', 'ep', 'episode', 'lecture', 'lesson', 'chapter', 'section', 'overview',
+]);
+```
+and
+```ts
+export function extractSourceConceptTopics(source: { label: string; text: string }): string[] {
+  const seen = new Set<string>();
+  const concepts: string[] = [];
 
-**Target:**
-```tsx
-          <div className={styles.controls}>
-            {isRunning && (
-              <button
-                type="button"
-                className={styles.cancelBtn}
-                disabled={busy !== null}
-                onClick={() => act('cancel', { type: 'cancel_text_processing' })}
-              >
-                {busy === 'cancel' ? 'Canceling…' : 'Cancel processing'}
-              </button>
-            )}
-            {isFailed && (
-              <button
-                type="button"
-                className={styles.retryBtn}
-                disabled={busy !== null}
-                onClick={() => act('retry', { type: 'retry_processing' })}
-              >
-                {busy === 'retry' ? 'Retrying…' : 'Retry understanding'}
-              </button>
-            )}
-          </div>
+  const pushConcept = (raw: string) => {
+    const cleaned = raw
+      .replace(/^[#*\-•\d.)\s]+/, '')
+      .replace(/\bhttps?:\/\/\S+/gi, '')
+      .replace(/[^\p{L}\p{N}\s/&+#.-]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!cleaned || cleaned.length < 3) return;
+    const words = cleaned.split(/\s+/).filter(w => w.length > 1);
+    while (words.length > 0 && STOPWORDS.has(words[0].toLowerCase())) words.shift();
+    while (words.length > 0 && STOPWORDS.has(words[words.length - 1].toLowerCase())) words.pop();
+    if (words.length === 0 || words.length > 5) return;
+    const phrase = toTitleCase(words.join(' ')).slice(0, 60);
+    const key = phrase.toLowerCase();
+    if (STOPWORDS.has(key) || seen.has(key)) return;
+    seen.add(key);
+    concepts.push(phrase);
+  };
+
+  // 1. Extract from source label (e.g. YouTube video title segments)
+  if (source.label && !/^https?:\/\//i.test(source.label)) {
+    const labelParts = source.label
+      .split(/\s*(?:\||—|–|-|:|\(|\)|\[|\])\s*/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    for (const part of labelParts) {
+      const subParts = part.split(/\b(?:and|with|vs\.?|for|in|on)\b/i);
+      for (const sub of subParts) pushConcept(sub);
+    }
+  }
 ```
 
-**Replacement:**
-```tsx
-          <div className={styles.controls}>
-            {!isRunning ? (
-              <button
-                type="button"
-                className={styles.secondaryBtn}
-                disabled={busy !== null}
-                onClick={() => act('back', { type: 'open_materials' })}
-              >
-                ← Back to material
-              </button>
-            ) : (
-              <button
-                type="button"
-                className={styles.cancelBtn}
-                disabled={busy !== null}
-                onClick={() => act('cancel', { type: 'cancel_text_processing' })}
-              >
-                {busy === 'cancel' ? 'Canceling…' : 'Cancel processing'}
-              </button>
-            )}
-            {isFailed && (
-              <button
-                type="button"
-                className={styles.retryBtn}
-                disabled={busy !== null}
-                onClick={() => act('retry', { type: 'retry_processing' })}
-              >
-                {busy === 'retry' ? 'Retrying…' : 'Retry understanding'}
-              </button>
-            )}
-          </div>
+#### After (`src/shared/cohort-builder/cohort-metadata.ts` lines 14–108)
+```ts
+const STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'your', 'you',
+  'are', 'was', 'were', 'will', 'would', 'could', 'should', 'have', 'has', 'had',
+  'about', 'what', 'when', 'where', 'which', 'while', 'their', 'there', 'these',
+  'those', 'then', 'than', 'them', 'they', 'some', 'such', 'more', 'most', 'other',
+  'over', 'under', 'after', 'before', 'between', 'through', 'during', 'without',
+  'within', 'along', 'following', 'across', 'behind', 'beyond', 'plus', 'except',
+  'but', 'not', 'only', 'own', 'same', 'so', 'too', 'very', 'can', 'just', 'dont',
+  'want', 'learn', 'learning', 'course', 'tutorial', 'video', 'videos', 'guide',
+  'notes', 'text', 'material', 'source', 'full', 'complete', 'introduction', 'intro', 'how', 'make', 'build', 'using',
+  'part', 'ep', 'episode', 'lecture', 'lesson', 'chapter', 'section', 'overview',
+  'why', 'best', 'must', 'know', 'tips', 'secret', 'step', 'get', 'started', 'ready',
+  'beginners', 'beginner', 'simple', 'easy', 'minutes', 'explained', 'exploring', 'inside',
+]);
+
+const CLICKBAIT_CONCEPT_PATTERN =
+  /\b(why\s+it\s+is|must\s+know|step\s+by\s+step|get\s+started|are\s+you\s+ready|my\s+secret|basics\s+comes\s+first|how\s+to|in\s+\d+\s+minutes|codes?\s+and\s+tutorial|https?)\b/i;
 ```
+and inside `extractSourceConceptTopics`:
+```ts
+export function extractSourceConceptTopics(source: { label: string; text: string }): string[] {
+  const seen = new Set<string>();
+  const concepts: string[] = [];
 
-#### 6.2 Edit `src/client/screens/cohortCreation/components/UnderstandingProgress.module.css`
+  const pushConcept = (raw: string) => {
+    if (/[?]/.test(raw) || CLICKBAIT_CONCEPT_PATTERN.test(raw)) return;
+    const cleaned = raw
+      .replace(/\[[^\]]*\]/g, ' ')
+      .replace(/#\S+/g, ' ')
+      .replace(/^[#*\-•\d.)\s]+/, '')
+      .replace(/\bhttps?:\/\/\S+/gi, '')
+      .replace(/[^\p{L}\p{N}\s/&+#.-]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!cleaned || cleaned.length < 3 || CLICKBAIT_CONCEPT_PATTERN.test(cleaned)) return;
+    const words = cleaned.split(/\s+/).filter(w => w.length > 1);
+    while (words.length > 0 && STOPWORDS.has(words[0].toLowerCase())) words.shift();
+    while (words.length > 0 && STOPWORDS.has(words[words.length - 1].toLowerCase())) words.pop();
+    if (words.length === 0 || words.length > 5) return;
+    const phrase = toTitleCase(words.join(' ')).slice(0, 60);
+    const key = phrase.toLowerCase();
+    if (STOPWORDS.has(key) || seen.has(key) || CLICKBAIT_CONCEPT_PATTERN.test(key)) return;
+    seen.add(key);
+    concepts.push(phrase);
+  };
 
-**Target:**
-```css
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-}
-
-.retryBtn,
-.cancelBtn {
-```
-
-**Replacement:**
-```css
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  padding-top: 0.25rem;
-}
-
-.secondaryBtn,
-.retryBtn,
-.cancelBtn {
-```
-
-**Target:**
-```css
-.cancelBtn:disabled,
-.retryBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-```
-
-**Replacement:**
-```css
-.secondaryBtn {
-  border-color: var(--border-subtle, rgba(27, 29, 54, 0.16));
-  background: transparent;
-  color: var(--text-secondary, #5a5d72);
-}
-
-.secondaryBtn:hover:not(:disabled) {
-  border-color: var(--text-primary, #1b1d36);
-  color: var(--text-primary, #1b1d36);
-}
-
-.secondaryBtn:disabled,
-.cancelBtn:disabled,
-.retryBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-```
-
-#### 6.3 Write full file `src/app/(creation)/quest/new/page.tsx`
-
-```tsx
-import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-
-export const metadata: Metadata = {
-  title: 'Start a Learning Journey',
-};
-
-export default function NewQuestPage() {
-  redirect('/quest/start');
-}
-```
-
-#### 6.4 Write full file `src/app/(creation)/quest/draft/[draftId]/page.tsx`
-
-```tsx
-import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-
-export const metadata: Metadata = {
-  title: 'Building Your Cohort',
-};
-
-export default function QuestDraftPage() {
-  redirect('/quest/start');
-}
+  // 1. Extract from source label (e.g. YouTube video title segments)
+  if (source.label && !/^https?:\/\//i.test(source.label)) {
+    const labelWithoutBrackets = source.label.replace(/\[[^\]]*\]/g, ' ').replace(/#\S+/g, ' ');
+    const labelParts = labelWithoutBrackets
+      .split(/\s*(?:\||—|–|-|:|\(|\))\s*/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    for (const part of labelParts) {
+      if (/[?]/.test(part)) continue;
+      const subParts = part.split(/\b(?:and|with|vs\.?|for|in|on)\b/i);
+      for (const sub of subParts) pushConcept(sub);
+    }
+  }
 ```
 
 ---
 
-### Step 7: Update Contract, Tool, and UI Test Suites
+### Step `S15` — Remove `'Review chunks'` Jargon Chip from Chat Suggestions (`src/client/screens/cohortBuilder/chat-suggestions.ts`)
 
-- **Goal:** Align unit and contract tests with the stricter `open_review` invariant, updated `STAGE_TOOL_NAMES.chat`, 2-button `MaterialStageView`, and YouTube `+`/`−` `DiscoveryStageView`.
-- **Files:**
-  - `src/shared/cohort-builder/__tests__/contracts.test.ts`
-  - `src/shared/cohort-builder/__tests__/creation-machine.test.ts`
-  - `src/server/domain/cohort-builder/__tests__/ai-tools-optimization.test.ts`
-  - `src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx`
-  - `src/client/screens/cohortBuilder/__tests__/journey-checkpoint3-material.test.tsx`
-  - `src/client/screens/cohortBuilder/__tests__/journey-checkpoint4-branch.test.tsx`
+- **File:** `src/client/screens/cohortBuilder/chat-suggestions.ts`
+- **Action:** Replace `{ id: 'review_chunks', label: 'Review chunks', prompt: 'Show chunking details' }` on line 80 with `{ id: 'how_it_works', label: 'How this works', prompt: 'How does curriculum building work?' }`.
 
-#### 7.1 Edit `src/shared/cohort-builder/__tests__/contracts.test.ts`
-
-**Target:**
+#### Before (`src/client/screens/cohortBuilder/chat-suggestions.ts` lines 77–83)
 ```ts
-  it('preserves chat step when adding or drafting lessons and transitions to review only on open_review', () => {
-    const chat = (): CohortWorkspace => ({
-      ...empty(),
-      journey: { version: 1, step: 'chat', branch: null, processingStarted: false, intentVersion: 0 },
-    });
-
-    const added = planCohortAction(
-      chat(),
-      { type: 'add_lesson', lessonId: 'lesson-1', title: 'Intro', objective: 'Basics', sourceChunkIds: [] },
-      context
-    ).nextState;
-    expect(added.journey?.step).toBe('chat');
-    expect(added.lessons).toHaveLength(1);
-
-    const drafted = planCohortAction(
-      chat(),
-      {
-        type: 'draft_curriculum',
-        lessons: [{ id: 'lesson-1', title: 'Part 1', objective: 'Foundations' }],
-      },
-      context
-    ).nextState;
-    expect(drafted.journey?.step).toBe('chat');
-    expect(drafted.lessons).toHaveLength(1);
-
-    // Explicit open_review transitions to review
-    const reviewed = planCohortAction(drafted, { type: 'open_review' }, context).nextState;
-    expect(reviewed.journey?.step).toBe('review');
-
-    // Editing lessons while already in review stays in review
-    const editedInReview = planCohortAction(
-      reviewed,
-      { type: 'add_lesson', lessonId: 'lesson-2', title: 'Part 2', objective: 'Deep dive', sourceChunkIds: [] },
-      context
-    ).nextState;
-    expect(editedInReview.journey?.step).toBe('review');
-
-    // open_review from chat requires at least one lesson
-    expect(() => planCohortAction(chat(), { type: 'open_review' }, context)).toThrow('NO_LESSONS');
-
-    // open_review rejects if processing is active
-    const busy = { ...drafted, processing: { ...drafted.processing, status: 'processing' as const } };
-    expect(() => planCohortAction(busy, { type: 'open_review' }, context)).toThrow('PROCESSING_ACTIVE');
-  });
+  if (step === 'processing') {
+    return [
+      { id: 'view_progress', label: 'View progress', prompt: 'Show understanding progress' },
+      { id: 'review_chunks', label: 'Review chunks', prompt: 'Show chunking details' },
+      { id: 'cancel_processing', label: 'Cancel processing', prompt: 'Cancel processing' },
+    ].slice(0, 3);
+  }
 ```
 
-**Replacement:**
+#### After (`src/client/screens/cohortBuilder/chat-suggestions.ts` lines 77–83)
 ```ts
-  it('preserves chat step when adding or drafting lessons and rejects open_review from chat', () => {
-    const chat = (): CohortWorkspace => ({
-      ...empty(),
-      journey: { version: 1, step: 'chat', branch: null, processingStarted: false, intentVersion: 0 },
-    });
-
-    const added = planCohortAction(
-      chat(),
-      { type: 'add_lesson', lessonId: 'lesson-1', title: 'Intro', objective: 'Basics', sourceChunkIds: [] },
-      context
-    ).nextState;
-    expect(added.journey?.step).toBe('chat');
-    expect(added.lessons).toHaveLength(1);
-
-    const drafted = planCohortAction(
-      chat(),
-      {
-        type: 'draft_curriculum',
-        lessons: [{ id: 'lesson-1', title: 'Part 1', objective: 'Foundations' }],
-      },
-      context
-    ).nextState;
-    expect(drafted.journey?.step).toBe('chat');
-    expect(drafted.lessons).toHaveLength(1);
-
-    // open_review from chat is strictly forbidden (must go through material processing -> ready -> review)
-    expect(() => planCohortAction(drafted, { type: 'open_review' }, context)).toThrow(
-      'INVALID_JOURNEY_TRANSITION'
-    );
-  });
-```
-
-#### 7.2 Edit `src/shared/cohort-builder/__tests__/creation-machine.test.ts`
-
-**Target:**
-```ts
-    const withLesson = transitionCreationState(
-      base,
-      {
-        type: 'add_lesson',
-        lessonId: 'l1',
-        title: 'Lesson 1',
-        objective: 'Learn basics',
-        sourceChunkIds: [],
-      },
-      ctx
-    ).nextState;
-
-    const opened = transitionCreationState(withLesson, { type: 'open_review' }, ctx).nextState;
-    expect(opened.journey?.step).toBe('review');
-```
-
-**Replacement:**
-```ts
-    const withLesson = transitionCreationState(
-      base,
-      {
-        type: 'add_lesson',
-        lessonId: 'l1',
-        title: 'Lesson 1',
-        objective: 'Learn basics',
-        sourceChunkIds: [],
-      },
-      ctx
-    ).nextState;
-
-    expect(() =>
-      transitionCreationState(withLesson, { type: 'open_review' }, ctx)
-    ).toThrow('INVALID_JOURNEY_TRANSITION');
-```
-
-#### 7.3 Edit `src/server/domain/cohort-builder/__tests__/ai-tools-optimization.test.ts`
-
-**Target:**
-```ts
-    const chatTools = Object.keys(
-      createCohortBuilderTools({
-        state: makeState(),
-        stage: 'chat',
-        commitAction: vi.fn(),
-        searchYouTube: vi.fn(),
-        importYouTube: vi.fn(),
-        importWeb: vi.fn(),
-        importGitHub: vi.fn(),
-      })
-    );
-    expect(chatTools).toContain('draft_curriculum');
-    expect(chatTools).toContain('add_lesson');
-    expect(chatTools).not.toContain('choose_starting_point');
-    expect(chatTools).not.toContain('create_own_cohort');
-```
-
-**Replacement:**
-```ts
-    const chatTools = Object.keys(
-      createCohortBuilderTools({
-        state: makeState(),
-        stage: 'chat',
-        commitAction: vi.fn(),
-        searchYouTube: vi.fn(),
-        importYouTube: vi.fn(),
-        importWeb: vi.fn(),
-        importGitHub: vi.fn(),
-      })
-    );
-    expect(chatTools).toContain('choose_starting_point');
-    expect(chatTools).toContain('create_own_cohort');
-    expect(chatTools).not.toContain('draft_curriculum');
-    expect(chatTools).not.toContain('add_lesson');
-```
-
-#### 7.4 Write full file `src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx`
-
-```tsx
-// @vitest-environment jsdom
-import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import {
-  cohortWorkspaceSchema,
-  type CohortAction,
-  type CohortWorkspace,
-} from '@/src/shared/cohort-builder/contracts';
-
-const mocks = vi.hoisted(() => ({
-  extractWebClient: vi.fn(),
-  extractYoutubeClient: vi.fn(),
-}));
-
-vi.mock('@/src/client/lib/extraction/webClientExtractor', () => ({
-  extractWebClient: (...args: unknown[]) => mocks.extractWebClient(...args),
-}));
-
-vi.mock('@/src/client/lib/extraction/youtubeClientExtractor', () => ({
-  extractYoutubeClient: (...args: unknown[]) => mocks.extractYoutubeClient(...args),
-}));
-
-import { MaterialStageView } from '../stages/MaterialStageView';
-
-function createWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
-    schemaVersion: 1,
-    title: 'Test Cohort',
-    intent: 'Learn Consensus',
-    audience: 'Engineers',
-    dailyMinutes: 30,
-    lessons: [],
-    sources: [],
-    chunks: [],
-    understanding: [],
-    analyses: [],
-    processing: {
-      status: 'idle',
-      stage: 'done',
-      generation: 0,
-      sourceFingerprint: null,
-      error: null,
-    },
-    journey: {
-      version: 1,
-      step: 'material_input',
-      branch: 'have_material',
-      processingStarted: false,
-      intentVersion: 0,
-    },
-    ...overrides,
-  });
-}
-
-describe('MaterialStageView: Editorial Link-Only Material Intake', () => {
-  let dispatchedActions: CohortAction[] = [];
-
-  beforeEach(() => {
-    dispatchedActions = [];
-    mocks.extractWebClient.mockReset();
-    mocks.extractYoutubeClient.mockReset();
-  });
-
-  afterEach(() => {
-    cleanup();
-  });
-
-  it('1. Renders only Paste a link (active) and Upload a file (disabled), with no Paste text option', () => {
-    const ws = createWorkspace();
-    render(
-      <MaterialStageView
-        workspace={ws}
-        dispatchAction={async (action) => {
-          dispatchedActions.push(action);
-          return true;
-        }}
-      />
-    );
-
-    expect(screen.getByRole('heading', { level: 1, name: /Add your material/i })).toBeTruthy();
-    expect(screen.getByLabelText(/Public article or YouTube URL/i)).toBeTruthy();
-
-    const pasteLinkBtn = screen.getByRole('button', { name: 'Paste a link' });
-    expect(pasteLinkBtn.getAttribute('aria-pressed')).toBe('true');
-
-    const uploadFileBtn = screen.getByRole('button', { name: 'Upload a file' }) as HTMLButtonElement;
-    expect(uploadFileBtn.disabled).toBe(true);
-
-    expect(screen.queryByRole('button', { name: /Paste text/i })).toBeNull();
-
-    const continueBtn = screen.getByRole('button', { name: /Continue to curriculum/i }) as HTMLButtonElement;
-    expect(continueBtn.disabled).toBe(true);
-  });
-
-  it('2. Adds an article URL, displays Added material, and enables Continue to curriculum', async () => {
-    mocks.extractWebClient.mockResolvedValue({
-      title: 'Raft Consensus Overview',
-      text: 'Leader election and log replication.',
-      checksum: 'c'.repeat(64),
-    });
-
-    const ws = createWorkspace();
-    const { rerender } = render(
-      <MaterialStageView
-        workspace={ws}
-        dispatchAction={async (action) => {
-          dispatchedActions.push(action);
-          return true;
-        }}
-      />
-    );
-
-    const urlInput = screen.getByLabelText(/Public article or YouTube URL/i);
-    await act(async () => {
-      fireEvent.change(urlInput, { target: { value: 'https://raft.github.io/guide' } });
-    });
-
-    const addBtn = screen.getByRole('button', { name: 'Add link' });
-    await act(async () => {
-      fireEvent.click(addBtn);
-    });
-
-    expect(dispatchedActions).toHaveLength(1);
-    expect(dispatchedActions[0]).toMatchObject({
-      type: 'add_web_source',
-      url: 'https://raft.github.io/guide',
-      label: 'Raft Consensus Overview',
-    });
-
-    const wsWithSource = createWorkspace({
-      sources: [
-        {
-          id: 'src-1',
-          version: 0,
-          label: 'Raft Consensus Overview',
-          text: 'Leader election and log replication.',
-          checksum: 'c'.repeat(64),
-          state: 'ready',
-          input: { kind: 'web', url: 'https://raft.github.io/guide' },
-        },
-      ],
-    });
-
-    rerender(
-      <MaterialStageView
-        workspace={wsWithSource}
-        dispatchAction={async (action) => {
-          dispatchedActions.push(action);
-          return true;
-        }}
-      />
-    );
-
-    expect(screen.getByText('Raft Consensus Overview')).toBeTruthy();
-    const continueBtn = screen.getByRole('button', { name: /Continue to curriculum/i }) as HTMLButtonElement;
-    expect(continueBtn.disabled).toBe(false);
-
-    await act(async () => {
-      fireEvent.click(continueBtn);
-    });
-
-    expect(dispatchedActions).toContainEqual({ type: 'begin_material_processing' });
-  });
-});
-```
-
-#### 7.5 Edit `src/client/screens/cohortBuilder/__tests__/journey-checkpoint3-material.test.tsx`
-
-**Target:**
-```ts
-  it('7. Renders Upload a file and Paste text buttons as disabled with Temporarily unavailable tooltip', () => {
-    const ws = createMaterialWorkspace();
-    render(
-      <MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />
-    );
-
-    const pasteLinkBtn = screen.getByRole('button', { name: 'Paste a link' });
-    expect(pasteLinkBtn.getAttribute('aria-pressed')).toBe('true');
-
-    const uploadBtn = screen.getByRole('button', { name: 'Upload a file' }) as HTMLButtonElement;
-    const pasteTextBtn = screen.getByRole('button', { name: 'Paste text' }) as HTMLButtonElement;
-
-    expect(uploadBtn.disabled).toBe(true);
-    expect(uploadBtn.getAttribute('title')).toBe('Temporarily unavailable');
-    expect(pasteTextBtn.disabled).toBe(true);
-    expect(pasteTextBtn.getAttribute('title')).toBe('Temporarily unavailable');
-  });
-```
-
-**Replacement:**
-```ts
-  it('7. Renders Paste a link active, Upload a file disabled, and completely omits Paste text', () => {
-    const ws = createMaterialWorkspace();
-    render(
-      <MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />
-    );
-
-    const pasteLinkBtn = screen.getByRole('button', { name: 'Paste a link' });
-    expect(pasteLinkBtn.getAttribute('aria-pressed')).toBe('true');
-
-    const uploadBtn = screen.getByRole('button', { name: 'Upload a file' }) as HTMLButtonElement;
-    expect(uploadBtn.disabled).toBe(true);
-    expect(uploadBtn.getAttribute('title')).toBe('Temporarily unavailable');
-
-    expect(screen.queryByRole('button', { name: /Paste text/i })).toBeNull();
-  });
-```
-
-#### 7.6 Write full file `src/client/screens/cohortBuilder/__tests__/journey-checkpoint4-branch.test.tsx`
-
-```tsx
-// @vitest-environment jsdom
-import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import {
-  cohortWorkspaceSchema,
-  type CohortWorkspace,
-} from '@/src/shared/cohort-builder/contracts';
-
-const fake = vi.hoisted(() => ({
-  state: null as CohortWorkspace | null,
-  actions: [] as any[],
-  succeeds: true,
-  session: {
-    status: 'authenticated',
-    data: { user: { id: 'owner-alice' } },
-  } as { status: string; data: any },
-  extractYoutubeClient: vi.fn(),
-}));
-
-vi.mock('next-auth/react', () => ({
-  useSession: () => fake.session,
-}));
-
-vi.mock('@/src/client/interaction/hooks', () => ({
-  useWorkspaceConnection: () => 'live',
-  useInteractionState: () => ({
-    workspaceId: 'ws-test-checkpoint4',
-    revision: 1,
-    view: fake.state,
-  }),
-  useWorkspaceView: () => fake.state,
-  useDispatchAction: () => async (action: any) => {
-    fake.actions.push(action);
-    return fake.succeeds;
-  },
-  useWorkspaceMessages: () => [],
-  useSendMessage: () => async () => true,
-}));
-
-vi.mock('@/src/client/interaction/provider', () => ({
-  InteractionProvider: ({ children }: any) => <>{children}</>,
-}));
-
-vi.mock('@/src/client/lib/extraction/youtubeClientExtractor', () => ({
-  extractYoutubeClient: (...args: unknown[]) => fake.extractYoutubeClient(...args),
-}));
-
-import { DiscoveryStageView } from '../stages/DiscoveryStageView';
-import { CohortWorkspacePane } from '../CohortWorkspacePane';
-import { ChatPane } from '../ChatPane';
-import { getActiveStage, getEffectiveStage } from '../stage-selectors';
-
-function createDiscoveryWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
-    schemaVersion: 1,
-    title: 'Distributed Systems Cohort',
-    intent: 'Master Distributed Consensus',
-    audience: 'Engineers',
-    dailyMinutes: 30,
-    lessons: [],
-    sources: [],
-    chunks: [],
-    understanding: [],
-    analyses: [],
-    processing: {
-      status: 'idle',
-      stage: 'done',
-      generation: 0,
-      sourceFingerprint: null,
-      error: null,
-    },
-    journey: {
-      version: 1,
-      step: 'discovery',
-      branch: 'find_material',
-      processingStarted: false,
-      intentVersion: 0,
-    },
-    ...overrides,
-  });
-}
-
-function createGoalWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
-    schemaVersion: 1,
-    title: 'Distributed Systems Cohort',
-    intent: 'Master Distributed Consensus',
-    audience: 'Engineers',
-    dailyMinutes: 30,
-    lessons: [],
-    sources: [],
-    chunks: [],
-    understanding: [],
-    analyses: [],
-    processing: {
-      status: 'idle',
-      stage: 'done',
-      generation: 0,
-      sourceFingerprint: null,
-      error: null,
-    },
-    journey: {
-      version: 1,
-      step: 'goal_setup',
-      branch: 'have_goal',
-      processingStarted: false,
-      intentVersion: 0,
-    },
-    ...overrides,
-  });
-}
-
-describe('Checkpoint 4: Journey Branch UI Suite (Discovery YouTube +/-, WorkspacePane, ChatPane)', () => {
-  beforeEach(() => {
-    fake.actions = [];
-    fake.succeeds = true;
-    fake.extractYoutubeClient.mockReset();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          items: [
-            {
-              id: 'vid-1',
-              kind: 'video',
-              title: 'Raft Consensus Explained',
-              channelTitle: 'Distributed Systems Channel',
-              description: 'Deep dive into Raft.',
-              url: 'https://www.youtube.com/watch?v=vid-1',
-            },
-            {
-              id: 'pl-1',
-              kind: 'playlist',
-              title: 'MIT 6.824 Distributed Systems Playlist',
-              channelTitle: 'MIT OpenCourseWare',
-              description: 'Full lecture series.',
-              url: 'https://www.youtube.com/playlist?list=pl-1',
-            },
-          ],
-        }),
-      })
-    );
-  });
-
-  afterEach(() => {
-    cleanup();
-    vi.restoreAllMocks();
-  });
-
-  describe('DiscoveryStageView (YouTube lookup + include/exclude +/-)', () => {
-    it('1. Automatically looks up YouTube videos and playlists for saved intent and renders + include buttons', async () => {
-      const ws = createDiscoveryWorkspace();
-      await act(async () => {
-        render(
-          <DiscoveryStageView
-            workspace={ws}
-            dispatchAction={async (a) => {
-              fake.actions.push(a);
-              return true;
-            }}
-          />
-        );
-      });
-
-      expect(screen.getByRole('heading', { level: 1, name: /Start with a goal/i })).toBeTruthy();
-      expect(screen.getByText('Raft Consensus Explained')).toBeTruthy();
-      expect(screen.getByText('MIT 6.824 Distributed Systems Playlist')).toBeTruthy();
-      expect(screen.getByRole('button', { name: 'Include Raft Consensus Explained' })).toBeTruthy();
-      expect(
-        screen.getByRole('button', { name: 'Include MIT 6.824 Distributed Systems Playlist' })
-      ).toBeTruthy();
-    });
-
-    it('2. Includes a YouTube video with +, excludes it with -, and continues with begin_material_processing', async () => {
-      fake.extractYoutubeClient.mockResolvedValue(null);
-      const ws = createDiscoveryWorkspace();
-      const { rerender } = await act(async () =>
-        render(
-          <DiscoveryStageView
-            workspace={ws}
-            dispatchAction={async (a) => {
-              fake.actions.push(a);
-              return true;
-            }}
-          />
-        )
-      );
-
-      const includeBtn = screen.getByRole('button', { name: 'Include Raft Consensus Explained' });
-      await act(async () => {
-        fireEvent.click(includeBtn);
-      });
-
-      expect(fake.actions).toContainEqual({
-        type: 'add_youtube_source',
-        url: 'https://www.youtube.com/watch?v=vid-1',
-        label: 'Raft Consensus Explained',
-        mode: 'video_observation',
-        value: undefined,
-        metadata: undefined,
-      });
-
-      // Rerender with the added source in workspace.sources
-      const wsWithSource = createDiscoveryWorkspace({
-        sources: [
-          {
-            id: 'src-yt-1',
-            version: 0,
-            label: 'Raft Consensus Explained',
-            text: '',
-            checksum: null,
-            state: 'queued',
-            input: {
-              kind: 'youtube',
-              url: 'https://www.youtube.com/watch?v=vid-1',
-              mode: 'video_observation',
-            },
-          },
-        ],
-      });
-
-      await act(async () => {
-        rerender(
-          <DiscoveryStageView
-            workspace={wsWithSource}
-            dispatchAction={async (a) => {
-              fake.actions.push(a);
-              return true;
-            }}
-          />
-        );
-      });
-
-      // Now shows - Exclude button and enables Continue to curriculum ->
-      const excludeBtn = screen.getByRole('button', { name: 'Exclude Raft Consensus Explained' });
-      expect(excludeBtn).toBeTruthy();
-
-      const continueBtn = screen.getByRole('button', {
-        name: /Continue to curriculum/i,
-      }) as HTMLButtonElement;
-      expect(continueBtn.disabled).toBe(false);
-
-      await act(async () => {
-        fireEvent.click(continueBtn);
-      });
-
-      expect(fake.actions).toContainEqual({ type: 'begin_material_processing' });
-
-      // Clicking - Exclude dispatches remove_source
-      await act(async () => {
-        fireEvent.click(excludeBtn);
-      });
-      expect(fake.actions).toContainEqual({
-        type: 'remove_source',
-        sourceId: 'src-yt-1',
-      });
-    });
-
-    it('3. Updates intent with set_intent when searching a modified goal and stops if set_intent fails', async () => {
-      const ws = createDiscoveryWorkspace();
-      await act(async () => {
-        render(
-          <DiscoveryStageView
-            workspace={ws}
-            dispatchAction={async (a) => {
-              fake.actions.push(a);
-              if (a.type === 'set_intent') return false;
-              return true;
-            }}
-          />
-        );
-      });
-
-      const input = screen.getByLabelText(/Your learning goal/i);
-      await act(async () => {
-        fireEvent.change(input, { target: { value: 'Learn Rust Async' } });
-      });
-
-      const findBtn = screen.getByRole('button', { name: /Find resources/i });
-      await act(async () => {
-        fireEvent.click(findBtn);
-      });
-
-      expect(fake.actions).toContainEqual({ type: 'set_intent', intent: 'Learn Rust Async' });
-      expect(screen.getByRole('alert')).toBeTruthy();
-    });
-  });
-
-  describe('CohortWorkspacePane integration', () => {
-    it('4. Renders DiscoveryStageView and top Starting point nav when journey.step is discovery', async () => {
-      fake.state = createDiscoveryWorkspace();
-      await act(async () => {
-        render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
-      });
-
-      expect(screen.getByRole('heading', { level: 1, name: /Start with a goal/i })).toBeTruthy();
-      expect(screen.getByRole('navigation', { name: 'Starting point' })).toBeTruthy();
-      expect(screen.queryByRole('list', { name: 'Creation journey progress' })).toBeNull();
-    });
-
-    it('5. Renders DiscoveryStageView when journey.step is goal_setup and suppresses stepper nav', async () => {
-      fake.state = createGoalWorkspace();
-      await act(async () => {
-        render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
-      });
-
-      expect(screen.getByRole('heading', { level: 1, name: /Start with a goal/i })).toBeTruthy();
-      expect(screen.queryByRole('list', { name: 'Creation journey progress' })).toBeNull();
-    });
-  });
-
-  describe('ChatPane suggestion chips & stage-selectors', () => {
-    it('6. Renders discovery suggestion chips during discovery stage', () => {
-      fake.state = createDiscoveryWorkspace();
-      render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => undefined} />);
-
-      expect(screen.getByRole('button', { name: 'Search again' })).toBeTruthy();
-      expect(screen.getByRole('button', { name: 'Provide my sources' })).toBeTruthy();
-    });
-
-    it('7. getActiveStage and getEffectiveStage accurately identify discovery and goal_setup stages', () => {
-      const discWs = createDiscoveryWorkspace();
-      expect(getActiveStage(discWs)).toBe('discovery');
-      expect(getEffectiveStage(discWs, 'chunking')).toBe('discovery');
-
-      const goalWs = createGoalWorkspace();
-      expect(getActiveStage(goalWs)).toBe('goal_setup');
-      expect(getEffectiveStage(goalWs, 'analysis')).toBe('goal_setup');
-    });
-  });
-});
+  if (step === 'processing') {
+    return [
+      { id: 'view_progress', label: 'View progress', prompt: 'Show understanding progress' },
+      { id: 'how_it_works', label: 'How this works', prompt: 'How does curriculum building work?' },
+      { id: 'cancel_processing', label: 'Cancel processing', prompt: 'Cancel processing' },
+    ].slice(0, 3);
+  }
 ```
 
 ---
 
-## E. Verification and failure handling
+## Section E — Verification Commands & Expected Outcomes
 
 Run the following verification commands in order from `d:\ThisPC\Documents\SideQuestHQ\undone-site`:
 
-1. **Contract & State-Machine Unit Tests:**
-   ```powershell
-   npx vitest run src/shared/cohort-builder/__tests__/contracts.test.ts src/shared/cohort-builder/__tests__/creation-machine.test.ts src/shared/cohort-builder/__tests__/journey-actions.test.ts
-   ```
-   - *Expected:* 100% pass. If any test fails expecting `open_review` to succeed from `chat`, verify Step 1.1, Step 1.2, Step 7.1, and Step 7.2 were applied verbatim.
-
-2. **AI Tool Filtering & Context Tests:**
-   ```powershell
-   npx vitest run src/server/domain/cohort-builder/__tests__/ai-tools-optimization.test.ts src/server/infrastructure/ai/__tests__/planning-source-context.test.ts
-   ```
-   - *Expected:* 100% pass.
-
-3. **Material Intake, YouTube Goal Discovery, Processing, and Route Metadata Tests:**
-   ```powershell
-   npx vitest run src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx src/client/screens/cohortBuilder/__tests__/journey-checkpoint3-material.test.tsx src/client/screens/cohortBuilder/__tests__/journey-checkpoint4-branch.test.tsx src/client/screens/cohortBuilder/__tests__/journey-checkpoint5-processing.test.tsx src/client/screens/cohortBuilder/__tests__/CohortWorkspacePane.test.tsx src/app/__tests__/tab-titles.test.ts
-   ```
-   - *Expected:* 100% pass.
-
-4. **Typecheck & Production Build Gate:**
+1. **TypeScript Type Check:**
    ```powershell
    npx tsc --noEmit
    ```
-   - *Expected:* Exit code `0` with zero TypeScript errors.
+   - **Expected Outcome:** Exit code `0` with zero TypeScript errors.
+
+2. **YouTube Metadata Route & Server Domain Unit Tests:**
+   ```powershell
+   npx vitest run src/app/api/import/youtube/metadata/__tests__/route.test.ts src/server/domain/cohort-builder/__tests__/journey-video-adapter.test.ts src/server/domain/cohort-builder/__tests__/journey-provider-safety.test.ts src/server/domain/cohort-builder/__tests__/text-jobs.test.ts
+   ```
+   - **Expected Outcome:** All 4 test suites pass (`100%` passing, including all 12 tests in `route.test.ts`).
+
+3. **Cohort Builder & Cohort Creation UI / Metadata Unit Tests:**
+   ```powershell
+   npx vitest run src/client/screens/cohortBuilder/__tests__/MaterialStageView.test.tsx src/client/screens/cohortBuilder/__tests__/DiscoveryStageView.test.tsx src/client/screens/cohortBuilder/__tests__/CohortWorkspacePane.test.tsx src/client/screens/cohortBuilder/__tests__/stage-selectors.test.ts src/client/screens/cohortCreation/__tests__/processing-details.test.tsx src/shared/cohort-builder/__tests__/cohort-metadata.test.ts
+   ```
+   - **Expected Outcome:** All 6 test suites pass (`100%` passing).
 
 ---
 
-## F. Completion report contract
+## Section F — Completion Report Contract
 
-When execution of this handoff guide is complete, return a concise completion report containing:
-1. **Status:** `COMPLETED` or `BLOCKED`
-2. **Changed Files List:** Every created and modified file path.
-3. **Verification Results:** Exact pass/fail counts and exit codes for commands 1–4 in Section E.
-4. **Deviations:** `None` (or exact explanation if any anchor required adjustment).
+When reporting execution completion, provide:
+1. Status of each step (`S1`–`S15`).
+2. Exact output of the verification commands in **Section E**.
+3. Confirmation that no untracked temporary files or placeholder comments were left behind.
