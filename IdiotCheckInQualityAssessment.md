@@ -1,9 +1,9 @@
-# Quality Assessment Report: Error Notifications, Diagnostics & Website-Wide Failure Feedback
+# Quality Assessment Report: Cohort Material Intake, Stage Transitions & System Health
 
 **Date**: 2026-11-01
 **Auditor**: Antigravity (IdiotCheckInQualityAssessment Protocol)
-**Git Baseline**: Commit `cf30f62580d44c65fde2c28fabbe7226420b78ea` (`master`, up to date with `origin/master`)
-**Scope**: All changes and integrations delivered under Guide G1 (`IdiotHandOffGuide-error-notifications-diagnostics.md`) and Guide G2 (`IditotHandOffGuideNotificationWebsiteWide.md`).
+**Git Baseline**: Commit `0603c64f` (`master`, synchronized with `origin/master`)
+**Scope**: All changes and integrations delivered under Guide G3 (`IdiotHandOffGuide-cohort-material-intake.md`), including shared contracts (`contracts.ts`), UI intake and discovery components (`MaterialStageView.tsx`, `DiscoveryStageView.tsx`, `StartingPoint.tsx`, `CohortWorkspacePane.tsx`, `ReadyStageView.tsx`), transition state machines, background verification pipelines (`npm run verify:vercel`), and regression suites across 150 test files.
 
 ---
 
@@ -11,22 +11,22 @@
 
 ### Overall Verdict: **CONDITIONAL ACCEPTANCE WITH REMEDIATIONS REQUIRED**
 
-The core architectural objectives across both implementation guides have been successfully established:
-1. **Infrastructure Delivered**: The root-mounted notification system (`ToastProvider`), failure hook (`useFailureToast`), event bus (`site-failures.ts`), and TanStack Query error bridge (`SiteFailureBridge.tsx`) are mounted and functional.
-2. **Surface Coverage**: 8 major product surfaces (Home, Play/Feed, StudyRoom, Personal Workspace/Notes, Messaging, Auth, Cohort Join, and Creation Workspace) have migrated away from disruptive inline error alert banners while preserving form drafts, local outbox commits, and cached data.
-3. **Build & Test Posture**: The regression suite of **135 test files and 1,045 tests passes with 100% success**, full Next.js production build (`npm run build`) succeeded across 50 pages, and the Vercel deployment pre-verification pipeline (`npm run verify:vercel`) passed cleanly.
+The implementation of Guide G3 has established the core functional intake and selection architecture:
+1. **Intake Restructuring Delivered**: The starting point selector was successfully simplified from 3 legacy choices to 2 distinct paths (`have_material` and `find_material`), routing directly into the revised URL-first `MaterialStageView` and `DiscoveryStageView`.
+2. **Back Navigation Repaired**: Ready screen navigation was decoupled from readiness guards (`requiresReady = false`), allowing creators to navigate back to material even if a build is incomplete.
+3. **Pipeline & Build Posture**: Full TypeScript check (`tsc --noEmit --incremental false`) passed with **0 errors**, the Vercel deployment pipeline (`npm run verify:vercel`) passed across all 5 stages in 88.5s (50/50 routes compiled statically/dynamically), and **150 test files with 1,191 automated tests passed with 100% success**.
+4. **Prior Remediations Maintained**: Fixes from Guides G1 and G2 (DM deletion in `useMessage.ts`, ref hydration in `ToastProvider.tsx`, and aria-labels in `PlayDesktop.tsx`) remain green and fully intact.
 
-However, an in-depth audit of real caller paths, state transitions, and ESLint compiler diagnostics reveals **1 High Severity functional defect** in Direct Messaging deletion, along with **3 Medium/Low Severity code hygiene and UX issues** that must be addressed.
+However, an exhaustive audit of caller trees, state transitions, ESLint diagnostics, and React lifecycle invariants reveals **1 High Severity React Hook violation** in `CohortWorkspacePane.tsx`, along with **3 Medium Severity logic and state consistency findings** and **2 Low Severity hygiene issues**.
 
 ### Scope Inventory
 
 | Area | Authoritative Files |
 |---|---|
-| **Core Toast & Feedback** | `src/client/components/global/Toast/ToastProvider.tsx`<br>`src/client/components/global/Toast/Toast.tsx`<br>`src/client/components/global/Toast/Toast.module.css`<br>`src/client/hooks/useFailureToast.ts`<br>`src/client/feedback/site-failures.ts`<br>`src/client/feedback/SiteFailureBridge.tsx`<br>`src/client/providers/ReactQueryProvider.tsx`<br>`src/client/react-query/query-client.ts` |
-| **Diagnostics & Logger** | `src/app/api/cohort-builder/workspaces/[workspaceId]/diagnostics/route.ts`<br>`src/client/providers/DevLoggerInit.tsx`<br>`src/client/providers/Diagnostics.module.css`<br>`src/shared/lib/dev-logger.ts` |
-| **Creation Workflows** | `src/client/components/global/LearningPromptBar/LearningPromptBar.tsx`<br>`src/client/screens/cohortBuilder/ChatPane.tsx`<br>`src/client/screens/cohortBuilder/CohortIntakeScreen.tsx`<br>`src/client/screens/cohortBuilder/components/ReleasePanel.tsx` |
-| **Media & Live Surfaces** | `src/client/screens/dashboard/home/hooks/useHome.ts`<br>`src/client/screens/dashboard/home/HomeDesktop.tsx`<br>`src/client/mobile/screens/Home/HomeMobile.tsx`<br>`src/client/screens/dashboard/play/hooks/usePlayback.ts`<br>`src/client/screens/dashboard/play/PlayDesktop.tsx`<br>`src/client/mobile/screens/Play/PlayMobile.tsx`<br>`src/client/screens/dashboard/studyroom/room/components/SharedSprintWidget.tsx`<br>`src/client/screens/dashboard/studyroom/components/RoomSettingsModal.tsx`<br>`src/client/screens/dashboard/studyroom/StudyRoomScreen.tsx` |
-| **Workspace, Messaging & Auth** | `src/client/personal-workspace/hooks/useLocalWorkspace.ts`<br>`src/client/personal-workspace/ui/connect-github-modal.tsx`<br>`src/client/screens/dashboard/notes/hooks/useNotes.ts`<br>`src/client/screens/dashboard/message/hooks/useMessage.ts`<br>`src/client/screens/auth/authForm/authForm.tsx`<br>`src/client/screens/cohort/components/JoinCohortButton.tsx` |
+| **Intake & Material UI** | `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx`<br>`src/client/screens/cohortBuilder/stages/MaterialStageView.module.css`<br>`src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx`<br>`src/client/screens/cohortCreation/components/StartingPoint.tsx`<br>`src/client/screens/cohortCreation/components/StartingPoint.module.css` |
+| **Workspace & Ready Views** | `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx`<br>`src/client/screens/cohortBuilder/stages/ReadyStageView.tsx`<br>`src/client/screens/cohortBuilder/stage-selectors.ts`<br>`src/shared/cohort-builder/cohort-metadata.ts` |
+| **Domain Contracts & Pipeline** | `src/shared/cohort-builder/contracts.ts`<br>`src/shared/cohort-builder/client-pipeline.ts`<br>`src/client/lib/sourceExtractors/youtubeClientExtractor.ts`<br>`src/client/lib/sourceExtractors/webClientExtractor.ts`<br>`src/server/domain/cohort-builder/text-assembly-acceptance.ts`<br>`src/server/domain/cohort-builder/tools.ts` |
+| **Test Suites** | `src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx`<br>`src/client/screens/cohortBuilder/__tests__/ready-stage-view.test.tsx`<br>`src/client/screens/cohortBuilder/__tests__/journey-checkpoint2-navigation.test.tsx`<br>`src/client/screens/cohortBuilder/__tests__/journey-checkpoint3-material.test.tsx`<br>`src/client/screens/cohortBuilder/__tests__/journey-checkpoint4-branch.test.tsx`<br>`src/client/screens/cohortBuilder/__tests__/journey-checkpoint5-processing.test.tsx`<br>`src/client/screens/cohortBuilder/__tests__/journey-stages.test.tsx`<br>`src/client/screens/cohortCreation/__tests__/CreationExperience.test.tsx`<br>`src/shared/cohort-builder/__tests__/contracts.test.ts`<br>`src/shared/cohort-builder/__tests__/journey-actions.test.ts` |
 
 ---
 
@@ -36,28 +36,27 @@ However, an in-depth audit of real caller paths, state transitions, and ESLint c
 
 | Req ID | Requirement Summary | Component / Route | Review Type | Result | Evidence / Finding ID |
 |---|---|---|---|---|---|
-| **G1-REQ-01** | Root `ToastProvider` mounted in `layout.tsx` | `src/app/layout.tsx` | Source, DOM | **Verified** | `ToastProvider` wraps main body & QueryClientProvider |
-| **G1-REQ-02** | `useFailureToast` hook for declarative error toasts | `useFailureToast.ts` | Tests, Source | **Verified** | 3 unit tests passed in `ToastProvider.test.tsx` |
-| **G1-REQ-03** | Server diagnostics route for workspace runs | `/api/.../diagnostics` | Route, Tests | **Verified** | Owner validation, Zod UUID, raw SQL query tested |
-| **G1-REQ-04** | Client DevLogger drawer (?debug=1) | `DevLoggerInit.tsx` | Source, CSS | **Verified** | Query param trigger, level switch, run inspector |
-| **G1-REQ-05** | Creation flows migrated to toasts | `LearningPromptBar`, `ChatPane`, `ReleasePanel` | Tests, Source | **Verified** | Form state kept on send/release failure |
-| **G2-REQ-01** | Site failure bus with cooldown & telemetry | `site-failures.ts` | Vitest, Source | **Verified** | 8000ms cooldown, queue buffer, dev-logger events |
-| **G2-REQ-02** | TanStack Query error bridge | `SiteFailureBridge.tsx`, `query-client.ts` | Vitest, Source | **Verified** | Global QueryCache/MutationCache calls bridge |
-| **G2-REQ-03** | Home pull-to-refresh & mutation feedback | `useHome.ts`, `HomeDesktop`, `HomeMobile` | Vitest, Source | **Verified** | Cached feed preserved on reload error |
-| **G2-REQ-04** | Play/Feed non-blocking error handling | `usePlayback.ts`, `PlayDesktop`, `PlayMobile` | Vitest, Source | **Verified** | Playback retained, retry button accessible |
-| **G2-REQ-05** | StudyRoom sprint & settings toasts | `SharedSprintWidget`, `RoomSettingsModal` | Vitest, Source | **Verified** | Active sprint state maintained during failure |
-| **G2-REQ-06** | Notes local-first outbox durability | `useLocalWorkspace.ts`, `connect-github-modal` | Vitest, Source | **Verified** | Local commits retained when remote push fails |
-| **G2-REQ-07** | Messaging pessimistic DM deletion | `useMessage.ts` | Source audit | **Finding** | **FINDING-MSG-01**: `channelId` passed as `messageId` |
-| **G2-REQ-08** | Auth & Cohort Join failure recovery | `authForm.tsx`, `JoinCohortButton.tsx` | Vitest, Source | **Verified** | Form preserved, no false joined status |
+| **G3-S01** | URL input first in `MaterialStageView` | `MaterialStageView.tsx` | Vitest, Source | **Verified** | URL input first in DOM; previews precede form |
+| **G3-S02** | Styles for `MaterialStageView` | `MaterialStageView.module.css` | Source, Build | **Verified** | Layout and responsive CSS validated |
+| **G3-S03** | `DiscoveryStageView` with goal search | `DiscoveryStageView.tsx` | Vitest, Source | **Verified** | Dispatches `start_discovery` and `select_discovery_resources` |
+| **G3-S04** | 2-choice StartingPoint selector | `StartingPoint.tsx` | Vitest, Source | **Verified** | Choices `have_material` and `find_material` rendered |
+| **G3-S05** | Styles for `StartingPoint` | `StartingPoint.module.css` | Source, Build | **Verified** | Verified with `StartingPointArt` decorations |
+| **G3-S06** | `CohortWorkspacePane` route `goal_setup` to discovery | `CohortWorkspacePane.tsx` | Vitest, Source | **Finding** | **FINDING-HOOK-01**: `useEffect` called after early return |
+| **G3-S07** | Strict domain schemas & batch actions | `contracts.ts` | Vitest, Source | **Verified** | `CohortStartingPointChoice`, `add_youtube_sources_batch` |
+| **G3-G02** | Ready stage Back button navigation repair | `ReadyStageView.tsx` | Vitest, Source | **Finding** | **FINDING-READY-01**: `handleActivate` ignores failure; unconditional success heading |
+| **G3-T01** | Unit tests for material intake | `material-stage-view.test.tsx` | Vitest | **Verified** | 12/12 unit tests passing |
+| **G3-T02** | Checkpoint 3 material intake tests | `journey-checkpoint3-material.test.tsx` | Vitest | **Verified** | 12/12 integration tests passing |
+| **G3-T03** | Checkpoint 4 discovery & goal tests | `journey-checkpoint4-branch.test.tsx` | Vitest | **Verified** | 14/14 branch integration tests passing |
+| **G3-G04** | Dedicated ReadyStageView Back tests | `ready-stage-view.test.tsx` | Vitest | **Verified** | 3/3 tests verify Back button dispatches when !ready |
 
 ### Accounting for the Six Finding Categories
 
-- **Category A (Pending or half-finished implementation)**: Evaluated. None found. All guide instructions, imports, routes, and hooks are fully connected.
-- **Category B (Symptom-only fixes and unresolved root causes)**: Evaluated. Pessimistic deletion was implemented to avoid optimistic ghost deletion, but uncovered a parameter inversion bug in the underlying call (`FINDING-MSG-01`).
-- **Category C (Existing defects, breakage, and regressions)**: Evaluated. Found 1 functional regression in DM deletion (`FINDING-MSG-01`).
-- **Category D (Quality-standard gaps)**: Evaluated. Found 3 issues: React ref mutation during render (`FINDING-LINT-01`), `setState` in effect for portal hydration (`FINDING-TOAST-01`), and unlabelled desktop retry button (`FINDING-PLAY-01`).
-- **Category E (Dead code and unused artifacts)**: Evaluated. Unused imports in `StudyRoomScreen.tsx` and legacy error divs were cleanly pruned during Phase 2.
-- **Category F (Duplication and overengineering)**: Evaluated. Centralization of failure text in `failureMessages` prevented duplication across 10+ surface files.
+- **Category A (Pending or half-finished implementation)**: Evaluated. In `MaterialStageView.tsx`, "Upload a file" and "Paste text" buttons are disabled with `title="Temporarily unavailable"`. This is an intentional spec decision to enforce URL-first intake without eliminating the affordance. In `src/server/domain/cohort-builder/tools.ts`, `start_discovery` is omitted from `STAGE_TOOL_NAMES['chat']` (`FINDING-TOOL-01`).
+- **Category B (Symptom-only fixes and unresolved root causes)**: Evaluated. In `ReadyStageView.tsx`, the Back button was decoupled from `requiresReady`, resolving the button trap. However, the screen's main heading ("All set. Your learning experience is ready.") remains unconditional even when `ready === false`, presenting a contradictory UI state (`FINDING-READY-02`).
+- **Category C (Existing defects, breakage, and regressions)**: Evaluated. Found 1 critical React lifecycle defect: conditional hook execution in `CohortWorkspacePane.tsx` (`FINDING-HOOK-01`), and unhandled error swallowing during activation in `ReadyStageView.tsx` (`FINDING-READY-01`).
+- **Category D (Quality-standard gaps)**: Evaluated. Found 2 code-quality issues: synchronous `setState` inside effect (`FINDING-HOOK-02`) and raw `<img>` element instead of `<Image />` in `MaterialStageView.tsx` (`FINDING-LINT-01`).
+- **Category E (Dead code and unused artifacts)**: Evaluated. `GoalStageView.tsx` and `GoalStageView.module.css` are no longer rendered anywhere in the application runtime after routing was unified into `DiscoveryStageView` (`FINDING-DEAD-01`).
+- **Category F (Duplication and overengineering)**: Evaluated. Legacy `goal_setup` branch aliasing in `CohortWorkspacePane.tsx` duplicates the `DiscoveryStageView` render branch; can be unified once migration of old drafts is complete.
 
 ---
 
@@ -65,177 +64,210 @@ However, an in-depth audit of real caller paths, state transitions, and ESLint c
 
 ### High Severity
 
-#### `FINDING-MSG-01` — `deleteDMMessage` passes `channelId` instead of `messageId` to `messagesRepository.deleteMessage`
-- **Category**: Category C (Existing defect / Functional breakage)
+#### `FINDING-HOOK-01` — React Hook `useEffect` is called conditionally after an early return in `CohortWorkspacePane.tsx`
+- **Category**: Category C (Defect / React Rules of Hooks Violation)
 - **Severity**: **High**
-- **Affected Requirement**: G2-REQ-07 (Messaging DM Deletion)
-- **Source Location**: [src/client/screens/dashboard/message/hooks/useMessage.ts:1268-1278](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/dashboard/message/hooks/useMessage.ts#L1268-L1278)
-- **Preconditions**: User has an active Direct Message conversation and triggers "Delete Message".
+- **Affected Requirement**: G3-S06 (`CohortWorkspacePane.tsx` Component Lifecycle)
+- **Source Location**: [src/client/screens/cohortBuilder/CohortWorkspacePane.tsx:280-309](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/cohortBuilder/CohortWorkspacePane.tsx#L280-L309)
 - **Observed Code**:
-  ```ts
-  const deleteDMMessage = useCallback(
-    (dmId: string, messageId: string) => {
-      const channelId = conversationsList.find(conversation => conversation.id === dmId)?.channelId;
-      if (!channelId) return;
-      const owner = currentUserId;
-      void messagesRepository.deleteMessage(channelId, messageId).then(() => {
-        if (actionAccount.current !== owner) return;
-        setMessagesByChannel(previous => ({ ...previous, [channelId]: (previous[channelId] ?? []).filter(message => message.id !== messageId) }));
-      }).catch(() => reportSiteFailure('message'));
-    },
-    [conversationsList, currentUserId]
-  );
+  ```tsx
+  if (!workspace) {
+    return <div className={styles.rightPane}>Loading workspace state...</div>;
+  }
+
+  const progress = getProcessingProgress(workspace);
+  const activeStage = getActiveStage(workspace);
+  // ...
+  useEffect(() => {
+    if (inspectedStage) {
+      const inspectedStep = progress.steps.find(s => stepToStageMap[s.label] === inspectedStage);
+      if (!inspectedStep || (!inspectedStep.isComplete && !inspectedStep.isCurrent && !inspectedStep.isFailed)) {
+        setInspectedStage(null);
+      }
+    }
+  }, [activeStage, progress.steps, inspectedStage]);
   ```
 - **Root Cause**:
-  `messagesRepository.deleteMessage` has the signature:
-  `async deleteMessage(messageId: string, reason?: string): Promise<CanonicalMessagePayload>`
-  which calls `fetch(apiUrl('/api/messages/' + messageId), { method: 'DELETE', body: JSON.stringify({ reason }) })`.
-  Passing `(channelId, messageId)` results in `DELETE /api/messages/${channelId}` with `{ reason: messageId }`.
-- **Expected vs Actual**:
-  - *Expected*: `messagesRepository.deleteMessage(messageId)` sends the message ID to the route `/api/messages/[messageId]`.
-  - *Actual*: The channel ID is sent as the route param, causing the server to return 404 or fail to find the message. Deletion always fails and reports `reportSiteFailure('message')`.
-- **Attribution**: Pre-existing in legacy code, propagated during G2 pessimistic refactor.
+  `useEffect` is defined on line 302, which is positioned *after* the early return guard `if (!workspace) return ...;` on line 280.
+- **Impact**:
+  Violates React's fundamental invariant: hooks must execute in the exact same sequence on every render. If `workspace` is null during initial load (e.g. slow network or first mount) and subsequently populated, React throws `Rendered more hooks than during the previous render` in development and causes undefined behavior in production.
+- **Attribution**: Introduced in Guide G3 / pre-existing in pane refactor.
 - **Remediation**:
-  Change line 1272 to:
-  ```ts
-  void messagesRepository.deleteMessage(messageId).then(() => {
-  ```
+  Hoist all hooks (`useMemo`, `useEffect`) above any conditional early returns, or compute `inspectedStage` reset inline / using a helper hook before checking `if (!workspace)`.
 
 ---
 
 ### Medium Severity
 
-#### `FINDING-LINT-01` — `useMessage` updates `actionAccount` ref during render phase and violates hook naming rules
-- **Category**: Category D (Quality-standard gap / React Compiler rule violation)
+#### `FINDING-READY-01` — `ReadyStageView.handleActivate` executes `open_review` without checking if `prepare_release` succeeded
+- **Category**: Category C (State Consistency / Error Handling)
 - **Severity**: **Medium**
-- **Affected Requirement**: React Hooks rules & React Compiler safety
-- **Source Location**: [src/client/screens/dashboard/message/hooks/useMessage.ts:35, 43, 79](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/dashboard/message/hooks/useMessage.ts#L35)
-- **Trigger**: Any render of `useMessage()`.
+- **Affected Requirement**: G3-G02 (Ready Stage Activation Actions)
+- **Source Location**: [src/client/screens/cohortBuilder/stages/ReadyStageView.tsx:57-61](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/cohortBuilder/stages/ReadyStageView.tsx#L57-L61)
 - **Observed Code**:
   ```ts
-  // Line 78-79
-  const actionAccount = useRef(currentUserId);
-  actionAccount.current = currentUserId; // <-- Mutating ref during render
+  const handleActivate = async () => {
+    // Prepare private activation
+    await dispatchAction({ type: 'prepare_release', mode: 'private_activation' });
+    await dispatchAction({ type: 'open_review' });
+  };
   ```
-  ```ts
-  // Line 35, 43
-  function safeUseSession() { return useSession(); } // <-- Hook name doesn't start with "use"
-  function safeUseRealtime() { return useRealtime(); }
-  ```
-- **Root Cause**: Direct assignment to `ref.current` inside the render function body is flagged by ESLint rule `react-compiler` / `react-hooks/rules-of-hooks` because concurrent mode renders may discard or re-execute render passes.
+- **Root Cause**:
+  `dispatchAction` returns a `Promise<boolean>` indicating whether the state mutation succeeded. `handleActivate` ignores the boolean returned by `prepare_release` and unconditionally proceeds to dispatch `open_review`.
 - **Expected vs Actual**:
-  - *Expected*: Ref updates are performed inside `useEffect` or callbacks; hooks start with `use`.
-  - *Actual*: ESLint errors `Error: Cannot access refs during render` and `React Hook is called in function safeUseSession that is neither a React function component nor a custom React Hook`.
-- **Attribution**: `safeUse...` pre-existing; `actionAccount.current` introduced in G2.
+  - *Expected*: If `prepare_release` fails (e.g. release validation error, missing title/description, or network failure), activation stops and displays feedback to the creator.
+  - *Actual*: The failure is ignored, and `open_review` is dispatched regardless, causing a cascade of errors or transitioning the creator to review without preparing the release payload.
+- **Attribution**: Introduced in Guide G3 / Section G02.
 - **Remediation**:
-  1. Rename `safeUseSession` to `useSafeSession` and `safeUseRealtime` to `useSafeRealtime`.
-  2. Move ref assignment to `useEffect(() => { actionAccount.current = currentUserId; }, [currentUserId]);`.
+  Check the return value:
+  ```ts
+  const handleActivate = async () => {
+    const prepared = await dispatchAction({ type: 'prepare_release', mode: 'private_activation' });
+    if (!prepared) return;
+    await dispatchAction({ type: 'open_review' });
+  };
+  ```
+
+#### `FINDING-READY-02` — `ReadyStageView` displays unconditional success heading when build is incomplete
+- **Category**: Category B (Symptom-only fix / UI State Inconsistency)
+- **Severity**: **Medium**
+- **Affected Requirement**: G3-G02 (Ready Stage Presentation)
+- **Source Location**: [src/client/screens/cohortBuilder/stages/ReadyStageView.tsx:73-86](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/cohortBuilder/stages/ReadyStageView.tsx#L73-L86)
+- **Observed Code**:
+  ```tsx
+  <header className={styles.heading}>
+    <p className={styles.eyebrow}>Your learning experience is ready</p>
+    <h1>All set.</h1>
+    <p>I’ve turned your material into a learning experience...</p>
+  </header>
+  ```
+- **Root Cause**:
+  `computeActiveStage(workspace)` returns `'ready'` whenever `workspace.journey.step === 'ready'`. However, `workspace.processing.status` can be `'processing'`, `'queued'`, or `'failed'` if sources were subsequently added or preferences changed. In this scenario, `ReadyStageView` renders with disabled primary buttons and a badge saying "Build not complete", but the main heading unconditionally proclaims "All set. Your learning experience is ready".
+- **Impact**:
+  User is presented with contradictory messaging: a triumphant "All set" announcement alongside disabled action buttons and a "Build not complete" badge.
+- **Attribution**: Pre-existing in `ReadyStageView`, highlighted by the state-machine diagnosis.
+- **Remediation**:
+  Render conditional copy based on `ready`:
+  ```tsx
+  <header className={styles.heading}>
+    <p className={styles.eyebrow}>{ready ? 'Your learning experience is ready' : 'Building your curriculum'}</p>
+    <h1>{ready ? 'All set.' : 'In progress.'}</h1>
+    <p>{ready ? 'I’ve turned your material into a learning experience...' : 'Your material is being processed into lessons...'}</p>
+  </header>
+  ```
+
+#### `FINDING-TOOL-01` — `start_discovery` AI tool is omitted from the `chat` stage toolset
+- **Category**: Category A (Incomplete Tool Integration)
+- **Severity**: **Medium**
+- **Affected Requirement**: Discovery & AI Co-Design
+- **Source Location**: [src/server/domain/cohort-builder/tools.ts:35-40](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/server/domain/cohort-builder/tools.ts#L35-L40)
+- **Observed Code**:
+  ```ts
+  chat: [
+    ...ALWAYS_TOOLS, 'set_audience', 'set_daily_minutes', 'edit_presentation',
+    'add_lesson', 'draft_curriculum', 'edit_lesson', 'remove_lesson', 'reorder_lessons', 'set_lesson_pin',
+    'add_web_source', 'add_youtube_source', 'add_github_source',
+    'add_text_source', 'add_pdf_source',
+  ],
+  ```
+- **Root Cause**:
+  `ALWAYS_TOOLS` contains `start_search` (which searches community cohorts), but does not contain `start_discovery` (which finds learning resources for a goal). While `CO_DESIGN_TOOLS` includes `start_discovery`, the `chat` stage explicitly defines its tool list and omits `start_discovery`.
+- **Impact**:
+  When a user asks the AI assistant in the chat pane to find YouTube videos or articles for a learning topic, the AI cannot invoke the resource discovery tool.
+- **Attribution**: Pre-existing in tool routing.
+- **Remediation**:
+  Include `start_discovery` in `STAGE_TOOL_NAMES['chat']`.
 
 ---
 
 ### Low Severity
 
-#### `FINDING-TOAST-01` — `ToastProvider` performs synchronous `setState` in mount effect
-- **Category**: Category D (Quality-standard gap / ESLint rule violation)
+#### `FINDING-HOOK-02` — Synchronous `setState` inside `useEffect` causes cascading render in `CohortWorkspacePane.tsx`
+- **Category**: Category D (Quality Standard / ESLint `react-hooks/set-state-in-effect`)
 - **Severity**: **Low**
-- **Affected Requirement**: React Hooks performance conventions
-- **Source Location**: [src/client/components/global/Toast/ToastProvider.tsx:12](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/components/global/Toast/ToastProvider.tsx#L12)
-- **Observed Code**:
-  ```ts
-  const [mounted, setMounted] = useState(false);
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-  useEffect(() => setMounted(true), []);
-  ```
-- **Root Cause**: Standard SSR hydration portal check triggers ESLint warning `react-hooks/set-state-in-effect`.
-- **Impact**: Harmless in production (deliberate SSR hydration barrier for `document.body` portal), but causes ESLint run failure.
-- **Remediation**:
-  Add `// eslint-disable-next-line react-hooks/set-state-in-effect` or implement with `useSyncExternalStore`.
-
-#### `FINDING-PLAY-01` — Floating completion retry pill in `PlayDesktop` lacks descriptive label
-- **Category**: Category D (Quality-standard gap / Accessibility)
-- **Severity**: **Low**
-- **Affected Requirement**: Accessible interactive elements & non-blocking recovery UX
-- **Source Location**: [src/client/screens/dashboard/play/PlayDesktop.tsx:156-178](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/dashboard/play/PlayDesktop.tsx#L156-L178)
+- **Source Location**: [src/client/screens/cohortBuilder/CohortWorkspacePane.tsx:302-309](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/cohortBuilder/CohortWorkspacePane.tsx#L302-L309)
 - **Observed Code**:
   ```tsx
-  {playback.completionError && (
-    <div className={styles.feedbackToast}>
-      <button
-        type="button"
-        onClick={() => void playback.completeActiveChunk()}
-        ...
-      >
-        Retry
-      </button>
-    </div>
-  )}
+  useEffect(() => {
+    if (inspectedStage) {
+      const inspectedStep = progress.steps.find(s => stepToStageMap[s.label] === inspectedStage);
+      if (!inspectedStep || (!inspectedStep.isComplete && !inspectedStep.isCurrent && !inspectedStep.isFailed)) {
+        setInspectedStage(null);
+      }
+    }
+  }, [activeStage, progress.steps, inspectedStage]);
   ```
-- **Impact**: While `useFailureToast` fires the top-right notification text, this secondary floating pill appears at the bottom with only the word "Retry" and no label indicating what is being retried.
+- **Root Cause**:
+  Synchronous state update inside `useEffect` body triggers an immediate secondary render cycle.
 - **Remediation**:
-  Add `aria-label="Retry saving completion progress"` to the button, or render "Could not save progress • Retry".
+  Derive valid inspected stage during render or memoize the stage validity instead of synchronizing via state.
+
+#### `FINDING-DEAD-01` — `GoalStageView.tsx` and `GoalStageView.module.css` are orphaned from production runtime
+- **Category**: Category E (Dead Code / Unused Artifacts)
+- **Severity**: **Low**
+- **Source Location**: [src/client/screens/cohortBuilder/stages/GoalStageView.tsx](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/cohortBuilder/stages/GoalStageView.tsx)
+- **Observed Code**:
+  `CohortWorkspacePane.tsx` routes both `discovery` and `goal_setup` stages to `DiscoveryStageView`. `GoalStageView` is only referenced in test files.
+- **Impact**:
+  Maintenance overhead of maintaining a duplicate goal screen that is never displayed to end users.
+- **Remediation**:
+  Safely decommission `GoalStageView.tsx` and update legacy tests to exercise `DiscoveryStageView`.
+
+#### `FINDING-LINT-01` — Native `<img>` tag used for YouTube thumbnails in `MaterialStageView.tsx`
+- **Category**: Category D (Quality Standard / Next.js Image Optimization)
+- **Severity**: **Low**
+- **Source Location**: [src/client/screens/cohortBuilder/stages/MaterialStageView.tsx:52](file:///d:/ThisPC/Documents/SideQuestHQ/undone-site/src/client/screens/cohortBuilder/stages/MaterialStageView.tsx#L52)
+- **Observed Code**:
+  ```tsx
+  <img className={styles.thumbnail} src={'https://i.ytimg.com/vi/'+videoId+'/hqdefault.jpg'} alt="" loading="lazy" referrerPolicy="no-referrer" />
+  ```
+- **Impact**:
+  Triggers `@next/next/no-img-element` warning during linting.
+- **Remediation**:
+  Add `i.ytimg.com` to `remotePatterns` in `next.config.js` and use Next.js `<Image />` component with fixed width/height.
 
 ---
 
 ## 4. Checks and Evidence
 
-### Executed Verification Commands
-
-1. **New Feedback Subsystem Unit Tests**:
-   - `npx vitest run src/client/feedback/__tests__`
-   - *Result*: **3 passed (3 files), 4 passed (4 tests)** in 971ms.
-2. **Full Subsystem Regression Test Suite**:
-   - `npx vitest run src/client/screens/dashboard/home src/client/mobile/screens/Home src/client/screens/dashboard/explore src/client/screens/dashboard/play src/client/mobile/screens/Play src/client/screens/dashboard/message src/client/screens/dashboard/studyroom src/client/screens/auth src/client/screens/cohort src/client/personal-workspace`
-   - *Result*: **135 passed (135 files), 1,045 passed (1,045 tests)** in 43.84s.
-3. **TypeScript Strict Type Check**:
-   - `npx tsc --noEmit --incremental false`
-   - *Result*: **0 errors** (Command exited with code 0).
-4. **Next.js Production Build Simulation**:
-   - `npm run build`
-   - *Result*: Prisma client generated, sub-packages built (`@undone/notes-board`, `interaction-builder`), 50 static/dynamic pages compiled, **0 errors**.
-5. **Git Whitespace & Diff Sanity**:
-   - `git diff --check`
-   - *Result*: Clean (no trailing whitespace or conflict markers).
-6. **Vercel Pre-Deployment Pipeline**:
-   - `npm run verify:vercel`
-   - *Result*: `✔ Checking Git Submodules PASSED`, `✔ Building Internal Packages PASSED`, `✔ Prisma Client Generation PASSED`, `✔ TypeScript Verification PASSED`, `✔ Production Build Simulation PASSED`. Total time: 44.9s.
-7. **Static Code Analysis (ESLint)**:
-   - `npx eslint src/client/feedback ...`
-   - *Result*: Detected `react-hooks/set-state-in-effect` in `ToastProvider.tsx` and ref access violation in `useMessage.ts`.
+| Check ID | Tool / Command | Target / Scope | Result | Observed Evidence |
+|---|---|---|---|---|
+| **CHK-01** | `npm run verify:vercel` | Full repo build & submodules | **PASSED** (88.5s) | Submodules ok, internal packages built, Prisma client generated, TSC passed (29.6s), Production build simulation compiled 50/50 pages (45.5s) |
+| **CHK-02** | `npx tsc --noEmit --incremental false` | Whole project types | **PASSED** (29.6s) | 0 type errors |
+| **CHK-03** | `git diff --check` | Working tree whitespace | **PASSED** | 0 whitespace or formatting errors |
+| **CHK-04** | `npx vitest run src/client/screens/cohortBuilder src/client/screens/cohortCreation src/shared/cohort-builder` | Cohort builder unit & integration | **PASSED** (25.4s) | 65 test files, 572 tests passed (100%) |
+| **CHK-05** | `npx vitest run src/client/feedback src/client/components/global/Toast src/client/screens/dashboard src/client/personal-workspace` | Dashboard & Feedback surfaces | **PASSED** (25.8s) | 85 test files, 619 tests passed (100%) |
+| **CHK-06** | `npx eslint` on G3 modified files | S1–S7 and G2 modified files | **FAILED** (Code 1) | Detected conditional `useEffect` in `CohortWorkspacePane.tsx` (`react-hooks/rules-of-hooks`) and `<img>` warning in `MaterialStageView.tsx` |
 
 ---
 
 ## 5. Unverified Risks and Blocked Investigation
 
-1. **Centrifugo Realtime WebSocket Cluster**:
-   - *Risk*: `SiteFailureBridge` and `useMessage` rely on Centrifugo for live reaction and typing broadcasts. While mocked cleanly in Vitest, reconnect behavior under high network jitter on a real mobile device requires live staging environment access.
-   - *Next Concrete Check*: Test with Centrifugo container running in local Docker stack with throttled network profile in Chrome DevTools.
-2. **GitHub App OAuth Redirect in Production**:
-   - *Risk*: `connect-github-modal.tsx` uses `window.open` popup communication (`UNDONE_GITHUB_AUTH_SUCCESS`). Browsers with aggressive popup blockers might force the fallback redirect flow.
-   - *Next Concrete Check*: Test OAuth authorization flow on Safari iOS and Firefox with strict popup blocking enabled.
+1. **Third-Party YouTube API Rate Limits**:
+   - Client calls `/api/import/youtube/metadata` to inspect playlist items. If the YouTube API key quota is exhausted in production, playlists fail gracefully, but fall back to single video URLs. Verified non-fatal in unit tests, but real network behavior depends on deployment environment credentials.
+2. **Server Background Worker Queuing**:
+   - Non-deterministic video observation pipelines schedule asynchronous background extraction jobs. The unit tests mock the job scheduler; real production worker latency under high concurrency remains to be monitored via `worker-diagnostics.ts`.
 
 ---
 
 ## 6. Correction Order and Completion Criteria
 
-### Remediation Steps (in Dependency Order)
+To elevate the cohort creation workflow from **Conditional Acceptance** to **Full Perfection**, apply the following targeted remediations in dependency order:
 
-1. **Step 1: Fix DM Message Deletion Parameter Inversion (`FINDING-MSG-01`)**
-   - In `src/client/screens/dashboard/message/hooks/useMessage.ts`:
-     Change `messagesRepository.deleteMessage(channelId, messageId)` to `messagesRepository.deleteMessage(messageId)`.
-   - *Regression Verification*: Run `npx vitest run src/client/screens/dashboard/message`.
-2. **Step 2: Correct Hook Naming and Ref Mutation in `useMessage` (`FINDING-LINT-01`)**
-   - Rename `safeUseSession` -> `useSafeSession`, `safeUseRealtime` -> `useSafeRealtime`.
-   - Wrap `actionAccount.current = currentUserId` into `useEffect`.
-   - *Regression Verification*: Run `npx eslint src/client/screens/dashboard/message/hooks/useMessage.ts`.
-3. **Step 3: Add ESLint Suppression to `ToastProvider` Hydration Effect (`FINDING-TOAST-01`)**
-   - Add `// eslint-disable-next-line react-hooks/set-state-in-effect` above `setMounted(true)`.
-   - *Regression Verification*: Run `npx eslint src/client/components/global/Toast/ToastProvider.tsx`.
-4. **Step 4: Enhance Accessibility of Floating Retry Pill in `PlayDesktop` (`FINDING-PLAY-01`)**
-   - Add `aria-label="Retry saving completion progress"` to the button in `PlayDesktop.tsx:160`.
-   - *Regression Verification*: Run `npx vitest run src/client/screens/dashboard/play/__tests__/PlayDesktop.test.tsx`.
+1. **Phase 1: React Lifecycle & Hook Safety (`FINDING-HOOK-01` & `FINDING-HOOK-02`)**:
+   - Move `useEffect` in `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` above the `if (!workspace)` guard.
+   - Refactor `inspectedStage` validity check so it does not trigger cascading synchronous `setState`.
+   - *Verification*: `npx eslint src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` passes with 0 errors.
 
----
+2. **Phase 2: Ready Stage Error Safety & Heading Truthfulness (`FINDING-READY-01` & `FINDING-READY-02`)**:
+   - In `src/client/screens/cohortBuilder/stages/ReadyStageView.tsx`, guard `open_review` with `if (!prepared) return;`.
+   - Update header copy to show "In progress" when `!ready` instead of "All set".
+   - *Verification*: Run `ready-stage-view.test.tsx` and assert correct status copy on incomplete builds.
 
-### Conclusion
+3. **Phase 3: AI Chat Tool Parity (`FINDING-TOOL-01`)**:
+   - In `src/server/domain/cohort-builder/tools.ts`, add `'start_discovery'` to `STAGE_TOOL_NAMES['chat']`.
+   - *Verification*: Run `src/server/domain/cohort-builder/__tests__/external-tools.test.ts`.
 
-The codebase demonstrates exceptionally high architectural discipline and test coverage (1,045 tests passing). The findings above represent isolated edge-case fixes that can be cleanly corrected in a single targeted commit without architectural disruption.
+4. **Phase 4: Dead Code Pruning (`FINDING-DEAD-01`)**:
+   - Remove `GoalStageView.tsx` and `GoalStageView.module.css` or archive them.
+   - *Verification*: Run `journey-checkpoint4-branch.test.tsx`.
