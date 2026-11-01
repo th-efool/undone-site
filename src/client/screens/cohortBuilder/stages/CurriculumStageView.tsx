@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Edit3, Globe2, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, Check, Edit3, Globe2, Image as ImageIcon, X } from 'lucide-react';
 import type { EntityRef } from 'interaction-builder/core';
 import type {
   CohortAction,
@@ -345,6 +345,16 @@ export function CurriculumStageView({
     <section className={styles.workspace} aria-label="Editable cohort preview">
       <header className={styles.reviewToolbar}>
         <div>
+          <button
+            type="button"
+            className={styles.backBtn}
+            onClick={async () => {
+              await dispatchAction({ type: 'close_panel' });
+            }}
+            aria-label="Return to conversational chat"
+          >
+            <ArrowLeft size={16} aria-hidden="true" /> Return to chat
+          </button>
           <h2>Editable preview</h2>
           <p>These are the two pages learners will see after publication.</p>
         </div>

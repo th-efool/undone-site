@@ -125,11 +125,28 @@ describe('conversational co-design transitions', () => {
       expect(planCohortAction(chat(), { type: 'choose_starting_point', choice }, context).nextState.journey?.branch).toBe(choice);
     }
   });
-  it('opens review when drafting without masking active processing', () => {
+  it('preserves chat planning when drafting lessons and requires explicit review navigation', () => {
     const action = { type: 'add_lesson' as const, title: 'Foundations', objective: 'Apply foundations' };
-    expect(planCohortAction(chat(), action, context).nextState).toMatchObject({ journey: { step: 'review' }, processing: { status: 'ready' } });
-    const busy = chat(); busy.processing.status = 'queued';
-    expect(planCohortAction(busy, action, context).nextState.processing.status).toBe('queued');
+    const drafted = planCohortAction(chat(), action, context).nextState;
+    expect(drafted.journey?.step).toBe('chat');
+    expect(drafted.lessons).toHaveLength(1);
+    expect(drafted.processing.status).toBe('idle');
+
+    // Explicit open_review transitions to review
+    const reviewed = planCohortAction(drafted, { type: 'open_review' }, context).nextState;
+    expect(reviewed.journey?.step).toBe('review');
+    expect(reviewed.processing.status).toBe('ready');
+
+    // Return to planning / close panel returns to chat
+    const returned = planCohortAction(reviewed, { type: 'return_to_planning' }, context).nextState;
+    expect(returned.journey?.step).toBe('chat');
+
+    // open_review from chat requires at least one lesson
+    expect(() => planCohortAction(chat(), { type: 'open_review' }, context)).toThrow('NO_LESSONS');
+
+    // open_review rejects if processing is active
+    const busy = { ...drafted, processing: { ...drafted.processing, status: 'queued' as const } };
+    expect(() => planCohortAction(busy, { type: 'open_review' }, context)).toThrow('PROCESSING_ACTIVE');
   });
   it.each(['chat', 'review'] as const)('generates a guide directly from %s', step => {
     const state: CohortWorkspace = chat(); state.journey!.step = step;

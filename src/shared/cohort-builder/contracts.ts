@@ -241,6 +241,7 @@ export type YoutubeBatchItem = z.infer<typeof youtubeBatchItemSchema>;
 export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('start_search'), query: z.string().trim().min(1).max(400) }),
   z.strictObject({ type: z.literal('close_panel') }),
+  z.strictObject({ type: z.literal('return_to_planning') }),
   z.strictObject({ type: z.literal('create_own_cohort') }),
   z.strictObject({ type: z.literal('choose_starting_point'), choice: z.enum(['have_material', 'find_material', 'have_goal']) }),
   z.strictObject({ type: z.literal('back_to_recommendations') }),
@@ -356,7 +357,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     delete next.discovery;
     return navigationResult(`Searching cohorts for "${action.query}".`);
   }
-  if (action.type === 'close_panel') {
+  if (action.type === 'close_panel' || action.type === 'return_to_planning') {
     const current = journey();
     current.step = 'chat';
     delete next.recommendations;
@@ -503,9 +504,23 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return navigationResult('Source processing requested.');
   }
   if (action.type === 'open_review') {
-    const current = requireStep('ready');
-    if (next.processing.status !== 'ready' || !next.processing.sourceFingerprint || !next.lessons.length) throw new Error('ASSEMBLY_NOT_READY');
-    current.step = 'review'; return navigationResult('Curriculum review opened.');
+    const current = requireStep('ready', 'chat');
+    if (current.step === 'ready') {
+      if (next.processing.status !== 'ready' || !next.processing.sourceFingerprint || !next.lessons.length) {
+        throw new Error('ASSEMBLY_NOT_READY');
+      }
+    } else {
+      if (!next.lessons.length) throw new Error('NO_LESSONS');
+      if (['queued', 'processing'].includes(next.processing.status) ||
+          next.processing.jobs?.some(job => ['queued', 'running'].includes(job.status))) {
+        throw new Error('PROCESSING_ACTIVE');
+      }
+      if (next.processing.status !== 'ready') {
+        next.processing = { ...next.processing, status: 'ready', stage: 'done', error: null };
+      }
+    }
+    current.step = 'review';
+    return navigationResult('Curriculum review opened.');
   }
   if (next.journey && !next.journey.processingStarted && (action.type === 'retry_processing' || action.type === 'retry_text_job')) throw new Error('PROCESSING_NOT_STARTED');
   if (action.type === 'retry_text_job') {
@@ -778,13 +793,6 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       pinned: false,
     };
     next.lessons.push(newLesson);
-    if (next.journey?.step === 'chat') {
-      next.journey.step = 'review';
-      if (!['queued', 'processing'].includes(next.processing.status) &&
-          !next.processing.jobs?.some(job => ['queued', 'running'].includes(job.status))) {
-        next.processing = { ...next.processing, status: 'ready', stage: 'done', error: null };
-      }
-    }
     touch(newLesson);
     invalidated.push('curriculum');
     return { nextState: next, changed, invalidated, summary: `Added lesson: ${newLesson.title}`, undoable: true };

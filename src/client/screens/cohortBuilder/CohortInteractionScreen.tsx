@@ -76,6 +76,8 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
       state.view.processing.status === 'queued' ||
       (state.view.processing.status as string) === 'running'
       ? 'processing'
+      : isChatStep
+      ? 'chat'
       : state.view.lessons.length > 0 || (state.view.release && state.view.release.status !== 'draft')
       ? 'review'
       : 'material'
@@ -132,6 +134,18 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
           </Link>
           {isChatStep ? (
             <div className={styles.tools}>
+              {state.view?.lessons && state.view.lessons.length > 0 && (
+                <button
+                  type="button"
+                  className={styles.reviewNavButton}
+                  onClick={async () => {
+                    await dispatchAction({ type: 'open_review' });
+                  }}
+                  aria-label="Review curriculum workspace"
+                >
+                  Review curriculum ({state.view.lessons.length})
+                </button>
+              )}
               <span className={styles.srOnly}>Rev #{state.revision}</span>
               <ThemeToggle />
               <Link href="/home" className={styles.account} aria-label="Open your account">
@@ -246,7 +260,7 @@ export function CohortInteractionScreen({
 }: CohortInteractionScreenProps) {
   const logger = useMemo(() => devLogger.scoped('CohortInteractionScreen'), []);
   const { data: session, status } = useSession();
-  const transport = useMemo(() => createCohortTransport(workspaceId), [workspaceId, ownerId]);
+  const transport = useMemo(() => createCohortTransport(workspaceId), [workspaceId]);
 
   const store = useMemo(() => {
     logger.info(`Initializing interaction store for workspace ${workspaceId} at Rev #${initialRevision ?? 0}`);
@@ -256,7 +270,7 @@ export function CohortInteractionScreen({
       initialRevision,
       transport,
       conflictResolution: 'rebase',
-      plan: planCohortAction as any,
+      plan: planCohortAction as unknown as Parameters<typeof createInteractionStore>[0]['plan'],
     });
   }, [workspaceId, initialView, initialRevision, transport, logger]);
 
