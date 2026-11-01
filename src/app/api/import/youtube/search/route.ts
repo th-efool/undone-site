@@ -50,8 +50,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video,playlist&maxResults=12&q=${encodeURIComponent(
-      q.slice(0, 200)
+    const hasEducationalKeyword = /\b(tutorial|course|project|oneshot|one\s*shot|full|guide|bootcamp|playlist|lecture|practical|hands-on)\b/i.test(q);
+    const enrichedQuery = hasEducationalKeyword
+      ? q.slice(0, 200)
+      : `${q.slice(0, 160)} tutorial course project`;
+
+    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video,playlist&maxResults=16&relevanceLanguage=en&q=${encodeURIComponent(
+      enrichedQuery
     )}&key=${apiKey}`;
 
     const res = await fetch(endpoint);
@@ -83,11 +88,13 @@ export async function GET(req: NextRequest) {
         : `https://www.youtube.com/watch?v=${rawId}`;
 
       if (seenUrls.has(url)) continue;
-      seenUrls.add(url);
 
       const title = decodeHtmlEntities(
         String(snippet?.title || (isPlaylist ? 'YouTube Playlist' : 'YouTube Video'))
       );
+      if (/#shorts\b/i.test(title)) continue;
+      seenUrls.add(url);
+
       const channelTitle = decodeHtmlEntities(
         String(snippet?.channelTitle || 'YouTube')
       );

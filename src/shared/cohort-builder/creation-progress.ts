@@ -38,9 +38,9 @@ export function deriveStageProgress(workspace: CohortWorkspace): StageProgressDe
       count = done ? total : 0;
     }
     if (stage === 'assembly') done = complete;
-    const failed = failedCount > 0 || (!jobs.length && workspace.processing.status === 'failed' && i === index);
-    const stopped = (canceled && (!jobs.length || stageJobs.length > 0)) || stageJobs.some(j => j.status === 'canceled');
-    const active = stageJobs.some(j => j.status === 'running' || (j.status === 'queued' && priorComplete)) || (!jobs.length && ['queued', 'processing'].includes(workspace.processing.status) && i === index);
+    const failed = priorComplete && (failedCount > 0 || (!jobs.length && workspace.processing.status === 'failed' && i === index));
+    const stopped = priorComplete && ((canceled && (!jobs.length || stageJobs.length > 0)) || stageJobs.some(j => j.status === 'canceled'));
+    const active = priorComplete && (stageJobs.some(j => j.status === 'running' || j.status === 'queued') || (!jobs.length && ['queued', 'processing'].includes(workspace.processing.status) && i === index));
     const status: StageStatus['status'] = done ? 'complete' : failed ? 'failed' : stopped ? 'canceled' : active ? 'running' : 'pending';
     priorComplete = done;
     return [stage, {

@@ -22,7 +22,12 @@ const STOPWORDS = new Set([
   'want', 'learn', 'learning', 'course', 'tutorial', 'video', 'videos', 'guide',
   'notes', 'text', 'material', 'source', 'full', 'complete', 'introduction', 'intro', 'how', 'make', 'build', 'using',
   'part', 'ep', 'episode', 'lecture', 'lesson', 'chapter', 'section', 'overview',
+  'why', 'best', 'must', 'know', 'tips', 'secret', 'step', 'get', 'started', 'ready',
+  'beginners', 'beginner', 'simple', 'easy', 'minutes', 'explained', 'exploring', 'inside',
 ]);
+
+const CLICKBAIT_CONCEPT_PATTERN =
+  /\b(why\s+it\s+is|must\s+know|step\s+by\s+step|get\s+started|are\s+you\s+ready|my\s+secret|basics\s+comes\s+first|how\s+to|in\s+\d+\s+minutes|codes?\s+and\s+tutorial|https?)\b/i;
 
 function toTitleCase(phrase: string): string {
   return phrase
@@ -61,31 +66,36 @@ export function extractSourceConceptTopics(source: { label: string; text: string
   const concepts: string[] = [];
 
   const pushConcept = (raw: string) => {
+    if (/[?]/.test(raw) || CLICKBAIT_CONCEPT_PATTERN.test(raw)) return;
     const cleaned = raw
+      .replace(/\[[^\]]*\]/g, ' ')
+      .replace(/#\S+/g, ' ')
       .replace(/^[#*\-•\d.)\s]+/, '')
       .replace(/\bhttps?:\/\/\S+/gi, '')
       .replace(/[^\p{L}\p{N}\s/&+#.-]/gu, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    if (!cleaned || cleaned.length < 3) return;
+    if (!cleaned || cleaned.length < 3 || CLICKBAIT_CONCEPT_PATTERN.test(cleaned)) return;
     const words = cleaned.split(/\s+/).filter(w => w.length > 1);
     while (words.length > 0 && STOPWORDS.has(words[0].toLowerCase())) words.shift();
     while (words.length > 0 && STOPWORDS.has(words[words.length - 1].toLowerCase())) words.pop();
     if (words.length === 0 || words.length > 5) return;
     const phrase = toTitleCase(words.join(' ')).slice(0, 60);
     const key = phrase.toLowerCase();
-    if (STOPWORDS.has(key) || seen.has(key)) return;
+    if (STOPWORDS.has(key) || seen.has(key) || CLICKBAIT_CONCEPT_PATTERN.test(key)) return;
     seen.add(key);
     concepts.push(phrase);
   };
 
   // 1. Extract from source label (e.g. YouTube video title segments)
   if (source.label && !/^https?:\/\//i.test(source.label)) {
-    const labelParts = source.label
-      .split(/\s*(?:\||—|–|-|:|\(|\)|\[|\])\s*/)
+    const labelWithoutBrackets = source.label.replace(/\[[^\]]*\]/g, ' ').replace(/#\S+/g, ' ');
+    const labelParts = labelWithoutBrackets
+      .split(/\s*(?:\||—|–|-|:|\(|\))\s*/)
       .map(s => s.trim())
       .filter(Boolean);
     for (const part of labelParts) {
+      if (/[?]/.test(part)) continue;
       const subParts = part.split(/\b(?:and|with|vs\.?|for|in|on)\b/i);
       for (const sub of subParts) pushConcept(sub);
     }
