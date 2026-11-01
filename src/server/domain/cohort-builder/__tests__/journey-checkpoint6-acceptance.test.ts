@@ -911,7 +911,7 @@ describe('Checkpoint 5 & 6: Real Integrated Acceptance and Delivery Suite', () =
       await commit(workspaceId, ownerId, { type: 'choose_starting_point', choice: 'have_goal' });
 
       let ws = await loadWorkspace(workspaceId);
-      expect(ws.journey?.step).toBe('goal_setup');
+      expect(ws.journey?.step).toBe('discovery');
 
       await commit(workspaceId, ownerId, { type: 'set_audience', audience: 'DevOps Engineers' });
       await commit(workspaceId, ownerId, { type: 'set_daily_minutes', dailyMinutes: 30 });

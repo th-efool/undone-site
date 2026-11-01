@@ -16,6 +16,7 @@ import {
   getValidAnalyses,
   clearStageSelectorsCache,
 } from '../stage-selectors';
+import { computeSourceEvidenceFingerprint } from '@/src/shared/cohort-builder/creation-state';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 const fake = vi.hoisted(() => ({ state: null as any, actions: [] as unknown[] }));
@@ -34,7 +35,7 @@ afterEach(() => {
 });
 
 function createMinimalWorkspace(overrides: Partial<CohortWorkspace> = {}): CohortWorkspace {
-  return {
+  const workspace: CohortWorkspace = {
     schemaVersion: 1,
     title: 'Test Cohort',
     intent: 'Learn Distributed Systems',
@@ -54,6 +55,8 @@ function createMinimalWorkspace(overrides: Partial<CohortWorkspace> = {}): Cohor
     },
     ...overrides,
   };
+  if (workspace.processing.status === 'ready') workspace.processing.sourceFingerprint = computeSourceEvidenceFingerprint(workspace);
+  return workspace;
 }
 
 describe('stage-selectors', () => {
@@ -763,6 +766,7 @@ describe('stage-selectors', () => {
   describe('Stage Navigation / Inspection UI Interaction', () => {
     it('clicking any step in the stepper sets inspectedStage without dispatching actions', () => {
       fake.state = createMinimalWorkspace({
+        lessons: [{ id: 'l', version: 0, title: 'Lesson', objective: 'Learn', sourceChunkIds: [], pinned: false }],
         sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
         processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fp', error: null },
       });
@@ -798,6 +802,7 @@ describe('stage-selectors', () => {
 
     it('toggling the same step clears inspectedStage', () => {
       fake.state = createMinimalWorkspace({
+        lessons: [{ id: 'l', version: 0, title: 'Lesson', objective: 'Learn', sourceChunkIds: [], pinned: false }],
         sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
         processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fp', error: null },
       });

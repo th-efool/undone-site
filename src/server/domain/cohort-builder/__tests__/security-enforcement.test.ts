@@ -1,3 +1,4 @@
+import { computeSourceEvidenceFingerprint as fixtureFingerprint } from '@/src/shared/cohort-builder/creation-state';
 import { readFileSync as readFs } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,7 +17,7 @@ import { POST as releasePostHandler } from '@/src/app/api/cohort-builder/workspa
 const s5EffectsSql = readFs(new URL('../../../../../prisma/sql/interaction/interaction-s5-effects.sql', import.meta.url), 'utf8');
 
 function createSampleWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
+  return currentFixture(cohortWorkspaceSchema.parse({
     schemaVersion: 1,
     title: 'Security Hardened Systems',
     intent: 'Learn defensive web security and authority isolation',
@@ -57,9 +58,9 @@ function createSampleWorkspace(overrides?: Partial<CohortWorkspace>): CohortWork
     ],
     understanding: [],
     analyses: [],
-    processing: { status: 'idle', stage: 'done', generation: 1, sourceFingerprint: null, error: null },
+    processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fixture', error: null },
     ...overrides,
-  });
+  }));
 }
 
 async function setupTestDb() {
@@ -211,7 +212,7 @@ describe('S6 Checkpoint 1: Security & Authority Enforcement', () => {
       const domain: DomainDefinition = {
         id: 'cohort',
         version: 1,
-        initialState: b => cohortWorkspaceSchema.parse(b),
+        initialState: b => currentFixture(cohortWorkspaceSchema.parse(b)),
         plan: planCohortAction,
       };
       const handlers = createInteractionHandlers({
@@ -277,7 +278,7 @@ describe('S6 Checkpoint 1: Security & Authority Enforcement', () => {
       const domain: DomainDefinition = {
         id: 'cohort',
         version: 1,
-        initialState: b => cohortWorkspaceSchema.parse(b),
+        initialState: b => currentFixture(cohortWorkspaceSchema.parse(b)),
         plan: planCohortAction,
       };
       const handlers = createInteractionHandlers({
@@ -464,3 +465,9 @@ describe('S6 Checkpoint 1: Security & Authority Enforcement', () => {
     });
   });
 });
+
+// Completed fixtures carry real source identity; negative tests mutate after construction.
+function currentFixture<T extends import('@/src/shared/cohort-builder/contracts').CohortWorkspace>(workspace:T):T {
+  if (workspace.processing.status === 'ready' && workspace.processing.sourceFingerprint) workspace.processing.sourceFingerprint = fixtureFingerprint(workspace);
+  return workspace;
+}

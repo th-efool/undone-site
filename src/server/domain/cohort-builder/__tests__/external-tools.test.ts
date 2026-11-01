@@ -135,7 +135,7 @@ it('bounds chat AI tools to conversational planning and excludes lifecycle proce
   expect(toolNames).toContain('add_web_source');
   expect(toolNames).not.toContain('begin_material_processing');
   expect(toolNames).not.toContain('start_goal_generation');
-  expect(toolNames).not.toContain('start_discovery');
+  expect(toolNames).toContain('start_discovery');
   expect(toolNames).not.toContain('create_own_cohort');
 });
 

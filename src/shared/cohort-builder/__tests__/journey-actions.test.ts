@@ -1,3 +1,4 @@
+import { computeSourceEvidenceFingerprint as fixtureFingerprint } from '@/src/shared/cohort-builder/creation-state';
 import { describe, expect, it } from 'vitest';
 import {
   cohortWorkspaceSchema,
@@ -23,7 +24,7 @@ function createActionContext(overrides?: Partial<CohortActionContext>): CohortAc
 }
 
 function createLegacyWorkspace(): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
+  return currentFixture(cohortWorkspaceSchema.parse({
     schemaVersion: 1,
     title: 'Legacy Draft',
     intent: 'Learn Distributed Systems',
@@ -47,11 +48,11 @@ function createLegacyWorkspace(): CohortWorkspace {
       sourceFingerprint: 'fp-legacy',
       error: null,
     },
-  });
+  }));
 }
 
 function createReadyAssemblyWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
+  return currentFixture(cohortWorkspaceSchema.parse({
     schemaVersion: 1,
     title: 'Ready Workspace',
     intent: 'Master Distributed Systems',
@@ -81,14 +82,14 @@ function createReadyAssemblyWorkspace(overrides?: Partial<CohortWorkspace>): Coh
       intentVersion: 0,
     },
     ...overrides,
-  });
+  }));
 }
 
 describe('Cohort Journey: Old snapshots compatibility', () => {
   it('parses legacy snapshot cleanly without journey property', () => {
     const legacy = createLegacyWorkspace();
     expect(legacy.journey).toBeUndefined();
-    const parsed = cohortWorkspaceSchema.parse(legacy);
+    const parsed = currentFixture(cohortWorkspaceSchema.parse(legacy));
     expect(parsed.journey).toBeUndefined();
   });
 
@@ -171,7 +172,7 @@ describe('Cohort Journey: Old snapshots compatibility', () => {
   });
 
   it('resumes journey with processingStarted=false if invoked on an empty legacy workspace', () => {
-    const emptyLegacy = cohortWorkspaceSchema.parse({
+    const emptyLegacy = currentFixture(cohortWorkspaceSchema.parse({
       schemaVersion: 1,
       title: 'Empty Draft',
       intent: 'Learn Go',
@@ -179,7 +180,7 @@ describe('Cohort Journey: Old snapshots compatibility', () => {
       dailyMinutes: 20,
       lessons: [],
       sources: [],
-    });
+    }));
     const ctx = createActionContext();
 
     const plan = planCohortAction(emptyLegacy, { type: 'create_own_cohort' }, ctx);
@@ -1164,14 +1165,14 @@ describe('Cohort Journey: Detailed Source & Discovery Edge Cases', () => {
       expect(plan.nextState.recommendations).toBeUndefined();
     });
 
-    it('close_panel switches journey step to chat and resets queued processing', () => {
+    it('close_panel switches only the view and preserves queued processing', () => {
       const ws = initialCohort('Topic');
       ws.journey!.step = 'recommendations';
       ws.processing = { status: 'queued', stage: 'acquisition', generation: 1, sourceFingerprint: null, error: null };
       const ctx = createActionContext({ actionId: 'close-1' });
       const plan = planCohortAction(ws, { type: 'close_panel' }, ctx);
       expect(plan.nextState.journey?.step).toBe('chat');
-      expect(plan.nextState.processing.status).toBe('idle');
+      expect(plan.nextState.processing).toEqual(ws.processing);
     });
 
     it('create_own_cohort from chat step opens starting_point', () => {
@@ -1227,3 +1228,9 @@ describe('Cohort Journey: Detailed Source & Discovery Edge Cases', () => {
   });
 });
 
+
+// Completed fixtures carry real source identity; negative tests mutate after construction.
+function currentFixture<T extends import('@/src/shared/cohort-builder/contracts').CohortWorkspace>(workspace:T):T {
+  if (workspace.processing.status === 'ready' && workspace.processing.sourceFingerprint) workspace.processing.sourceFingerprint = fixtureFingerprint(workspace);
+  return workspace;
+}

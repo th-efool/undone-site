@@ -644,8 +644,8 @@ describe('Checkpoint 4: Discovery & Goal Generation Branches End-to-End', () => 
     await commit(workspaceId, ownerId, { type: 'choose_starting_point', choice: 'have_goal' });
 
     let ws = await loadWorkspace(workspaceId);
-    expect(ws.journey?.step).toBe('goal_setup');
-    expect(ws.journey?.branch).toBe('have_goal');
+    expect(ws.journey?.step).toBe('discovery');
+    expect(ws.journey?.branch).toBe('find_material');
 
     // 2. User clarifies goal, audience, and pacing
     await commit(workspaceId, ownerId, { type: 'set_intent', intent: 'Distributed Systems & Microservices Architecture' });

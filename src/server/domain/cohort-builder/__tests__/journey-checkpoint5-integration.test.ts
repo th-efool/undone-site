@@ -168,7 +168,7 @@ describe('Journey Checkpoint 5 Server Integration & State Invariants', () => {
           status: 'ready',
           stage: 'done',
           generation: 1,
-          sourceFingerprint: 'fp-123',
+          sourceFingerprint: '57bd2d0468ff25edcdf554776a348271a00dc80510e3d76d10350e09d0f708af',
           error: null,
         },
       };
@@ -198,7 +198,7 @@ describe('Journey Checkpoint 5 Server Integration & State Invariants', () => {
           status: 'ready',
           stage: 'done',
           generation: 1,
-          sourceFingerprint: 'fp-123',
+          sourceFingerprint: '57bd2d0468ff25edcdf554776a348271a00dc80510e3d76d10350e09d0f708af',
           error: null,
         },
       };
@@ -256,7 +256,7 @@ describe('Journey Checkpoint 5 Server Integration & State Invariants', () => {
           status: 'ready',
           stage: 'done',
           generation: 1,
-          sourceFingerprint: 'fp-123',
+          sourceFingerprint: '57bd2d0468ff25edcdf554776a348271a00dc80510e3d76d10350e09d0f708af',
           error: null,
         },
       };
@@ -310,7 +310,7 @@ describe('Journey Checkpoint 5 Server Integration & State Invariants', () => {
           status: 'ready',
           stage: 'done',
           generation: 1,
-          sourceFingerprint: 'fp-123',
+          sourceFingerprint: '57bd2d0468ff25edcdf554776a348271a00dc80510e3d76d10350e09d0f708af',
           error: null,
         },
       };
@@ -362,7 +362,7 @@ describe('Journey Checkpoint 5 Server Integration & State Invariants', () => {
           status: 'ready',
           stage: 'done',
           generation: 1,
-          sourceFingerprint: 'fp-123',
+          sourceFingerprint: '57bd2d0468ff25edcdf554776a348271a00dc80510e3d76d10350e09d0f708af',
           error: null,
         },
       };

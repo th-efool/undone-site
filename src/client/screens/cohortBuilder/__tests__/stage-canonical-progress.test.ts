@@ -10,6 +10,7 @@ import {
   getValidChunks,
   getValidAnalyses,
 } from '../stage-selectors';
+import { computeSourceEvidenceFingerprint } from '@/src/shared/cohort-builder/creation-state';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { ChunkingStageView } from '../stages/ChunkingStageView';
 import { AssemblyStageView } from '../stages/AssemblyStageView';
@@ -20,7 +21,7 @@ afterEach(() => {
 });
 
 function createTestWorkspace(overrides: Partial<CohortWorkspace> = {}): CohortWorkspace {
-  return {
+  const workspace: CohortWorkspace = {
     schemaVersion: 1,
     title: 'Test Cohort',
     intent: 'Learn Distributed Systems',
@@ -40,6 +41,8 @@ function createTestWorkspace(overrides: Partial<CohortWorkspace> = {}): CohortWo
     },
     ...overrides,
   };
+  if (workspace.processing.status === 'ready') workspace.processing.sourceFingerprint = computeSourceEvidenceFingerprint(workspace);
+  return workspace;
 }
 
 describe('Checkpoint 2 — Stage Canonical Progress Contracts', () => {
@@ -329,8 +332,9 @@ describe('Checkpoint 2 — Stage Canonical Progress Contracts', () => {
   });
 
   it('8. Missing job projection and conservative legacy fallback: correctly maps processing.status and processing.stage when jobs are absent', () => {
-    // 8a: status ready without jobs
+    // 8a: genuinely completed legacy output without jobs
     const workspaceReady = createTestWorkspace({
+      lessons: [{ id: 'l', version: 0, title: 'Lesson', objective: 'Learn', sourceChunkIds: [], pinned: false }],
       sources: [{ id: 's1', version: 0, label: 'Doc 1', text: 'Text 1', checksum: 'a'.repeat(64), state: 'ready' }],
       processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fp', error: null },
     });

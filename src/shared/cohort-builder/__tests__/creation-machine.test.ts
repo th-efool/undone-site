@@ -8,7 +8,6 @@ import { initialCohort } from '../intake';
 import {
   computeBuildInputFingerprint,
   computeSourceEvidenceFingerprint,
-  deriveCreationMachineState,
   isBuildComplete,
   isBuildStale,
   validateWorkspaceInvariants,
@@ -326,15 +325,13 @@ describe('Cohort Creation State Machine (creation-state, creation-machine, creat
       expect(readyVm.badgeLabel).toBe('Build not complete');
     });
 
-    it('derives complete CreationViewModel and CreationMachineState for a ready workspace', () => {
+    it('derives the authoritative view from current build evidence', () => {
       const readyWs = runDeterministicPipeline(createReadySourceWorkspace());
-      const machineState = deriveCreationMachineState(readyWs);
       const viewModel = deriveCreationViewModel(readyWs, null);
 
-      expect(machineState.build.status).toBe('ready');
-      expect(machineState.build.isBuildComplete).toBe(true);
-      expect(machineState.build.isBuildStale).toBe(false);
-      expect(machineState.invariants.valid).toBe(true);
+      expect(isBuildComplete(readyWs)).toBe(true);
+      expect(isBuildStale(readyWs)).toBe(false);
+      expect(validateWorkspaceInvariants(readyWs).valid).toBe(true);
 
       expect(viewModel.activeStage).toBe('ready');
       expect(viewModel.effectiveStage).toBe('ready');

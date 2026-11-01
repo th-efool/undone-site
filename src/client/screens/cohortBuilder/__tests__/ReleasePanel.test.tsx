@@ -7,6 +7,7 @@ import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvide
 const render = (ui: React.ReactElement, options?: Parameters<typeof testingRender>[1]) =>
   testingRender(ui, { wrapper: ToastProvider, ...options });
 import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import { computeSourceEvidenceFingerprint } from '@/src/shared/cohort-builder/creation-state';
 
 const fake = vi.hoisted(() => ({
   actions: [] as unknown[],
@@ -138,6 +139,25 @@ describe('ReleasePanel UI Component', () => {
           pinned: false,
         },
       ],
+      processing: {
+        status: 'ready',
+        stage: 'done',
+        generation: 0,
+        sourceFingerprint: computeSourceEvidenceFingerprint({
+          sources: [
+            {
+              id: 'src-1',
+              version: 0,
+              label: 'Internal Docs',
+              text: 'Private company secrets',
+              checksum: 'b'.repeat(64),
+              state: 'ready',
+              isRestricted: true,
+            },
+          ],
+        } as unknown as CohortWorkspace),
+        error: null,
+      },
     });
 
     render(<ReleasePanel workspace={restrictedWorkspace} workspaceId="ws-1" />);

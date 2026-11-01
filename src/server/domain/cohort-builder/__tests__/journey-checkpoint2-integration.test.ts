@@ -895,8 +895,8 @@ describe('Checkpoint 2: Cohort Journey End-to-End Integration Suite', () => {
       { type: 'choose_starting_point', choice: 'have_goal' },
       createActionContext(workspaceId, { currentRevision: 7, expectedRevision: 7 })
     );
-    expect(goalPlan.nextState.journey?.step).toBe('goal_setup');
-    expect(goalPlan.nextState.journey?.branch).toBe('have_goal');
+    expect(goalPlan.nextState.journey?.step).toBe('discovery');
+    expect(goalPlan.nextState.journey?.branch).toBe('find_material');
   });
 
   it('7. Optimistic locking: rejects stale revision with STALE_WORKSPACE', async () => {

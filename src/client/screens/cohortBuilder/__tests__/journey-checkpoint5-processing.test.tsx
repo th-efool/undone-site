@@ -1,3 +1,4 @@
+import { computeSourceEvidenceFingerprint as fixtureFingerprint } from '@/src/shared/cohort-builder/creation-state';
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -45,7 +46,7 @@ import { CohortWorkspacePane } from '../CohortWorkspacePane';
 import { ReadyStageView } from '../stages/ReadyStageView';
 
 function createProcessingWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
+  return currentFixture(cohortWorkspaceSchema.parse({
     schemaVersion: 1,
     title: 'Distributed Systems Cohort',
     intent: 'Master Distributed Consensus',
@@ -122,11 +123,11 @@ function createProcessingWorkspace(overrides?: Partial<CohortWorkspace>): Cohort
       intentVersion: 0,
     },
     ...overrides,
-  });
+  }));
 }
 
 function createReadyWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
+  return currentFixture(cohortWorkspaceSchema.parse({
     schemaVersion: 1,
     title: 'Distributed Systems Cohort',
     intent: 'Master Distributed Consensus',
@@ -206,7 +207,7 @@ function createReadyWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorks
       intentVersion: 0,
     },
     ...overrides,
-  });
+  }));
 }
 
 describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
@@ -359,7 +360,7 @@ describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
       expect(screen.getByText('Review first, if you like')).toBeTruthy();
 
       // CTAs
-      expect(screen.getByRole('button', { name: /Go to my feed/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Review and activate/i })).toBeTruthy();
       expect(screen.getByRole('button', { name: /Review cohort/i })).toBeTruthy();
       expect(screen.getByRole('button', { name: /Back to material/i })).toBeTruthy();
     });
@@ -386,7 +387,7 @@ describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
       expect(fake.actions).toEqual([{ type: 'open_review' }]);
     });
 
-    it('dispatches prepare_release and open_review when clicking Go to my feed', async () => {
+    it('dispatches prepare_release and open_review when clicking Review and activate', async () => {
       const ws = createReadyWorkspace();
       fake.state = ws;
 
@@ -400,7 +401,7 @@ describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
         />
       );
 
-      const activateBtn = screen.getByRole('button', { name: /Go to my feed/i });
+      const activateBtn = screen.getByRole('button', { name: /Review and activate/i });
       await act(async () => {
         fireEvent.click(activateBtn);
       });
@@ -431,9 +432,14 @@ describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
       });
 
       expect(fake.actions).toEqual([
-        { type: 'back_to_starting_point' },
-        { type: 'choose_starting_point', choice: 'have_material' },
+        { type: 'open_materials' },
       ]);
     });
   });
 });
+
+// Completed fixtures carry real source identity; negative tests mutate after construction.
+function currentFixture<T extends import('@/src/shared/cohort-builder/contracts').CohortWorkspace>(workspace:T):T {
+  if (workspace.processing.status === 'ready' && workspace.processing.sourceFingerprint) workspace.processing.sourceFingerprint = fixtureFingerprint(workspace);
+  return workspace;
+}

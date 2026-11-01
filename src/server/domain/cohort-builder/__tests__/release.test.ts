@@ -1,3 +1,4 @@
+import { computeSourceEvidenceFingerprint as fixtureFingerprint } from '@/src/shared/cohort-builder/creation-state';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 
@@ -14,7 +15,7 @@ import {
 } from '../release';
 
 function createSampleWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return {
+  return currentFixture({
     schemaVersion: 1,
     title: 'Rust Concurrency Mastery',
     intent: 'Learn safe multithreading, Arc, Mutex, and async channels in Rust',
@@ -80,7 +81,7 @@ function createSampleWorkspace(overrides?: Partial<CohortWorkspace>): CohortWork
       error: null,
     },
     ...overrides,
-  };
+  });
 }
 
 describe('S5 Release Service (release.ts)', () => {
@@ -336,3 +337,9 @@ describe('S5 Release Service (release.ts)', () => {
     });
   });
 });
+
+// Completed fixtures carry real source identity; negative tests mutate after construction.
+function currentFixture<T extends import('@/src/shared/cohort-builder/contracts').CohortWorkspace>(workspace:T):T {
+  if (workspace.processing.status === 'ready' && workspace.processing.sourceFingerprint) workspace.processing.sourceFingerprint = fixtureFingerprint(workspace);
+  return workspace;
+}

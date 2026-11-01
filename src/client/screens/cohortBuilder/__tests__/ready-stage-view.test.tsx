@@ -7,10 +7,11 @@ import {
   type CohortWorkspace,
   type CohortAction,
 } from '@/src/shared/cohort-builder/contracts';
+import { computeSourceEvidenceFingerprint } from '@/src/shared/cohort-builder/creation-state';
 import { ReadyStageView } from '../stages/ReadyStageView';
 
 function createReadyWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
-  return cohortWorkspaceSchema.parse({
+  const workspace = cohortWorkspaceSchema.parse({
     schemaVersion: 1,
     title: 'Ready Cohort Test',
     intent: 'Master Distributed Systems',
@@ -66,6 +67,8 @@ function createReadyWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorks
     },
     ...overrides,
   });
+  if (workspace.processing.status === 'ready') workspace.processing.sourceFingerprint = computeSourceEvidenceFingerprint(workspace);
+  return workspace;
 }
 
 describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
@@ -90,7 +93,7 @@ describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
     return true;
   };
 
-  it('1. Incomplete build: Back button is actionable and dispatches back_to_starting_point then choose_starting_point', async () => {
+  it('1. Incomplete build: Back dispatches one materials navigation command', async () => {
     // Incomplete build: processing.status is 'queued' or 'processing', lessons may be empty
     const ws = createReadyWorkspace({
       lessons: [],
@@ -109,7 +112,7 @@ describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
     expect(screen.getByText('Build not complete')).toBeTruthy();
 
     // Primary action and review buttons are disabled
-    const feedBtn = screen.getByRole('button', { name: /Go to my feed/i });
+    const feedBtn = screen.getByRole('button', { name: /Review and activate/i });
     const reviewBtn = screen.getByRole('button', { name: /Review cohort/i });
     expect((feedBtn as HTMLButtonElement).disabled).toBe(true);
     expect((reviewBtn as HTMLButtonElement).disabled).toBe(true);
@@ -124,13 +127,12 @@ describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
     });
 
     expect(dispatchedActions).toEqual([
-      { type: 'back_to_starting_point' },
-      { type: 'choose_starting_point', choice: 'have_material' },
+      { type: 'open_materials' },
     ]);
   });
 
-  it('2. Back navigation aborts second transition if back_to_starting_point returns false', async () => {
-    actionResults['back_to_starting_point'] = false;
+  it('2. Failed materials navigation does not dispatch a follow-up command', async () => {
+    actionResults['open_materials'] = false;
 
     const ws = createReadyWorkspace({
       lessons: [],
@@ -151,7 +153,7 @@ describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
     });
 
     // First action was dispatched, second was aborted
-    expect(dispatchedActions).toEqual([{ type: 'back_to_starting_point' }]);
+    expect(dispatchedActions).toEqual([{ type: 'open_materials' }]);
   });
 
   it('3. When ready is true, Review and Feed actions are enabled and dispatch expected actions', async () => {
@@ -160,7 +162,7 @@ describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
 
     expect(screen.getByText('Processed')).toBeTruthy();
 
-    const feedBtn = screen.getByRole('button', { name: /Go to my feed/i });
+    const feedBtn = screen.getByRole('button', { name: /Review and activate/i });
     const reviewBtn = screen.getByRole('button', { name: /Review cohort/i });
 
     expect((feedBtn as HTMLButtonElement).disabled).toBe(false);
@@ -209,7 +211,7 @@ describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
     const ws = createReadyWorkspace();
     render(<ReadyStageView workspace={ws} dispatchAction={mockDispatchAction} />);
 
-    const feedBtn = screen.getByRole('button', { name: /Go to my feed/i });
+    const feedBtn = screen.getByRole('button', { name: /Review and activate/i });
     await act(async () => {
       fireEvent.click(feedBtn);
     });
