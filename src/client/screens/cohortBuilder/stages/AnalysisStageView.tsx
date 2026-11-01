@@ -2,7 +2,7 @@
 
 import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
 import React from 'react';
-import { ChevronRight, FileText, Lightbulb } from 'lucide-react';
+import { ChevronRight, Lightbulb, ArrowLeft, Square, RotateCcw } from 'lucide-react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
 import {
@@ -41,6 +41,8 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
   const isComplete = isStageComplete(workspace, 'analysis');
   const isRunning = stageProgress.analysis.status === 'running';
   const isFailed = stageProgress.analysis.status === 'failed';
+  const hasFailedJobs = workspace.processing.jobs?.some(job => job.status === 'failed');
+  const canRetry = !isRunning && sources.length > 0 && !hasFailedJobs && (isFailed || !isComplete);
 
   const effectiveSelectedSourceId =
     inspection.analysisSelectedSourceId && sources.some(s => s.id === inspection.analysisSelectedSourceId)
@@ -57,6 +59,41 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
 
   return (
     <section aria-label="Analysis workspace" className={shared.workspace}>
+      <div className={shared.topActions}>
+        <button
+          type="button"
+          className={shared.iconActionBtn}
+          aria-label="Back to material"
+          title="Back to material"
+          onClick={() => void dispatchAction({ type: 'open_materials' })}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        {isRunning ? (
+          <button
+            type="button"
+            className={shared.iconActionBtn}
+            aria-label="Cancel processing"
+            title="Stop processing"
+            onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}
+          >
+            <Square size={15} />
+          </button>
+        ) : (
+          canRetry && (
+            <button
+              type="button"
+              className={shared.iconActionBtn}
+              aria-label="Retry processing"
+              title="Retry processing"
+              onClick={() => void dispatchAction({ type: 'retry_processing' })}
+            >
+              <RotateCcw size={16} />
+            </button>
+          )
+        )}
+      </div>
+
       <div className={shared.columns}>
         <div>
           <header className={shared.heading}>
@@ -74,15 +111,13 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
                 </>
               )}
             </h1>
-            <p>I’m analyzing what each chunk is about, how complex it is, and how it fits into your learning experience.</p>
           </header>
 
           <div className={shared.inventory}>
-            <h2>
-              <FileText size={22} aria-hidden="true" />
-              Selected material
-              <span>{sources.length} {sources.length === 1 ? 'source' : 'sources'}</span>
-            </h2>
+            <div className={shared.progress}>
+              <progress max={totalChunksCount || 1} value={analyzedTotalCount} aria-label="Chunks analyzed" />
+              <span>{analyzedTotalCount}/{totalChunksCount} chunks analyzed</span>
+            </div>
 
             <fieldset className={chunks.sourceList}>
               <legend className={chunks.srOnly}>Select a source to inspect its analysis</legend>
@@ -108,30 +143,11 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
               })}
             </fieldset>
 
-            <div className={shared.progress}>
-              <progress max={totalChunksCount || 1} value={analyzedTotalCount} aria-label="Chunks analyzed" />
-              <span>{analyzedTotalCount}/{totalChunksCount} chunks analyzed</span>
-            </div>
-
             <div className={shared.controls}>
               <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
 
-              {workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>}
-
-              {isFailed && !workspace.processing.jobs?.length && (
-                <button type="button" onClick={() => void dispatchAction({ type: 'retry_processing' })}>
-                  Retry processing
-                </button>
-              )}
-
-              {isRunning && (
-                <div role="status">
-                  <p>{analyzedTotalCount} of {totalChunksCount} chunks analyzed.</p>
-                  <p>Synthesizing insights and learning questions in real time.</p>
-                  <button type="button" onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>
-                    Cancel analysis
-                  </button>
-                </div>
+              {workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && (
+                <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>
               )}
             </div>
           </div>
@@ -140,16 +156,15 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
         <aside className={chunks.detail} id="creation-accepted-analysis" aria-label="Accepted analysis">
           <div className={chunks.detailMeta}>
             <span>Selected source</span>
-            <span>{selectedChunks.filter(c => analysesMap.has(c.id)).length} chunk analyses loaded</span>
+            <span>{selectedChunks.filter(c => analysesMap.has(c.id)).length} parts analyzed</span>
           </div>
 
           <h2>{currentSource?.label ?? 'Your learning pieces'}</h2>
-          <p className={chunks.intro}>Here’s what each piece is like, grounded in its retained source.</p>
-          <p className={styles.legend}>Deterministic estimates, normalized from 0 to 1. Expand a piece to inspect all 12 dimensions and its evidence.</p>
+          <p className={chunks.intro}>Key takeaways and learning dimensions for each part.</p>
 
           {selectedChunks.length === 0 ? (
             <p role="status" className={chunks.empty}>
-              Analysis appears here after its source inventory is saved.
+              Analysis appears here as each part is processed.
             </p>
           ) : (
             <ol className={`${chunks.chunks} ${styles.rows}`}>
@@ -173,10 +188,10 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
                       <summary>
                         <span className={chunks.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>
                         <span>
-                          <small>{formatDurationClock(interval.durationSeconds)} · {interval.isVideo ? 'estimated source interval' : 'reading estimate'}</small>
+                          <small>{formatDurationClock(interval.durationSeconds)}</small>
                           <strong>{copy.title}</strong>
                           <span className={chunks.teaser}>
-                            {analysis ? 'Analysis saved' : 'Awaiting analysis'}
+                            {analysis ? 'Ready' : 'Analyzing…'}
                           </span>
                         </span>
                         {scored && <span className={styles.scores}>
@@ -196,10 +211,9 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
                         </div>)}</dl>}
                         {analysis?.question && (
                           <p>
-                            <strong>Pedagogical question:</strong> {analysis.question}
+                            <strong>Key question:</strong> {analysis.question}
                           </p>
                         )}
-                        <small>Chunk: characters {chunk.start}–{chunk.end}</small>
                       </div>
                     </details>
                   </li>
@@ -211,8 +225,8 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
           <div className={shared.insight}>
             <Lightbulb size={27} aria-hidden="true" />
             <p>
-              <strong>{analyzedTotalCount} chunk analyses saved.</strong>
-              <span>Each chunk keeps its source evidence. Lessons are built after analysis is accepted.</span>
+              <strong>{analyzedTotalCount} parts analyzed.</strong>
+              <span>Lessons are assembled from these insights next.</span>
             </p>
           </div>
         </aside>

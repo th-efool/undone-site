@@ -2,10 +2,18 @@
 
 import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
 import React from 'react';
-import { FileText, Check, Brain, Lightbulb, LoaderCircle } from 'lucide-react';
+import {
+  Check,
+  Brain,
+  Lightbulb,
+  LoaderCircle,
+  AlertCircle,
+  ArrowLeft,
+  Square,
+  RotateCcw,
+} from 'lucide-react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
-import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 import {
   isStageComplete,
   getStageProgressDetails,
@@ -24,6 +32,8 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
   const isComplete = isStageComplete(workspace, 'understanding');
   const isRunning = stageProgress.understanding.status === 'running';
   const isFailed = stageProgress.understanding.status === 'failed';
+  const hasFailedJobs = workspace.processing.jobs?.some(job => job.status === 'failed');
+  const canRetry = !isRunning && sources.length > 0 && !hasFailedJobs && (isFailed || !isComplete);
 
   const understoodCount = stageProgress.understanding.completedCount;
   const totalCount = sources.length;
@@ -33,6 +43,7 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
     const v = sourceVersionMap.get(u.sourceId);
     return v !== undefined && u.sourceVersion === v;
   });
+  const understoodSourceIds = new Set(validUnderstanding.map(u => u.sourceId));
 
   const topicMap = new Map<string, { topic: string; summary: string; sourceLabels: string[] }>();
   for (const understood of validUnderstanding) {
@@ -52,6 +63,41 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
 
   return (
     <section aria-label="Understanding material" className={styles.workspace}>
+      <div className={styles.topActions}>
+        <button
+          type="button"
+          className={styles.iconActionBtn}
+          aria-label="Back to material"
+          title="Back to material"
+          onClick={() => void dispatchAction({ type: 'open_materials' })}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        {isRunning ? (
+          <button
+            type="button"
+            className={styles.iconActionBtn}
+            aria-label="Cancel processing"
+            title="Stop processing"
+            onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}
+          >
+            <Square size={15} />
+          </button>
+        ) : (
+          canRetry && (
+            <button
+              type="button"
+              className={styles.iconActionBtn}
+              aria-label="Retry processing"
+              title="Retry processing"
+              onClick={() => void dispatchAction({ type: 'retry_processing' })}
+            >
+              <RotateCcw size={16} />
+            </button>
+          )
+        )}
+      </div>
+
       <div className={styles.columns}>
         <div>
           <header className={styles.heading}>
@@ -69,38 +115,9 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
                 </>
               )}
             </h1>
-            <p>I’m working with your retained sources and the evidence in them.</p>
           </header>
 
           <div className={styles.inventory}>
-            <div className={styles.cohortSummary}>
-              <h3>{deriveCohortTitle(workspace)}</h3>
-              <p>{deriveCohortDescription(workspace)}</p>
-            </div>
-            <h2>
-              <FileText size={22} aria-hidden="true" />
-              Selected material
-              <span>{sources.length} {sources.length === 1 ? 'source' : 'sources'}</span>
-            </h2>
-
-            <ul>
-              {sources.map((source, index) => {
-                const segmentCount = source.locations?.length ?? (source.text ? 1 : 0);
-                return (
-                  <li key={source.id}>
-                    <div className={styles.source}>
-                      <span className={styles.sourceNumber}>{String(index + 1).padStart(2, '0')}</span>
-                      <div>
-                        <strong>{source.label}</strong>
-                        <p>{segmentCount} retained segments · {source.state}</p>
-                      </div>
-                      <Check size={18} aria-label="Content acquired" />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
             <div className={styles.progress}>
               {totalCount > 0 ? (
                 <>
@@ -115,36 +132,42 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
               )}
             </div>
 
+            <ul>
+              {sources.map((source, index) => {
+                const segmentCount = source.locations?.length ?? (source.text ? 1 : 0);
+                const isSourceReady = source.state === 'ready' || understoodSourceIds.has(source.id);
+                const isSourceFailed = source.state === 'failed';
+                const statusLabel = isSourceFailed
+                  ? 'Could not read source'
+                  : isSourceReady
+                    ? `Ready${segmentCount > 0 ? ` · ${segmentCount} ${segmentCount === 1 ? 'section' : 'sections'}` : ''}`
+                    : 'Reading source…';
+
+                return (
+                  <li key={source.id}>
+                    <div className={styles.source}>
+                      <span className={styles.sourceNumber}>{String(index + 1).padStart(2, '0')}</span>
+                      <div>
+                        <strong>{source.label}</strong>
+                        <p>{statusLabel}</p>
+                      </div>
+                      {isSourceFailed ? (
+                        <AlertCircle size={18} className={styles.errorIcon} aria-label="Source failed" />
+                      ) : isSourceReady ? (
+                        <Check size={18} aria-label="Content acquired" />
+                      ) : (
+                        <LoaderCircle size={18} className={styles.spinIcon} aria-label="Reading source" />
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
             <div className={styles.controls}>
               <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
-
-              {isRunning ? (
-                <div role="status">
-                  <p>Analyzing {understoodCount} of {totalCount} sources…</p>
-                  <p>Discovering key concepts in real time.</p>
-                  <button type="button" onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>
-                    Cancel understanding
-                  </button>
-                </div>
-              ) : (
-                <div className={styles.controlButtonsRow}>
-                  <button type="button" onClick={() => void dispatchAction({ type: 'open_materials' })}>
-                    ← Back to material
-                  </button>
-                  {isFailed && (
-                    <>
-                      {workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>}
-                      <button type="button" onClick={() => void dispatchAction({ type: 'retry_processing' })}>
-                        Retry processing
-                      </button>
-                    </>
-                  )}
-                  {!isFailed && sources.length > 0 && (
-                    <button type="button" onClick={() => void dispatchAction({ type: 'retry_processing' })}>
-                      {isComplete ? 'Re-understand selected material' : 'Understand selected material'}
-                    </button>
-                  )}
-                </div>
+              {isFailed && workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && (
+                <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>
               )}
             </div>
           </div>

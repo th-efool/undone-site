@@ -77,7 +77,7 @@ export function stageSuggestions(
   if (step === 'processing') {
     return [
       { id: 'view_progress', label: 'View progress', prompt: 'Show understanding progress' },
-      { id: 'review_chunks', label: 'Review chunks', prompt: 'Show chunking details' },
+      { id: 'how_it_works', label: 'How this works', prompt: 'How does curriculum building work?' },
       { id: 'cancel_processing', label: 'Cancel processing', prompt: 'Cancel processing' },
     ].slice(0, 3);
   }
