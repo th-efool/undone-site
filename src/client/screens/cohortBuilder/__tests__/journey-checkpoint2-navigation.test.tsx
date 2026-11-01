@@ -223,7 +223,7 @@ describe('Checkpoint 2 Client Navigation: Recommendations and StartingPoint View
   });
 
   describe('StartingPoint View', () => {
-    it('4. Renders StartingPoint with 3 choices and dispatches choose_starting_point', async () => {
+    it('4. Renders StartingPoint with 2 choices and dispatches choose_starting_point', async () => {
       fake.state = createStartingPointWorkspace();
       render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
 
@@ -231,12 +231,10 @@ describe('Checkpoint 2 Client Navigation: Recommendations and StartingPoint View
       expect(screen.getByRole('region', { name: 'Starting point' })).toBeTruthy();
 
       const choice1 = screen.getByRole('button', { name: /I already have material/i });
-      const choice2 = screen.getByRole('button', { name: /Find material for me/i });
-      const choice3 = screen.getByRole('button', { name: /I just have a goal/i });
+      const choice2 = screen.getByRole('button', { name: /Start with a goal/i });
 
       expect(choice1).toBeTruthy();
       expect(choice2).toBeTruthy();
-      expect(choice3).toBeTruthy();
 
       // Click choice 1: have_material
       await act(async () => {
@@ -254,15 +252,6 @@ describe('Checkpoint 2 Client Navigation: Recommendations and StartingPoint View
       expect(fake.actions).toContainEqual({
         type: 'choose_starting_point',
         choice: 'find_material',
-      });
-
-      // Click choice 3: have_goal
-      await act(async () => {
-        fireEvent.click(choice3);
-      });
-      expect(fake.actions).toContainEqual({
-        type: 'choose_starting_point',
-        choice: 'have_goal',
       });
     });
 

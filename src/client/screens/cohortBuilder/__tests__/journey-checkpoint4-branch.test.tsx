@@ -138,13 +138,13 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         />
       );
 
-      expect(screen.getByText('FIND LEARNING MATERIAL')).toBeTruthy();
-      expect(screen.getByRole('heading', { level: 1 }).textContent).toContain(
-        'Discover grounded sources for your'
-      );
-      expect(screen.getByText('Master Distributed Consensus')).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 1, name: 'Start with a goal' })).toBeTruthy();
+      expect(screen.getByText(/Tell us what you want to learn\. Choose resources before adding them to your material\./i)).toBeTruthy();
 
-      const findBtn = screen.getByRole('button', { name: /Find sources/i });
+      const input = screen.getByLabelText(/Your learning goal/i) as HTMLInputElement;
+      expect(input.value).toBe('Master Distributed Consensus');
+
+      const findBtn = screen.getByRole('button', { name: /Find resources/i });
       expect(findBtn).toBeTruthy();
 
       await act(async () => {
@@ -175,7 +175,7 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         />
       );
 
-      expect(screen.getByText('Searching for grounded sources...')).toBeTruthy();
+      expect(screen.getByText(/Finding resources…/i)).toBeTruthy();
       const cancelBtn = screen.getByRole('button', { name: /Cancel search/i });
       expect(cancelBtn).toBeTruthy();
 
@@ -186,7 +186,7 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
       expect(fake.actions).toContainEqual({ type: 'cancel_discovery' });
     });
 
-    it('3. Renders failed state and dispatches start_discovery on retry', async () => {
+    it('3. Renders failed state and retains input on retry', async () => {
       const ws = createDiscoveryWorkspace({
         discovery: {
           requestId: 'req-fail-1',
@@ -207,17 +207,15 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         />
       );
 
-      expect(
-        screen.getByText(
-          'Source discovery could not be completed. Your goal remains saved.'
-        )
-      ).toBeTruthy();
+      expect(screen.getByRole('alert')).toBeTruthy();
+      expect(screen.getByText(/Search could not finish\. Your goal is saved\. Try again\./i)).toBeTruthy();
 
-      const retryBtn = screen.getByRole('button', { name: /Retry search/i });
-      expect(retryBtn).toBeTruthy();
+      const input = screen.getByLabelText(/Your learning goal/i) as HTMLInputElement;
+      expect(input.value).toBe('Master Distributed Consensus');
 
+      const findBtn = screen.getByRole('button', { name: /Find resources/i });
       await act(async () => {
-        fireEvent.click(retryBtn);
+        fireEvent.click(findBtn);
       });
 
       expect(fake.actions).toContainEqual({ type: 'start_discovery' });
@@ -245,26 +243,16 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
       );
 
       expect(
-        screen.getByText(
-          /No usable public sources were observed for this intent/i
-        )
+        screen.getByText(/No resources found\. Refine your goal or add your own link\./i)
       ).toBeTruthy();
 
-      const searchAgainBtn = screen.getByRole('button', { name: /Search again/i });
-      const provideOwnBtn = screen.getByRole('button', {
-        name: /Provide my own material/i,
+      const haveMaterialBtn = screen.getByRole('button', {
+        name: /I already have material/i,
       });
-
-      expect(searchAgainBtn).toBeTruthy();
-      expect(provideOwnBtn).toBeTruthy();
+      expect(haveMaterialBtn).toBeTruthy();
 
       await act(async () => {
-        fireEvent.click(searchAgainBtn);
-      });
-      expect(fake.actions).toContainEqual({ type: 'start_discovery' });
-
-      await act(async () => {
-        fireEvent.click(provideOwnBtn);
+        fireEvent.click(haveMaterialBtn);
       });
       expect(fake.actions).toContainEqual({
         type: 'choose_starting_point',
@@ -309,58 +297,129 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
 
       expect(screen.getByText('Raft Consensus Summary')).toBeTruthy();
       expect(screen.getByText('Paxos Made Simple')).toBeTruthy();
-      expect(screen.getByText('2 of 2 selected')).toBeTruthy();
 
-      const acquireBtn = screen.getByRole('button', {
-        name: /Acquire selected sources \(2\)/i,
-      });
-      expect(acquireBtn).toBeTruthy();
-      expect((acquireBtn as HTMLButtonElement).disabled).toBe(false);
+      // Checkbox 1 toggle
+      const cb1 = screen.getByLabelText(/Raft Consensus Summary/i);
+      expect((cb1 as HTMLInputElement).checked).toBe(false);
 
-      // Deselect all
-      const deselectAllBtn = screen.getByRole('button', { name: 'Deselect all' });
-      await act(async () => {
-        fireEvent.click(deselectAllBtn);
-      });
-
-      expect(screen.getByText('0 of 2 selected')).toBeTruthy();
-      expect((acquireBtn as HTMLButtonElement).disabled).toBe(true);
-
-      // Select all
-      const selectAllBtn = screen.getByRole('button', { name: 'Select all' });
-      await act(async () => {
-        fireEvent.click(selectAllBtn);
-      });
-
-      expect(screen.getByText('2 of 2 selected')).toBeTruthy();
-
-      // Toggle candidate 1 off
-      const cb1 = screen.getByLabelText('Raft Consensus Summary');
       await act(async () => {
         fireEvent.click(cb1);
       });
+      expect((cb1 as HTMLInputElement).checked).toBe(true);
 
-      expect(screen.getByText('1 of 2 selected')).toBeTruthy();
-      const acquire1Btn = screen.getByRole('button', {
-        name: /Acquire selected sources \(1\)/i,
+      const acquireBtn = screen.getByRole('button', {
+        name: /Add selected material \(1\)/i,
       });
+      expect((acquireBtn as HTMLButtonElement).disabled).toBe(false);
 
       await act(async () => {
-        fireEvent.click(acquire1Btn);
+        fireEvent.click(acquireBtn);
       });
 
       expect(fake.actions).toContainEqual({
         type: 'select_discovery_resources',
         resultId: 'res-disc-789',
-        candidateIds: ['cand-2'],
+        candidateIds: ['cand-1'],
       });
     });
 
-    it('6. Top starting point switching and back navigation in DiscoveryStageView', async () => {
-      const ws = createDiscoveryWorkspace();
-      render(
+    it('6. Enforces goal save false prevents search, new result ID resets selection, and selection commit false preserves checks', async () => {
+      // 1. Goal save false prevents search
+      const ws = createDiscoveryWorkspace({ discovery: undefined });
+      const { rerender } = render(
         <DiscoveryStageView
           workspace={ws}
+          dispatchAction={async a => {
+            fake.actions.push(a);
+            if (a.type === 'set_intent') return false; // simulated failure
+            return true;
+          }}
+        />
+      );
+
+      const input = screen.getByLabelText(/Your learning goal/i);
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'Brand new goal' } });
+      });
+
+      const findBtn = screen.getByRole('button', { name: /Find resources/i });
+      await act(async () => {
+        fireEvent.click(findBtn);
+      });
+
+      // set_intent failed, start_discovery was NOT called
+      expect(fake.actions).toContainEqual({ type: 'set_intent', intent: 'Brand new goal' });
+      expect(fake.actions).not.toContainEqual({ type: 'start_discovery' });
+      expect(screen.getByRole('alert')).toBeTruthy();
+
+      // 2. Selection commit false preserves checks
+      fake.actions = [];
+      const readyWs = createDiscoveryWorkspace({
+        discovery: {
+          requestId: 'req-ready-2',
+          fingerprint: 'fp-disc-456',
+          status: 'ready',
+          resultId: 'res-disc-1',
+          generation: 0,
+          items: [
+            {
+              id: 'cand-1',
+              label: 'Raft Consensus Summary',
+              kind: 'web',
+              url: 'https://raft.github.io',
+            },
+          ],
+        },
+      });
+
+      rerender(
+        <DiscoveryStageView
+          workspace={readyWs}
+          dispatchAction={async a => {
+            fake.actions.push(a);
+            if (a.type === 'select_discovery_resources') return false; // simulated failure
+            return true;
+          }}
+        />
+      );
+
+      const cb = screen.getByLabelText(/Raft Consensus Summary/i) as HTMLInputElement;
+      await act(async () => {
+        fireEvent.click(cb);
+      });
+      expect(cb.checked).toBe(true);
+
+      const addBtn = screen.getByRole('button', { name: /Add selected material \(1\)/i });
+      await act(async () => {
+        fireEvent.click(addBtn);
+      });
+
+      expect(screen.getByRole('alert')).toBeTruthy();
+      expect(screen.getByText(/Could not save this action\. Your choices are retained\./i)).toBeTruthy();
+      expect(cb.checked).toBe(true); // Checkbox remains preserved!
+
+      // 3. New result ID resets selection
+      const newResultWs = createDiscoveryWorkspace({
+        discovery: {
+          requestId: 'req-ready-3',
+          fingerprint: 'fp-disc-789',
+          status: 'ready',
+          resultId: 'res-disc-NEW',
+          generation: 1,
+          items: [
+            {
+              id: 'cand-1',
+              label: 'Raft Consensus Summary',
+              kind: 'web',
+              url: 'https://raft.github.io',
+            },
+          ],
+        },
+      });
+
+      rerender(
+        <DiscoveryStageView
+          workspace={newResultWs}
           dispatchAction={async a => {
             fake.actions.push(a);
             return true;
@@ -368,25 +427,8 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         />
       );
 
-      const tabFind = screen.getByRole('button', { name: /Find material for me/i });
-      expect(tabFind.getAttribute('aria-pressed')).toBe('true');
-
-      // Click Back button
-      const backBtn = screen.getByRole('button', { name: /Back to starting point/i });
-      await act(async () => {
-        fireEvent.click(backBtn);
-      });
-      expect(fake.actions).toContainEqual({ type: 'back_to_starting_point' });
-
-      // Click "I already have material" tab
-      const tabMat = screen.getByRole('button', { name: /I already have material/i });
-      await act(async () => {
-        fireEvent.click(tabMat);
-      });
-      expect(fake.actions).toContainEqual({
-        type: 'choose_starting_point',
-        choice: 'have_material',
-      });
+      const cbNew = screen.getByLabelText(/Raft Consensus Summary/i) as HTMLInputElement;
+      expect(cbNew.checked).toBe(false); // Reset because resultId changed!
     });
   });
 
@@ -411,7 +453,6 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         'Shape your goal and pacing.'
       );
 
-      // Edit Intent and blur
       const intentTextarea = screen.getByLabelText(/Learning goal/i);
       expect((intentTextarea as HTMLTextAreaElement).value).toBe(
         'Master Distributed Consensus in Go'
@@ -427,7 +468,6 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         intent: 'Deep dive into Raft consensus protocol',
       });
 
-      // Edit Audience and blur
       const audienceInput = screen.getByLabelText(/Target audience/i);
       expect((audienceInput as HTMLInputElement).value).toBe(
         'Intermediate engineers'
@@ -443,7 +483,6 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         audience: 'Senior Backend Engineers',
       });
 
-      // Change pacing to 45 min
       const pill45 = screen.getByRole('button', { name: /45 min/i });
       await act(async () => {
         fireEvent.click(pill45);
@@ -470,10 +509,8 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         name: /Generate learning guide/i,
       }) as HTMLButtonElement;
 
-      // CTA initially disabled
       expect(generateBtn.disabled).toBe(true);
 
-      // Check disclosure checkbox
       const disclosureCheckbox = screen.getByLabelText(
         /Use AI-authored material for my saved goal/i
       );
@@ -483,10 +520,8 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         fireEvent.click(disclosureCheckbox);
       });
 
-      // CTA becomes enabled
       expect(generateBtn.disabled).toBe(false);
 
-      // Clicking dispatches start_goal_generation
       await act(async () => {
         fireEvent.click(generateBtn);
       });
@@ -509,14 +544,12 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
       const tabGoal = screen.getByRole('button', { name: /I just have a goal/i });
       expect(tabGoal.getAttribute('aria-pressed')).toBe('true');
 
-      // Click Back button
       const backBtn = screen.getByRole('button', { name: /Back to starting point/i });
       await act(async () => {
         fireEvent.click(backBtn);
       });
       expect(fake.actions).toContainEqual({ type: 'back_to_starting_point' });
 
-      // Click "Find material for me"
       const tabFind = screen.getByRole('button', { name: /Find material for me/i });
       await act(async () => {
         fireEvent.click(tabFind);
@@ -536,17 +569,18 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
       fake.state = createDiscoveryWorkspace();
       render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
 
-      expect(screen.getByText('FIND LEARNING MATERIAL')).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 1, name: 'Start with a goal' })).toBeTruthy();
       expect(
         screen.queryByRole('list', { name: 'Creation journey progress' })
       ).toBeNull();
     });
 
-    it('11. Renders GoalStageView when journey.step is goal_setup and suppresses stepper nav', () => {
+    it('11. Renders DiscoveryStageView when journey.step is goal_setup (old draft can enter search) and suppresses stepper nav', () => {
       fake.state = createGoalWorkspace();
       render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
 
-      expect(screen.getByText('CREATE AI-AUTHORED GUIDE')).toBeTruthy();
+      // In revised intake, goal_setup routes to DiscoveryStageView so old drafts can enter search
+      expect(screen.getByRole('heading', { level: 1, name: 'Start with a goal' })).toBeTruthy();
       expect(
         screen.queryByRole('list', { name: 'Creation journey progress' })
       ).toBeNull();

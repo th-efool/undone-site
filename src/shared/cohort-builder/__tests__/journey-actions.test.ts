@@ -254,10 +254,10 @@ describe('Cohort Journey: Step transitions & prerequisites', () => {
     expect(planDisc.nextState.journey?.step).toBe('discovery');
     expect(planDisc.nextState.journey?.branch).toBe('find_material');
 
-    // have_goal -> goal_setup
+    // have_goal -> maps to discovery / find_material (merged goal search)
     const planGoal = planCohortAction(baseStartingPoint(), { type: 'choose_starting_point', choice: 'have_goal' }, ctx);
-    expect(planGoal.nextState.journey?.step).toBe('goal_setup');
-    expect(planGoal.nextState.journey?.branch).toBe('have_goal');
+    expect(planGoal.nextState.journey?.step).toBe('discovery');
+    expect(planGoal.nextState.journey?.branch).toBe('find_material');
   });
 
   it('rejects choose_starting_point from wrong step', () => {
@@ -337,10 +337,11 @@ describe('Cohort Journey: Step transitions & prerequisites', () => {
     ws.journey!.branch = 'find_material';
     expect(() => planCohortAction(ws, { type: 'start_discovery' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
 
-    // Wrong branch
+    // Starting discovery from discovery step with have_material branch normalizes to find_material
     ws.journey!.step = 'discovery';
     ws.journey!.branch = 'have_material';
-    expect(() => planCohortAction(ws, { type: 'start_discovery' }, ctx)).toThrow('INVALID_JOURNEY_BRANCH');
+    const planDiscovery = planCohortAction(ws, { type: 'start_discovery' }, ctx);
+    expect(planDiscovery.nextState.journey?.branch).toBe('find_material');
   });
 
   it('select_discovery_resources validates proof, projection, candidates, and transitions to material_input', () => {

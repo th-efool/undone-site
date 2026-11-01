@@ -430,7 +430,10 @@ describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
         fireEvent.click(backBtn);
       });
 
-      expect(fake.actions).toEqual([{ type: 'back_to_starting_point' }]);
+      expect(fake.actions).toEqual([
+        { type: 'back_to_starting_point' },
+        { type: 'choose_starting_point', choice: 'have_material' },
+      ]);
     });
   });
 });

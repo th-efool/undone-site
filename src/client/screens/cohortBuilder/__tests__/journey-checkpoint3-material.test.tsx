@@ -24,7 +24,7 @@ vi.mock('next-auth/react', () => ({
 vi.mock('@/src/client/interaction/hooks', () => ({
   useWorkspaceConnection: () => 'live',
   useInteractionState: () => ({
-    workspaceId: 'ws-test-123',
+    workspaceId: 'ws-test-checkpoint3',
     revision: 2,
     view: fake.state,
   }),
@@ -41,14 +41,21 @@ vi.mock('@/src/client/interaction/provider', () => ({
   InteractionProvider: ({ children }: any) => <>{children}</>,
 }));
 
-vi.mock('@/src/client/lib/sourceExtractors/pdfClientExtractor', () => ({
-  extractPdfClient: vi.fn().mockResolvedValue({
-    text: 'Extracted PDF text content',
-    locations: [{ page: 1, start: 0, end: 26 }],
-    provenance: { parserVersion: 'test', pageCount: 1, rawChecksum: 'a'.repeat(64) },
-    checksum: 'a'.repeat(64),
-    thumbnailUrl: '',
-    pageCount: 1,
+vi.mock('@/src/client/lib/sourceExtractors/webClientExtractor', () => ({
+  extractWebClient: vi.fn().mockResolvedValue({
+    text: 'Extracted web content',
+    locations: [{ start: 0, end: 20 }],
+    provenance: { parserVersion: 'test', rawChecksum: 'b'.repeat(64), scope: 'main_article' },
+    checksum: 'b'.repeat(64),
+  }),
+}));
+
+vi.mock('@/src/client/lib/sourceExtractors/youtubeClientExtractor', () => ({
+  extractYoutubeClient: vi.fn().mockResolvedValue({
+    text: 'Extracted youtube transcript',
+    locations: [{ start: 0, end: 28 }],
+    provenance: { parserVersion: 'test', rawChecksum: 'c'.repeat(64), scope: 'video_observation' },
+    checksum: 'c'.repeat(64),
   }),
 }));
 
@@ -93,7 +100,9 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
       status: 'authenticated',
       data: { user: { id: 'owner-alice' } },
     };
-    global.fetch = vi.fn();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+    });
   });
 
   afterEach(() => {
@@ -101,75 +110,86 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     vi.restoreAllMocks();
   });
 
-  it('1. Renders Screen 4 headline, eyebrow, collage decorations, and subtitle', () => {
-    const ws = createMaterialWorkspace();
-    render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
+  it('1. Renders headline, URL input, help text; previews precede form in DOM', () => {
+    const ws = createMaterialWorkspace({
+      sources: [
+        {
+          id: 'src-1',
+          version: 1,
+          label: 'System Design Article',
+          text: 'article text',
+          checksum: null,
+          state: 'ready',
+          input: { kind: 'web', url: 'https://example.com/system-design-guide' },
+        },
+      ],
+    });
+    const { container } = render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
 
-    expect(screen.getByText('GIVE ME WHAT YOU’VE GOT')).toBeTruthy();
-    const h1 = screen.getByRole('heading', { level: 1 });
-    expect(h1).toBeTruthy();
-    expect(h1.textContent).toContain('Paste a link, upload a file,');
-    expect(h1.textContent).toContain('or drop your material here.');
-    expect(screen.getByText(/You can give me multiple sources/i)).toBeTruthy();
-    expect(screen.getByText(/Same content./i)).toBeTruthy();
-    expect(screen.getByText(/More progress./i)).toBeTruthy();
-    expect(screen.getByText(/Drop your material here/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Add your material' })).toBeTruthy();
+    expect(screen.getByLabelText(/Public article or YouTube URL/i)).toBeTruthy();
+    expect(screen.getByText(/Public YouTube videos, playlists and articles\. Up to 100 sources\./i)).toBeTruthy();
+
+    const previewsSection = screen.getByRole('region', { name: 'Added material' });
+    const inputForm = container.querySelector('form');
+    expect(previewsSection).toBeTruthy();
+    expect(inputForm).toBeTruthy();
+    expect(previewsSection.compareDocumentPosition(inputForm!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('2. Shows mode buttons for upload, paste, link; removes GitHub forms from default journey', () => {
+  it('2. Shows URL input as default; disables alternate mode buttons with "Temporarily unavailable"; no file input or textarea', () => {
     const ws = createMaterialWorkspace();
-    render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
+    const { container } = render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
 
-    expect(screen.getByRole('button', { name: /Upload a file/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Paste text/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /^Paste a link$/i })).toBeTruthy();
+    const linkBtn = screen.getByRole('button', { name: 'Paste a link' });
+    expect(linkBtn.getAttribute('aria-pressed')).toBe('true');
 
-    expect(screen.queryByRole('button', { name: /GitHub repository/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Notion page/i })).toBeNull();
+    const uploadBtn = screen.getByRole('button', { name: 'Upload a file' });
+    expect(uploadBtn.hasAttribute('disabled')).toBe(true);
+    expect(uploadBtn.getAttribute('title')).toBe('Temporarily unavailable');
+
+    const pasteTextBtn = screen.getByRole('button', { name: 'Paste text' });
+    expect(pasteTextBtn.hasAttribute('disabled')).toBe(true);
+    expect(pasteTextBtn.getAttribute('title')).toBe('Temporarily unavailable');
+
+    expect(container.querySelector('input[type="file"]')).toBeNull();
+    expect(container.querySelector('textarea')).toBeNull();
   });
 
   it('3. Classifies YouTube URL versus general Web URL in single link input', async () => {
     const ws = createMaterialWorkspace();
     render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
 
-    // Switch to URL mode
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^Paste a link$/i }));
-    });
-
     const urlInput = screen.getByLabelText(/Public article or YouTube URL/i);
 
-    // 1. YouTube video URL -> add_youtube_source with mode='video_observation'
+    // YouTube URL
     await act(async () => {
       fireEvent.change(urlInput, { target: { value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } });
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Save and acquire material/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add link' }));
     });
 
     expect(fake.actions).toContainEqual(expect.objectContaining({
       type: 'add_youtube_source',
       url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      label: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       mode: 'video_observation',
-      sourceId: undefined,
     }));
 
     fake.actions = [];
 
-    // 2. Regular Web article URL -> add_web_source
+    // General Web URL
     await act(async () => {
-      fireEvent.change(urlInput, { target: { value: 'https://example.com/consensus-guide' } });
+      fireEvent.change(urlInput, { target: { value: 'https://example.com/system-design' } });
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Save and acquire material/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add link' }));
     });
 
     expect(fake.actions).toContainEqual(expect.objectContaining({
       type: 'add_web_source',
-      url: 'https://example.com/consensus-guide',
-      label: 'https://example.com/consensus-guide',
-      sourceId: undefined,
+      url: 'https://example.com/system-design',
+      label: 'https://example.com/system-design',
     }));
   });
 
@@ -178,163 +198,157 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     const ws = createMaterialWorkspace();
     render(<MaterialStageView workspace={ws} dispatchAction={async () => false} />);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^Paste a link$/i }));
-    });
-
     const urlInput = screen.getByLabelText(/Public article or YouTube URL/i) as HTMLInputElement;
     await act(async () => {
-      fireEvent.change(urlInput, { target: { value: 'https://example.com/failed-link' } });
+      fireEvent.change(urlInput, { target: { value: 'https://example.com/my-article' } });
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Save and acquire material/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add link' }));
     });
 
-    expect(urlInput.value).toBe('https://example.com/failed-link');
+    expect(urlInput.value).toBe('https://example.com/my-article');
     expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByText(/Could not add this link\. Your input was preserved for retry\./i)).toBeTruthy();
   });
 
-  it('5. Handles paste mode and dispatches add_text_source', async () => {
+  it('5. Playlist handling respects capacity: dispatches batch action up to limit and rejects if at max capacity', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        isPlaylist: true,
+        title: 'Distributed Systems Course',
+        videos: [
+          { videoId: 'vid11111111', title: 'Lesson 1' },
+          { videoId: 'vid22222222', title: 'Lesson 2' },
+        ],
+      }),
+    });
+
     const ws = createMaterialWorkspace();
     render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
 
+    const urlInput = screen.getByLabelText(/Public article or YouTube URL/i);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Paste text/i }));
+      fireEvent.change(urlInput, { target: { value: 'https://www.youtube.com/playlist?list=PL12345' } });
     });
-
-    const titleInput = screen.getByLabelText(/Source title/i);
-    const textInput = screen.getByLabelText(/Learning text/i);
-
     await act(async () => {
-      fireEvent.change(titleInput, { target: { value: 'Paxos Lecture Notes' } });
-      fireEvent.change(textInput, { target: { value: 'Proposers prepare and accept values across quorums.' } });
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Save text source/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add link' }));
     });
 
     expect(fake.actions).toContainEqual({
-      type: 'add_text_source',
-      label: 'Paxos Lecture Notes',
-      text: 'Proposers prepare and accept values across quorums.',
-      sourceId: undefined,
+      type: 'add_youtube_sources_batch',
+      videos: [
+        { url: 'https://www.youtube.com/watch?v=vid11111111', label: 'Lesson 1', mode: 'video_observation' },
+        { url: 'https://www.youtube.com/watch?v=vid22222222', label: 'Lesson 2', mode: 'video_observation' },
+      ],
     });
-  });
 
-    it('6. Extracts PDF client-side and dispatches add_pdf_source with extraction payload', async () => {
-    const ws = createMaterialWorkspace();
+    fake.actions = [];
+    const fullSources = Array.from({ length: 100 }, (_, i) => ({
+      id: `src-${i}`,
+      version: 0,
+      label: `Source ${i}`,
+      text: 'retained sample content',
+      checksum: null,
+      state: 'ready' as const,
+    }));
+    const fullWs = createMaterialWorkspace({ sources: fullSources });
+    cleanup();
+    render(<MaterialStageView workspace={fullWs} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
 
-    render(
-      <MaterialStageView
-        workspace={ws}
-        workspaceId="ws-test-123"
-        revision={2}
-        ownerId="owner-alice"
-        dispatchAction={async a => { fake.actions.push(a); return true; }}
-      />
-    );
-
-    const fileInput = document.getElementById('material-file-picker') as HTMLInputElement;
-    const fakePdf = new File(['%PDF-1.4 fake binary content'], 'whitepaper.pdf', { type: 'application/pdf' });
-
+    const urlInputFull = screen.getByLabelText(/Public article or YouTube URL/i);
     await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [fakePdf] } });
+      fireEvent.change(urlInputFull, { target: { value: 'https://www.youtube.com/playlist?list=PL12345' } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add link' }));
     });
 
-    expect(fake.actions).toContainEqual(
-      expect.objectContaining({
-        type: 'add_pdf_source',
-        label: 'whitepaper.pdf',
-        extraction: expect.objectContaining({
-          text: 'Extracted PDF text content',
-        }),
-      })
-    );
+    expect(fake.actions).toHaveLength(0);
+    expect(screen.getByText(/Cannot add more sources\. Maximum capacity of 100 reached\./i)).toBeTruthy();
   });
 
-  it('7. Reads .txt or .md files with file.text() and dispatches add_text_source', async () => {
+  it('6. Rapid submit dispatches once (lock.current prevents duplicate actions)', async () => {
+    let dispatchCallCount = 0;
     const ws = createMaterialWorkspace();
     render(
       <MaterialStageView
         workspace={ws}
-        dispatchAction={async a => { fake.actions.push(a); return true; }}
+        dispatchAction={async a => {
+          dispatchCallCount++;
+          fake.actions.push(a);
+          await new Promise(r => setTimeout(r, 50));
+          return true;
+        }}
       />
     );
 
-    const fileInput = document.getElementById('material-file-picker') as HTMLInputElement;
-    const fakeMd = new File(['# Consensus Overview\n\nRaft simplifies Paxos.'], 'raft.md', { type: 'text/markdown' });
-    fakeMd.text = vi.fn().mockResolvedValue('# Consensus Overview\n\nRaft simplifies Paxos.');
-
+    const urlInput = screen.getByLabelText(/Public article or YouTube URL/i);
     await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [fakeMd] } });
+      fireEvent.change(urlInput, { target: { value: 'https://example.com/single-dispatch' } });
     });
 
-    expect(fakeMd.text).toHaveBeenCalled();
-    expect(fake.actions).toContainEqual({
-      type: 'add_text_source',
-      label: 'raft.md',
-      text: '# Consensus Overview\n\nRaft simplifies Paxos.',
-      sourceId: undefined,
+    const addBtn = screen.getByRole('button', { name: 'Add link' });
+    await act(async () => {
+      fireEvent.click(addBtn);
+      fireEvent.click(addBtn);
+      fireEvent.click(addBtn);
     });
+
+    expect(dispatchCallCount).toBe(1);
   });
 
-  it('8. Renders Added Material rows with provenance for PDF, Web, YouTube, and GitHub', () => {
+  it('7. Renders Added Material rows with badges (PDF, Web, YouTube, GitHub, AI Guide) and only Remove button', () => {
     const ws = createMaterialWorkspace({
       sources: [
         {
-          id: 'src-pdf',
+          id: 'src-1',
           version: 1,
-          label: 'Paper.pdf',
-          text: 'extracted text',
-          checksum: null,
-          state: 'ready',
-          input: { kind: 'pdf', uploadId: 'a0000000-0000-4000-8000-000000000001' },
-          provenance: {
-            parserVersion: 'pdf-parser-v1',
-            rawChecksum: 'a'.repeat(64),
-            scope: 'selected_pages',
-            pageCount: 14,
-          },
-          locations: [{ start: 0, end: 100, page: 1 }],
-        },
-        {
-          id: 'src-web',
-          version: 1,
-          label: 'Raft Paper Online',
+          label: 'System Design Article',
           text: 'article text',
           checksum: null,
           state: 'ready',
-          input: { kind: 'web', url: 'https://raft.github.io' },
-          locations: [{ start: 0, end: 80 }],
+          input: { kind: 'web', url: 'https://example.com/system-design-guide' },
         },
         {
-          id: 'src-yt',
+          id: 'src-2',
           version: 1,
-          label: 'Raft Talk Video',
+          label: 'Distributed Systems Lecture',
           text: '',
           checksum: null,
           state: 'ready',
           input: {
             kind: 'youtube',
-            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            url: 'https://www.youtube.com/watch?v=12345678901',
             mode: 'video_observation',
           },
         },
         {
-          id: 'src-gh',
+          id: 'src-3',
           version: 1,
-          label: 'Etcd Repo',
-          text: 'code notes',
+          label: 'Whitepaper PDF',
+          text: 'pdf text',
           checksum: null,
           state: 'ready',
-          input: {
-            kind: 'github',
-            repoUrl: 'https://github.com/etcd-io/etcd',
-            ref: 'main',
-            paths: ['raft/raft.go'],
-          },
-          locations: [{ start: 0, end: 50 }],
+          input: { kind: 'pdf', uploadId: '11111111-1111-4111-8111-111111111111' },
+        },
+        {
+          id: 'src-4',
+          version: 1,
+          label: 'Distributed Database Repo',
+          text: 'code text',
+          checksum: null,
+          state: 'ready',
+          input: { kind: 'github', repoUrl: 'https://github.com/org/db', ref: 'main' },
+        },
+        {
+          id: 'src-5',
+          version: 1,
+          label: 'Authed Guide',
+          text: 'guide text',
+          checksum: null,
+          state: 'ready',
+          input: { kind: 'generated_guide', goal: 'Learn consensus', audience: 'All', dailyMinutes: 30, intentVersion: 1 },
         },
       ],
     });
@@ -342,77 +356,46 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
 
     expect(screen.getByText('Added material')).toBeTruthy();
-    expect(screen.getByText('Paper.pdf')).toBeTruthy();
-    expect(screen.getByText(/14 pages · 1 extracted segments/i)).toBeTruthy();
+    expect(screen.getByText('Web Article')).toBeTruthy();
+    expect(screen.getByText('YouTube Video')).toBeTruthy();
+    expect(screen.getByText('PDF Document')).toBeTruthy();
+    expect(screen.getByText('GitHub Repo')).toBeTruthy();
+    expect(screen.getByText('AI Guide')).toBeTruthy();
 
-    expect(screen.getByText('Raft Paper Online')).toBeTruthy();
-    expect(screen.getByText(/1 extracted segments · https:\/\/raft\.github\.io/i)).toBeTruthy();
-
-    expect(screen.getByText('Raft Talk Video')).toBeTruthy();
-    expect(screen.getByText(/Retained video observations ready · Coverage is non-exhaustive; timestamps are estimated\./i)).toBeTruthy();
-
-    // Existing GitHub sources render cleanly
-    expect(screen.getByText('Etcd Repo')).toBeTruthy();
-    expect(screen.getByText(/GitHub: https:\/\/github\.com\/etcd-io\/etcd · Ref: main · Paths: raft\/raft\.go/i)).toBeTruthy();
-
-    // Verify Replace and Remove buttons for each source
-    expect(screen.getByRole('button', { name: /Replace source 1/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Remove source 1/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Replace source 2/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Remove source 2/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Remove source 1' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Remove source 2' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Replace source/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Retry/i })).toBeNull();
   });
 
-  it('9. Shows human-readable error beside failed source with functional Retry button', async () => {
+  it('8. Failed remove does not delete source and surfaces error alert', async () => {
+    fake.succeeds = false;
     const ws = createMaterialWorkspace({
       sources: [
         {
-          id: 'src-failed-1',
+          id: 'src-del-1',
           version: 1,
-          label: 'Broken Web Page',
-          text: '',
+          label: 'Source To Remove',
+          text: 'content',
           checksum: null,
-          state: 'failed',
-          input: { kind: 'web', url: 'https://example.com/broken-doc' },
+          state: 'ready',
         },
       ],
-      processing: {
-        status: 'failed',
-        stage: 'acquisition',
-        generation: 1,
-        sourceFingerprint: null,
-        error: 'FETCH_FAILED',
-        jobs: [
-          {
-            id: 'job-fetch-failed',
-            sourceId: 'src-failed-1',
-            stage: 'acquisition',
-            status: 'failed',
-            attempts: 1,
-            error: 'FETCH_FAILED',
-            retryable: true,
-          },
-        ],
-      },
     });
 
-    render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
+    render(<MaterialStageView workspace={ws} dispatchAction={async () => false} />);
 
-    expect(screen.getByText(/Could not reach the website\. Verify the URL is publicly accessible\./i)).toBeTruthy();
-
-    const retryBtn = screen.getByRole('button', { name: /Retry/i });
-    expect(retryBtn).toBeTruthy();
-
+    const removeBtn = screen.getByRole('button', { name: 'Remove source 1' });
     await act(async () => {
-      fireEvent.click(retryBtn);
+      fireEvent.click(removeBtn);
     });
 
-    expect(fake.actions).toContainEqual({
-      type: 'retry_text_job',
-      jobId: 'job-fetch-failed',
-    });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByText('Could not save this action. Please try again.')).toBeTruthy();
+    expect(screen.getByText('Source To Remove')).toBeTruthy();
   });
 
-  it('10. Continue CTA button calls begin_material_processing and is disabled when 0 sources', async () => {
+  it('9. Continue CTA button calls begin_material_processing and is disabled when 0 sources', async () => {
     const wsEmpty = createMaterialWorkspace({ sources: [] });
     const { rerender } = render(
       <MaterialStageView workspace={wsEmpty} dispatchAction={async a => { fake.actions.push(a); return true; }} />
@@ -424,10 +407,10 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     const wsWithSources = createMaterialWorkspace({
       sources: [
         {
-          id: 'src-ready-1',
+          id: 'src-1',
           version: 1,
-          label: 'Consensus Overview Notes',
-          text: 'Quorums overlap.',
+          label: 'Notes',
+          text: 'some content',
           checksum: null,
           state: 'ready',
         },
@@ -438,7 +421,6 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
       <MaterialStageView workspace={wsWithSources} dispatchAction={async a => { fake.actions.push(a); return true; }} />
     );
 
-    expect(screen.getByText(/Sources are saved\. Continue below to understand your material\./i)).toBeTruthy();
     expect(continueBtn.hasAttribute('disabled')).toBe(false);
 
     await act(async () => {
@@ -448,28 +430,18 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     expect(fake.actions).toContainEqual({ type: 'begin_material_processing' });
   });
 
-  it('11. Renders Supported sources and limits and Connected accounts accordions', () => {
-    const ws = createMaterialWorkspace();
-    render(<MaterialStageView workspace={ws} dispatchAction={async a => { fake.actions.push(a); return true; }} />);
-
-    expect(screen.getByText('Supported sources and limits')).toBeTruthy();
-    expect(screen.getByText('Connected accounts')).toBeTruthy();
-  });
-
-  it('12. CohortWorkspacePane: renders top starting point compact tabs and dispatches back_to_starting_point on Back click', async () => {
+  it('10. CohortWorkspacePane: renders top starting point tabs and dispatches back_to_starting_point on Back click', async () => {
     fake.state = createMaterialWorkspace();
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
 
-    const tab1 = screen.getByRole('button', { name: /I already have material/i });
-    const tab2 = screen.getByRole('button', { name: /Find material for me/i });
-    const tab3 = screen.getByRole('button', { name: /I just have a goal/i });
+    const tab1 = screen.getByRole('button', { name: 'I already have material' });
+    const tab2 = screen.getByRole('button', { name: 'Start with a goal' });
 
     expect(tab1).toBeTruthy();
     expect(tab2).toBeTruthy();
-    expect(tab3).toBeTruthy();
     expect(tab1.getAttribute('aria-pressed')).toBe('true');
 
-    const backBtn = screen.getByRole('button', { name: /Back to starting point/i });
+    const backBtn = screen.getByRole('button', { name: 'Back to starting point' });
     await act(async () => {
       fireEvent.click(backBtn);
     });
@@ -477,11 +449,11 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     expect(fake.actions).toContainEqual({ type: 'back_to_starting_point' });
   });
 
-  it('13. CohortWorkspacePane: switches branch via back_to_starting_point and choose_starting_point', async () => {
+  it('11. CohortWorkspacePane: allows switching starting point tab via back_to_starting_point and choose_starting_point', async () => {
     fake.state = createMaterialWorkspace();
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
 
-    const tabFind = screen.getByRole('button', { name: /Find material for me/i });
+    const tabFind = screen.getByRole('button', { name: 'Start with a goal' });
     await act(async () => {
       fireEvent.click(tabFind);
     });
@@ -493,7 +465,7 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     });
   });
 
-  it('14. CohortWorkspacePane: suppresses stepper nav during material_input stage', () => {
+  it('12. CohortWorkspacePane: suppresses stepper nav during material_input stage', () => {
     fake.state = createMaterialWorkspace();
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
 

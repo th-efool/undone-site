@@ -122,7 +122,8 @@ describe('conversational co-design transitions', () => {
   it('opens requested navigation directly from chat', () => {
     expect(planCohortAction(chat(), { type: 'create_own_cohort' }, context).nextState.journey?.step).toBe('starting_point');
     for (const choice of ['have_goal', 'have_material', 'find_material'] as const) {
-      expect(planCohortAction(chat(), { type: 'choose_starting_point', choice }, context).nextState.journey?.branch).toBe(choice);
+      const expectedBranch = choice === 'have_material' ? 'have_material' : 'find_material';
+      expect(planCohortAction(chat(), { type: 'choose_starting_point', choice }, context).nextState.journey?.branch).toBe(expectedBranch);
     }
   });
   it('preserves chat planning when drafting lessons and requires explicit review navigation', () => {

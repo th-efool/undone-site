@@ -272,10 +272,10 @@ describe('owned creation workspace', () => {
     expect(await screen.findByText('Real rendering cohort')).toBeTruthy();
     expect(api.create).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Create my own cohort' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'I just have a goal' }));
-    await waitFor(() => expect(saved.startingPoint).toBe('have_goal'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Start with a goal' }));
+    await waitFor(() => expect(saved.startingPoint).toBe('find_material'));
     cleanup(); render(<CreationExperience draftId={draftId} resume />);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'I just have a goal' }).getAttribute('aria-pressed')).toBe('true'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Start with a goal' }).getAttribute('aria-pressed')).toBe('true'));
     expect(api.load).toHaveBeenCalledTimes(1);
     expect(api.create).toHaveBeenCalledTimes(1);
   });

@@ -259,7 +259,7 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
   });
 
   describe('StartingPointStageView', () => {
-    it('renders the 3 illustrated choices and dispatches choose_starting_point', () => {
+    it('renders the 2 illustrated choices and dispatches choose_starting_point', () => {
       const dispatchAction = vi.fn().mockResolvedValue(true);
       const ws = createWorkspace({
         journey: {
@@ -274,12 +274,10 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
       render(<StartingPointStageView workspace={ws} dispatchAction={dispatchAction} />);
 
       const choice1 = screen.getByRole('button', { name: /I already have material/i });
-      const choice2 = screen.getByRole('button', { name: /Find material for me/i });
-      const choice3 = screen.getByRole('button', { name: /I just have a goal/i });
+      const choice2 = screen.getByRole('button', { name: /Start with a goal/i });
 
       expect(choice1).toBeDefined();
       expect(choice2).toBeDefined();
-      expect(choice3).toBeDefined();
 
       fireEvent.click(choice1);
       expect(dispatchAction).toHaveBeenCalledWith({
@@ -291,12 +289,6 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
       expect(dispatchAction).toHaveBeenCalledWith({
         type: 'choose_starting_point',
         choice: 'find_material',
-      });
-
-      fireEvent.click(choice3);
-      expect(dispatchAction).toHaveBeenCalledWith({
-        type: 'choose_starting_point',
-        choice: 'have_goal',
       });
 
       const backBtn = screen.getByRole('button', { name: /Back to recommendations/i });
