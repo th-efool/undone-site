@@ -2,79 +2,9 @@ import { sha256 } from './hash';
 import type {
   CohortWorkspace,
   CohortSource,
-  CohortJourneyStep,
 } from './contracts';
 
-export type CreationStep = CohortJourneyStep;
-export type CreationBranch = 'have_material' | 'find_material' | null;
-
-export type DiscoveryRegionState =
-  | { status: 'idle'; generation: number }
-  | {
-      status: 'queued' | 'running';
-      requestId: string;
-      fingerprint: string;
-      generation: number;
-    }
-  | {
-      status: 'ready';
-      requestId: string;
-      fingerprint: string;
-      resultId: string;
-      generation: number;
-      candidateCount: number;
-    }
-  | {
-      status: 'failed' | 'canceled';
-      requestId: string;
-      fingerprint: string;
-      generation: number;
-      error: string | null;
-    };
-
-export type BuildRegionStatus =
-  | 'not_started'
-  | 'queued'
-  | 'running'
-  | 'ready'
-  | 'stale'
-  | 'failed'
-  | 'canceled';
-
-export interface BuildRegionState {
-  status: BuildRegionStatus;
-  activeStage: CohortWorkspace['processing']['stage'];
-  generation: number;
-  acceptedSourceFingerprint: string | null;
-  currentSourceFingerprint: string;
-  currentBuildInputFingerprint: string;
-  isBuildComplete: boolean;
-  isBuildStale: boolean;
-  error: string | null;
-}
-
-export interface ReleaseRegionState {
-  status: 'draft' | 'prepared' | 'released';
-  mode: 'private_activation' | 'public_publish' | null;
-  candidateHash: string | null;
-  cohortId: string | null;
-}
-
-export interface WorkspaceInvariantReport {
-  valid: boolean;
-  violations: string[];
-}
-
-export interface CreationMachineState {
-  step: CreationStep | null;
-  branch: CreationBranch;
-  processingStarted: boolean;
-  intentVersion: number;
-  discovery: DiscoveryRegionState;
-  build: BuildRegionState;
-  release: ReleaseRegionState;
-  invariants: WorkspaceInvariantReport;
-}
+export interface WorkspaceInvariantReport { valid: boolean; violations: string[]; }
 
 type JobItem = NonNullable<CohortWorkspace['processing']['jobs']>[number];
 
@@ -149,7 +79,7 @@ export function computeBuildInputFingerprint(
 ): string {
   const sortedSources = [...(state.sources ?? [])]
     .sort((a, b) => a.id.localeCompare(b.id))
-    .map(source => [source.id, source.version, source.input ?? source.text]);
+    .map(source => [source.id, source.version, source.input ?? null, source.text, source.locations ?? [], source.provenance ?? null]);
   const overrides = (state.lessons ?? [])
     .filter(
       lesson =>
@@ -186,7 +116,8 @@ export function isBuildComplete(workspace: CohortWorkspace): boolean {
   if (!processing) return false;
   if (processing.status !== 'ready') return false;
   if (processing.stage !== 'done') return false;
-  if (!processing.sourceFingerprint) return false;
+  if (processing.sourceFingerprint !== computeSourceEvidenceFingerprint(workspace)) return false;
+  if (processing.buildInputFingerprint && processing.buildInputFingerprint !== computeBuildInputFingerprint(workspace)) return false;
   if (sources.length === 0) return false;
   if (sources.some(s => (s.state as string) !== 'ready')) return false;
   if (lessons.length === 0) return false;
@@ -206,6 +137,7 @@ export function isBuildStale(workspace: CohortWorkspace): boolean {
   const lessons = workspace.lessons ?? [];
   const processing = workspace.processing;
   if (!processing || sources.length === 0) return false;
+  if (processing.status === 'ready' && !isBuildComplete(workspace)) return true;
 
   const jobs = processing.jobs ?? [];
   const isCanceled =
@@ -289,119 +221,5 @@ export function validateWorkspaceInvariants(
   return {
     valid: violations.length === 0,
     violations,
-  };
-}
-
-/**
- * Normalizes legacy branch values ('have_goal' -> 'find_material').
- */
-export function normalizeCreationBranch(
-  branch: CohortWorkspace['journey'] extends { branch: infer B } | undefined
-    ? B
-    : null
-): CreationBranch {
-  if (branch === 'have_material') return 'have_material';
-  if (branch === 'find_material' || branch === 'have_goal') {
-    return 'find_material';
-  }
-  return null;
-}
-
-/**
- * Extracts the orthogonal state-machine representation from a CohortWorkspace snapshot.
- */
-export function deriveCreationMachineState(
-  workspace: CohortWorkspace
-): CreationMachineState {
-  const step: CreationStep | null = workspace.journey?.step ?? null;
-  const branch = normalizeCreationBranch(workspace.journey?.branch ?? null);
-  const processingStarted = workspace.journey
-    ? workspace.journey.processingStarted
-    : (workspace.sources ?? []).length > 0 ||
-      (workspace.lessons ?? []).length > 0;
-  const intentVersion = workspace.journey?.intentVersion ?? 0;
-
-  let discovery: DiscoveryRegionState = { status: 'idle', generation: 0 };
-  if (workspace.discovery) {
-    const d = workspace.discovery;
-    if (d.status === 'queued' || d.status === 'running') {
-      discovery = {
-        status: d.status,
-        requestId: d.requestId,
-        fingerprint: d.fingerprint,
-        generation: d.generation,
-      };
-    } else if (d.status === 'ready') {
-      discovery = {
-        status: 'ready',
-        requestId: d.requestId,
-        fingerprint: d.fingerprint,
-        resultId: d.resultId ?? '',
-        generation: d.generation,
-        candidateCount: d.items.length,
-      };
-    } else if (d.status === 'failed' || d.status === 'canceled') {
-      discovery = {
-        status: d.status,
-        requestId: d.requestId,
-        fingerprint: d.fingerprint,
-        generation: d.generation,
-        error: (d as { error?: string | null }).error ?? null,
-      };
-    }
-  }
-
-  const complete = isBuildComplete(workspace);
-  const stale = isBuildStale(workspace);
-  const jobs = workspace.processing?.jobs ?? [];
-  const isCanceled =
-    workspace.processing?.error === 'PROCESSING_CANCELED' ||
-    jobs.some(j => j.status === 'canceled');
-
-  let buildStatus: BuildRegionStatus = 'not_started';
-  if (isCanceled) {
-    buildStatus = 'canceled';
-  } else if (workspace.processing?.status === 'failed') {
-    buildStatus = 'failed';
-  } else if (workspace.processing?.status === 'processing') {
-    buildStatus = 'running';
-  } else if (workspace.processing?.status === 'queued') {
-    buildStatus = 'queued';
-  } else if (complete) {
-    buildStatus = 'ready';
-  } else if (stale) {
-    buildStatus = 'stale';
-  } else {
-    buildStatus = 'not_started';
-  }
-
-  const build: BuildRegionState = {
-    status: buildStatus,
-    activeStage: workspace.processing?.stage ?? 'done',
-    generation: workspace.processing?.generation ?? 0,
-    acceptedSourceFingerprint: workspace.processing?.sourceFingerprint ?? null,
-    currentSourceFingerprint: computeSourceEvidenceFingerprint(workspace),
-    currentBuildInputFingerprint: computeBuildInputFingerprint(workspace),
-    isBuildComplete: complete,
-    isBuildStale: stale,
-    error: workspace.processing?.error ?? null,
-  };
-
-  const release: ReleaseRegionState = {
-    status: workspace.release?.status ?? 'draft',
-    mode: workspace.release?.mode ?? null,
-    candidateHash: workspace.release?.candidateHash ?? null,
-    cohortId: workspace.release?.cohortId ?? null,
-  };
-
-  return {
-    step,
-    branch,
-    processingStarted,
-    intentVersion,
-    discovery,
-    build,
-    release,
-    invariants: validateWorkspaceInvariants(workspace),
   };
 }

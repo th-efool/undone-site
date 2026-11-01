@@ -222,6 +222,7 @@ export const cohortWorkspaceSchema = z.strictObject({
     stage: z.enum(['acquisition', 'extraction', 'understanding', 'chunking', 'analysis', 'assembly', 'done']).default('done'),
     generation: z.number().int().nonnegative().default(0),
     sourceFingerprint: z.string().nullable(),
+    buildInputFingerprint: z.string().regex(/^[a-f0-9]{64}$/).optional(),
     error: z.string().nullable(),
     jobs: z.array(cohortTextJobViewSchema).max(505).optional(),
     driver: z.enum(['snapshot', 'durable']).optional(),
@@ -257,6 +258,7 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('start_goal_generation') }),
   z.strictObject({ type: z.literal('begin_material_processing') }),
   z.strictObject({ type: z.literal('open_review') }),
+  z.strictObject({ type: z.literal('open_materials') }),
   z.strictObject({ type: z.literal('add_pdf_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), uploadId: z.uuid().optional(), extraction: clientSourceExtractionSchema.optional() }).superRefine((v, ctx) => { if (!v.uploadId && !v.extraction) ctx.addIssue({ code: 'custom', message: 'PDF source requires uploadId or client extraction' }); }),
   z.strictObject({ type: z.literal('add_web_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), url: publicSourceUrlSchema, extraction: clientSourceExtractionSchema.optional() }),
   z.strictObject({
@@ -353,6 +355,12 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (!steps.includes(current.step)) throw new Error('INVALID_JOURNEY_TRANSITION');
     return current;
   };
+  if (action.type === 'open_materials') {
+    const current = journey();
+    if (current.step === 'published') throw new Error('INVALID_JOURNEY_TRANSITION');
+    current.step = 'material_input';
+    return navigationResult('Materials opened.');
+  }
   if (action.type === 'start_search') {
     const current = journey();
     if (current.step === 'published') throw new Error('INVALID_JOURNEY_TRANSITION');
@@ -368,16 +376,6 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     current.step = 'chat';
     delete next.recommendations;
     delete next.discovery;
-    if (next.processing.status === 'queued' || next.processing.status === 'processing') {
-      next.processing = {
-        status: 'idle',
-        stage: 'done',
-        generation: next.processing.generation + 1,
-        sourceFingerprint: null,
-        error: null,
-        driver: 'durable',
-      };
-    }
     return navigationResult('Workspace panel closed; returned to chat.');
   }
   if (action.type === 'create_own_cohort') {
@@ -474,7 +472,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return navigationResult('Selected resources retained.');
   }
   if (action.type === 'start_goal_generation' || action.type === 'begin_material_processing') {
-    const current = requireStep('goal_setup', 'material_input', 'chat', 'review');
+    const current = requireStep('goal_setup', 'material_input', 'chat', 'review', 'discovery');
     if (action.type === 'start_goal_generation') {
       current.branch = 'have_goal';
       next.dailyMinutes ??= 30;
@@ -517,6 +515,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       }
     } else {
       if (!next.lessons.length) throw new Error('NO_LESSONS');
+      if (next.sources.length && !isBuildComplete(next)) throw new Error('ASSEMBLY_NOT_READY');
       if (['queued', 'processing'].includes(next.processing.status) ||
           next.processing.jobs?.some(job => ['queued', 'running'].includes(job.status))) {
         throw new Error('PROCESSING_ACTIVE');

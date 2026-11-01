@@ -3,6 +3,8 @@ import {
   cohortWorkspaceSchema,
 } from './contracts';
 
+import { isBuildComplete } from './creation-state';
+
 export interface CohortReadinessChecks {
   intentValid: boolean;
   lessonsValid: boolean;
@@ -117,6 +119,9 @@ export function validateCohortReadiness(
     blockers.push(`${unreadySources.length} source(s) are not in 'ready' state (status: ${unreadySources.map(s => s.state).join(', ')}).`);
   }
 
+  const buildComplete = sources.length === 0 || isBuildComplete(workspace);
+  if (!buildComplete) blockers.push('Build output is incomplete or outdated. Rebuild before release.');
+
   // 5. Rights validation for Public Publish
   let rightsValid = true;
   if (mode === 'public_publish') {
@@ -134,7 +139,7 @@ export function validateCohortReadiness(
     lessonsValid: hasLessons && emptyLessons.length === 0,
     sourcesReady: unreadySources.length === 0,
     evidenceValid: lessonsWithMissingChunks.length === 0 && invalidChunks.length === 0 && (mode === 'private_activation' || orphanedLessons.length === 0),
-    processingComplete: !isProcessingFailed && !isProcessingActive,
+    processingComplete: buildComplete && !isProcessingFailed && !isProcessingActive,
     rightsValid,
   };
 

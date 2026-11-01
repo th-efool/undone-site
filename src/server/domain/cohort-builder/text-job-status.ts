@@ -7,7 +7,7 @@ export async function textJobStatus(tx: TextArtifactSql, workspaceId: string, st
   const keys = planTextJobs(state).map(item => item.jobKey);
   const rows = await tx.query(`SELECT "id", "sourceId", "stage", "status", "attempts", "errorCode"
     FROM "cohort_text_jobs" WHERE "workspaceId" = $1 AND "jobKey" = ANY($2::text[])
-    ORDER BY "createdAt", "id" LIMIT 101`, [workspaceId, keys]);
+    ORDER BY "createdAt", "id" LIMIT 505`, [workspaceId, keys]);
   const jobs = rows.rows.map(row => cohortTextJobViewSchema.parse({ id: row.id, sourceId: row.sourceId, stage: row.stage,
     status: row.status, attempts: Number(row.attempts), error: row.errorCode,
     retryable: row.status === 'failed' && Number(row.attempts) < 3,

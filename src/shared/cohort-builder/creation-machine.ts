@@ -13,6 +13,7 @@ import { buildCohortSeo } from './seo';
 import { validateCohortReadiness } from './readiness';
 import {
   computeSourceEvidenceFingerprint,
+  computeBuildInputFingerprint,
   isBuildComplete,
 } from './creation-state';
 
@@ -130,12 +131,18 @@ export function projectAcceptedBuildCompletion(
     throw new Error('FABRICATED_LESSON_EVIDENCE');
   }
 
+  if (options.sources.length !== state.sources.length || new Set(options.sources.map(s => s.id)).size !== options.sources.length) throw new Error('INVALID_ACCEPTED_SOURCE');
+  for (const chunk of options.chunks) {
+    const source = state.sources.find(s => s.id === chunk.sourceId && s.version === chunk.sourceVersion);
+    if (!source || chunk.start < 0 || chunk.end <= chunk.start || chunk.end > source.text.length || source.text.slice(chunk.start, chunk.end) !== chunk.text || sha256(chunk.text) !== chunk.checksum) throw new Error('INVALID_ACCEPTED_CHUNK');
+  }
   const next = structuredClone(state);
   for (const source of next.sources) {
     const accepted = options.sources.find(
       item => item.id === source.id && item.version === source.version
     );
-    source.checksum = accepted ? accepted.checksum : sha256(source.text);
+    if (!accepted || (accepted.checksum !== source.checksum && accepted.checksum !== sha256(source.text))) throw new Error('INVALID_ACCEPTED_SOURCE');
+    source.checksum = accepted.checksum;
     source.state = 'ready';
   }
 
@@ -157,6 +164,7 @@ export function projectAcceptedBuildCompletion(
     stage: 'done',
     generation: options.generation,
     sourceFingerprint: fingerprint,
+    buildInputFingerprint: computeBuildInputFingerprint(next),
     error: null,
     ...(options.driver !== undefined ? { driver: options.driver } : {}),
     ...(options.jobs !== undefined ? { jobs: options.jobs } : {}),
@@ -282,6 +290,7 @@ export function getCreationCapabilities(
     ((step === 'ready' && buildComplete) ||
       (step === 'chat' &&
         (workspace.lessons ?? []).length > 0 &&
+        (workspace.sources.length === 0 || buildComplete) &&
         !isProcessingActive));
 
   const privateReadiness = buildComplete
