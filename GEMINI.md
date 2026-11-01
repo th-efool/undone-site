@@ -44,8 +44,17 @@ Before writing a script, check `execution/` per your directive. Only create new 
 **3. Update directives as you learn**
 Directives are living documents. When you discover API constraints, better approaches, common errors, or timing expectations—update the directive. But don't create or overwrite directives without asking unless explicitly told to. Directives are your instruction set and must be preserved (and improved upon over time, not extemporaneously used and then discarded).
 
-**4. Always Plan Before Execution**
-Before making structural changes, writing new scripts, or executing complex requests, you must create an implementation plan first. If the prompt or task is particularly large or complex, break the implementation plan into multiple smaller planning files to ensure accuracy and manageability.
+**4. Always Plan Before Execution & Canonical Plan Directory**
+Before making structural changes, writing new scripts, or executing complex requests, you must create an implementation plan first.
+- **NEVER create loose markdown files (`*plan*.md`, `*guide*.md`, `*assessment*.md`, etc.) in the repository root directory.**
+- All plans, proposals, handoff guides, and quality assessment documents MUST be created inside the canonical `plans/` folder (`D:\ThisPC\Documents\SideQuestHQ\undone-site\plans`) under the designated genre subfolder:
+  - `plans/cohort-builder/`: Cohort creation, curriculum planning, studio stages, text pipeline, intake.
+  - `plans/composer/`: Composer chat, prompt engineering, streaming turns, assistant activity.
+  - `plans/feed-and-home/`: Feed engine, personal feeds, channel preferences, explore, home dashboard.
+  - `plans/studyroom/`: Ambient audio engine, study rooms, Web Audio, multi-presence, messaging.
+  - `plans/notes-sync/`: Local-first notes engine, GitHub sync, conflict resolution, offline storage.
+  - `plans/architecture-and-refactor/`: Cross-cutting architecture proposals, meta-issue remediations, latency/performance fixes, quality assessments, and handoff guides.
+If the prompt or task is particularly large or complex, break the implementation plan into multiple smaller planning files within the appropriate genre subfolder to ensure accuracy and manageability.
 
 ## Self-annealing loop
 
@@ -63,6 +72,7 @@ Errors are learning opportunities. When something breaks:
 - **Intermediates**: Temporary files needed during processing
 
 **Directory structure:**
+- `plans/` - All implementation plans, proposals, handoff guides, and quality assessments organized by genre subfolder. Never create loose markdown files in root.
 - `.tmp/` - All intermediate files (dossiers, scraped data, temp exports). Never commit, always regenerated.
 - `execution/` - Python scripts (the deterministic tools)
 - `directives/` - SOPs in Markdown (the instruction set)
