@@ -1,218 +1,223 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
+  ArrowLeft,
   ArrowRight,
-  Brain,
-  CheckCircle2,
+  BookOpen,
+  Check,
+  Clock,
   FileText,
-  InfinityIcon,
-  MessageSquare,
-  Network,
-  ShieldCheck,
+  Layers,
+  Lock,
   Sparkles,
+  Target,
 } from 'lucide-react';
-import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
-import { BuildingArt } from '@/src/client/screens/cohortCreation/components/BuildingArt';
-import styles from '@/src/client/screens/cohortCreation/components/ReadyWorkspace.module.css';
-import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
+import type {
+  CohortAction,
+  CohortWorkspace,
+} from '@/src/shared/cohort-builder/contracts';
+import { deriveReadyStageViewModel } from '@/src/shared/cohort-builder/creation-view';
+import type { EntityRef } from 'interaction-builder/core';
+import styles from './ReadyStageView.module.css';
 
 export interface ReadyStageViewProps {
   workspace: CohortWorkspace;
-  dispatchAction: (action: CohortAction) => Promise<boolean>;
-  disabled?: boolean;
+  dispatchAction: (
+    action: CohortAction,
+    expectedEntities?: EntityRef[]
+  ) => Promise<boolean>;
 }
+
+const FEATURES = [
+  {
+    icon: Layers,
+    title: 'Learning pieces',
+    text: 'Your material has been organized into clear learning units.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Source evidence',
+    text: 'Relevant passages and references stay attached to each concept.',
+  },
+  {
+    icon: Target,
+    title: 'Learning objectives',
+    text: 'Each lesson includes a concrete takeaway to focus your study.',
+  },
+  {
+    icon: Lock,
+    title: 'Private by default',
+    text: 'This cohort is set up for your personal feed until you choose to publish.',
+  },
+] as const;
+
+const NOTES = [
+  {
+    icon: FileText,
+    title: 'Your material',
+    text: 'Everything comes directly from the sources you attached.',
+  },
+  {
+    icon: Clock,
+    title: 'Your own pace',
+    text: 'Move through lessons whenever you have a focused window.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Review first, if you like',
+    text: 'Inspect lessons, adjust titles, or pin key objectives before publishing.',
+  },
+] as const;
 
 export function ReadyStageView({
   workspace,
   dispatchAction,
-  disabled = false,
 }: ReadyStageViewProps) {
-  const lock = useRef(false);
-  const [pending, setPending] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const viewModel = deriveReadyStageViewModel(workspace);
 
-  const ready =
-    workspace.processing.status === 'ready' &&
-    workspace.lessons.length > 0;
-  const lessonCount = workspace.lessons.length;
-  const chunkCount = workspace.chunks?.length ?? 0;
-  const sources = workspace.sources ?? [];
-
-  const act = async (action: () => Promise<boolean | void>, requiresReady = true) => {
-    if (disabled || (requiresReady && !ready) || lock.current) return;
-    lock.current = true;
-    setPending(true);
+  const act = async (
+    work: () => Promise<unknown>,
+    requiresReady = true
+  ) => {
+    if (busy || (requiresReady && !viewModel.isReady)) return;
+    setBusy(true);
     try {
-      await action();
+      await work();
     } finally {
-      lock.current = false;
-      setPending(false);
+      setBusy(false);
     }
   };
 
-  const handleReview = async () => {
-    await dispatchAction({ type: 'open_review' });
-  };
+  const handleActivate = () =>
+    act(async () => {
+      const prepared = await dispatchAction({
+        type: 'prepare_release',
+        mode: 'private_activation',
+      });
+      if (!prepared) return;
+      await dispatchAction({ type: 'open_review' });
+    });
 
-  const handleActivate = async () => {
-    // Prepare private activation
-    const prepared = await dispatchAction({ type: 'prepare_release', mode: 'private_activation' });
-    if (!prepared) return;
-    await dispatchAction({ type: 'open_review' });
-  };
+  const handleReview = () =>
+    act(() => dispatchAction({ type: 'open_review' }));
 
   const handleBack = async () => {
-    const opened = await dispatchAction({ type: 'back_to_starting_point' });
-    if (!opened) return;
-    await dispatchAction({ type: 'choose_starting_point', choice: 'have_material' });
+    const backed = await dispatchAction({ type: 'back_to_starting_point' });
+    if (!backed) return;
+    await dispatchAction({
+      type: 'choose_starting_point',
+      choice: 'have_material',
+    });
   };
 
   return (
-    <section className={styles.workspace} aria-label="Curriculum ready">
-      <div className={styles.layout}>
-        <div className={styles.content}>
-          <header className={styles.heading}>
-            <p className={styles.eyebrow}>
-              {ready ? 'Your learning experience is ready' : 'Building your curriculum'}
-            </p>
-            <h1>
-              {ready ? 'All set.' : 'In progress.'}
-              {ready && (
-                <span className={styles.rays} aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
-                </span>
-              )}
-            </h1>
-            <p>
-              {ready
-                ? 'I’ve turned your material into a learning experience. Review your cohort, or activate it privately to start learning in your feed.'
-                : 'Your material is being processed into lessons. You can wait for the build to finish, or return to edit your material.'}
-            </p>
-          </header>
-
-          <div className={styles.material}>
-            <span className={styles.sourceIcon}>
-              <FileText size={46} strokeWidth={1.2} aria-hidden="true" />
-            </span>
-            <div>
-              <h2>{deriveCohortTitle(workspace)}</h2>
-              <p>{deriveCohortDescription(workspace)}</p>
-              <p>
-                {sources.length} {sources.length === 1 ? 'source' : 'sources'} · {chunkCount} learning pieces · {lessonCount} {lessonCount === 1 ? 'lesson' : 'lessons'}
-              </p>
-              <span className={styles.processed}>
-                <CheckCircle2 size={18} aria-hidden="true" />
-                {ready ? 'Processed' : 'Build not complete'}
-              </span>
-            </div>
-            <details className={styles.sources}>
-              <summary>View retained sources</summary>
-              <ul>
-                {sources.map((source, index) => (
-                  <li key={source.id}>
-                    {source.input?.kind === 'web'
-                      ? source.input.url
-                      : source.input?.kind === 'youtube'
-                      ? source.input.url
-                      : source.input?.kind === 'generated_guide'
-                      ? 'AI-authored guide from your goal'
-                      : source.label || `Source ${index + 1}`}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          </div>
-
-          <h2 className={styles.sectionLabel}>What happens now</h2>
-          <div className={styles.features}>
-            {[
-              {
-                Icon: MessageSquare,
-                title: 'Learning pieces',
-                text: 'Lessons bring your retained material into your learning feed.',
-              },
-              {
-                Icon: Network,
-                title: 'Source evidence',
-                text: 'Original material stays connected to the lessons built from it.',
-              },
-              {
-                Icon: Brain,
-                title: 'Learning objectives',
-                text: 'Review the goals and titles for each generated lesson.',
-              },
-              {
-                Icon: ShieldCheck,
-                title: 'Private by default',
-                text: 'Go to your feed privately. Public publishing is a separate choice.',
-              },
-            ].map(({ Icon, title, text }, index) => (
-              <article key={title} className={styles.feature} data-tone={index}>
-                <span>
-                  <Icon size={27} strokeWidth={1.5} aria-hidden="true" />
-                </span>
-                <div>
-                  <h3>{title}</h3>
-                  <p>{text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <div className={styles.notes}>
-            <div>
-              <Sparkles size={27} strokeWidth={1.5} aria-hidden="true" />
-              <p>
-                <strong>Your material</strong>
-                <span>Grounded in the sources you selected.</span>
-              </p>
-            </div>
-            <div>
-              <InfinityIcon size={29} strokeWidth={1.5} aria-hidden="true" />
-              <p>
-                <strong>Your own pace</strong>
-                <span>No fixed schedule to follow.</span>
-              </p>
-            </div>
-            <div>
-              <CheckCircle2 size={26} strokeWidth={1.5} aria-hidden="true" />
-              <p>
-                <strong>Review first, if you like</strong>
-                <span>Make changes before activating.</span>
-              </p>
-            </div>
-          </div>
-
-          <div className={styles.actions}>
-            <button
-              className={styles.primary}
-              disabled={disabled || pending || !ready}
-              onClick={() => void act(handleActivate)}
-            >
-              {pending ? 'Opening your learning experience…' : 'Go to my feed'}
-              <ArrowRight size={25} strokeWidth={1.5} aria-hidden="true" />
-            </button>
-            <div>
-              <button
-                disabled={disabled || pending || !ready}
-                onClick={() => void act(handleReview)}
-              >
-                Review cohort
-              </button>
-              <button
-                disabled={disabled || pending}
-                onClick={() => void act(handleBack, false)}
-              >
-                Back to material
-              </button>
-            </div>
-            <p>Private activation saves this cohort before opening your feed.</p>
-          </div>
-        </div>
-        <BuildingArt />
+    <section className={styles.stage} aria-label="Curriculum ready">
+      <div className={styles.rays} aria-hidden="true">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <span key={index} className={styles.ray} />
+        ))}
       </div>
+
+      <header className={styles.header}>
+        <div className={styles.checkBadge} aria-hidden="true">
+          <Check size={28} />
+        </div>
+        <span className={styles.eyebrow}>{viewModel.eyebrow}</span>
+        <h1 className={styles.title}>
+          <em>{viewModel.heading}</em>
+        </h1>
+        <p className={styles.subtitle}>{viewModel.subtitle}</p>
+      </header>
+
+      <article className={styles.materialCard} aria-label="Material summary">
+        <div className={styles.materialIcon} aria-hidden="true">
+          <FileText size={20} />
+        </div>
+        <div className={styles.materialBody}>
+          <h2>{workspace.title || workspace.intent}</h2>
+          <p>
+            {viewModel.sourceCount}{' '}
+            {viewModel.sourceCount === 1 ? 'source' : 'sources'} ·{' '}
+            {viewModel.chunkCount} learning pieces · {viewModel.lessonCount}{' '}
+            {viewModel.lessonCount === 1 ? 'lesson' : 'lessons'}
+          </p>
+        </div>
+        <span className={styles.processedBadge}>
+          <Check size={13} aria-hidden="true" />
+          {viewModel.badgeLabel}
+        </span>
+      </article>
+
+      <section
+        className={styles.section}
+        aria-labelledby="ready-included-heading"
+      >
+        <span id="ready-included-heading" className={styles.sectionLabel}>
+          What’s included
+        </span>
+        <div className={styles.featureGrid}>
+          {FEATURES.map(feature => {
+            const Icon = feature.icon;
+            return (
+              <article key={feature.title} className={styles.featureCard}>
+                <div className={styles.featureIcon} aria-hidden="true">
+                  <Icon size={18} />
+                </div>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className={styles.notesRow} aria-label="Experience notes">
+        {NOTES.map(note => {
+          const Icon = note.icon;
+          return (
+            <div key={note.title} className={styles.noteItem}>
+              <Icon size={16} aria-hidden="true" />
+              <div>
+                <strong>{note.title}</strong>
+                <span>{note.text}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <footer className={styles.actions}>
+        <button
+          type="button"
+          className={styles.primaryAction}
+          disabled={!viewModel.canActivate || busy}
+          onClick={handleActivate}
+        >
+          Go to my feed
+          <ArrowRight size={17} aria-hidden="true" />
+        </button>
+        <div className={styles.secondaryActions}>
+          <button
+            type="button"
+            className={styles.secondaryAction}
+            disabled={!viewModel.canReview || busy}
+            onClick={handleReview}
+          >
+            Review cohort
+          </button>
+          <button
+            type="button"
+            className={styles.ghostAction}
+            disabled={!viewModel.canReturnToMaterial || busy}
+            onClick={() => act(handleBack, false)}
+          >
+            <ArrowLeft size={14} aria-hidden="true" />
+            Back to material
+          </button>
+        </div>
+      </footer>
     </section>
   );
 }

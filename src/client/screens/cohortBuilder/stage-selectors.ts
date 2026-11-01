@@ -3,7 +3,13 @@ import type {
   CohortSource,
   CohortChunk,
 } from '@/src/shared/cohort-builder/contracts';
+import {
+  deriveActiveStage,
+  deriveEffectiveStage,
+  type BuilderStage,
+} from '@/src/shared/cohort-builder/creation-view';
 
+export type { BuilderStage };
 export type CohortTextJob = NonNullable<CohortWorkspace['processing']['jobs']>[number];
 export type CohortTextJobView = CohortTextJob;
 
@@ -24,23 +30,6 @@ export type StageProgressDetails = {
   analysis: StageStatus;
   assembly: StageStatus;
 };
-
-export type BuilderStage =
-  | 'chat'
-  | 'recommendations'
-  | 'starting_point'
-  | 'material_input'
-  | 'discovery'
-  | 'goal_setup'
-  | 'intake'
-  | 'understanding'
-  | 'chunking'
-  | 'analysis'
-  | 'assembly'
-  | 'curriculum'
-  | 'review'
-  | 'ready'
-  | 'published';
 
 export interface UnderstandingSourceItem {
   id: string;
@@ -150,7 +139,6 @@ export interface AssemblyStageData {
 // Selector Memoization Caches (WeakMap keyed by workspace reference)
 // ---------------------------------------------------------------------------
 
-let activeStageCache = new WeakMap<CohortWorkspace, BuilderStage>();
 let effectiveStageCache = new WeakMap<CohortWorkspace, Map<BuilderStage | undefined, BuilderStage>>();
 let validChunksCache = new WeakMap<CohortWorkspace, CohortChunk[]>();
 let validAnalysesCache = new WeakMap<CohortWorkspace, CohortWorkspace['analyses']>();
@@ -165,7 +153,6 @@ let stageCompleteCache = new WeakMap<CohortWorkspace, Map<CanonicalStage, boolea
  * Reset all selector caches. Primarily used in test isolation.
  */
 export function clearStageSelectorsCache(): void {
-  activeStageCache = new WeakMap();
   effectiveStageCache = new WeakMap();
   validChunksCache = new WeakMap();
   validAnalysesCache = new WeakMap();
@@ -201,166 +188,7 @@ export function clearStageSelectorsCache(): void {
  * 4. Default: 'curriculum' if lessons exist, else 'intake'
  */
 function computeActiveStage(workspace: CohortWorkspace): BuilderStage {
-  if (workspace.journey) {
-    if (workspace.journey.step === 'chat') {
-      return 'chat';
-    }
-    if (workspace.journey.step === 'recommendations') {
-      return 'recommendations';
-    }
-    if (workspace.journey.step === 'starting_point') {
-      return 'starting_point';
-    }
-    if (workspace.journey.step === 'material_input') {
-      return 'material_input';
-    }
-    if (workspace.journey.step === 'discovery') {
-      return 'discovery';
-    }
-    if (workspace.journey.step === 'goal_setup') {
-      return 'goal_setup';
-    }
-    if (workspace.journey.step === 'ready') {
-      return 'ready';
-    }
-    if (workspace.journey.step === 'review') {
-      return 'review';
-    }
-    if (workspace.journey.step === 'published') {
-      return 'published';
-    }
-    if (workspace.journey.step === 'processing') {
-      const jobs = workspace.processing.jobs;
-      if (jobs && jobs.length > 0) {
-        const failedJobs = jobs.filter(j => j.status === 'failed');
-        if (failedJobs.length > 0) {
-          if (failedJobs.some(j => ['understanding', 'acquisition', 'extraction'].includes(j.stage))) {
-            return 'understanding';
-          }
-          if (failedJobs.some(j => j.stage === 'chunking')) {
-            return 'chunking';
-          }
-          if (failedJobs.some(j => j.stage === 'analysis')) {
-            return 'analysis';
-          }
-          if (failedJobs.some(j => j.stage === 'assembly')) {
-            return 'assembly';
-          }
-        }
-        const activeJobs = jobs.filter(j => j.status === 'running' || j.status === 'queued');
-        if (activeJobs.length > 0) {
-          if (activeJobs.some(j => ['understanding', 'acquisition', 'extraction'].includes(j.stage))) {
-            return 'understanding';
-          }
-          if (activeJobs.some(j => j.stage === 'chunking')) {
-            return 'chunking';
-          }
-          if (activeJobs.some(j => j.stage === 'analysis')) {
-            return 'analysis';
-          }
-          if (activeJobs.some(j => j.stage === 'assembly')) {
-            return 'assembly';
-          }
-        }
-      }
-      switch (workspace.processing.stage) {
-        case 'acquisition':
-        case 'extraction':
-        case 'understanding':
-          return 'understanding';
-        case 'chunking':
-          return 'chunking';
-        case 'analysis':
-          return 'analysis';
-        case 'assembly':
-          return 'assembly';
-        case 'done':
-          return 'assembly';
-      }
-      return 'understanding';
-    }
-  }
-
-  const sources = workspace.sources ?? [];
-  const lessons = workspace.lessons ?? [];
-  const processing = workspace.processing;
-
-  // 1. If workspace.sources.length === 0 and lessons.length === 0: return 'intake'
-  if (sources.length === 0 && lessons.length === 0) {
-    return 'intake';
-  }
-
-  // 2. If workspace.processing.status === 'ready':
-  if (processing.status === 'ready') {
-    if (workspace.release && workspace.release.status !== 'draft') {
-      return 'review';
-    }
-    return 'curriculum';
-  }
-
-  // 3. If workspace.processing.status === 'processing' | 'queued' | 'failed':
-  if (
-    processing.status === 'processing' ||
-    processing.status === 'queued' ||
-    processing.status === 'failed'
-  ) {
-    const jobs = processing.jobs;
-
-    if (jobs && jobs.length > 0) {
-      // Priority 1: Check for failed jobs
-      const failedJobs = jobs.filter(j => j.status === 'failed');
-      if (failedJobs.length > 0) {
-        if (failedJobs.some(j => ['understanding', 'acquisition', 'extraction'].includes(j.stage))) {
-          return 'understanding';
-        }
-        if (failedJobs.some(j => j.stage === 'chunking')) {
-          return 'chunking';
-        }
-        if (failedJobs.some(j => j.stage === 'analysis')) {
-          return 'analysis';
-        }
-        if (failedJobs.some(j => j.stage === 'assembly')) {
-          return 'assembly';
-        }
-      }
-
-      // Priority 2: Check for active jobs (running or queued)
-      const activeJobs = jobs.filter(j => j.status === 'running' || j.status === 'queued');
-      if (activeJobs.length > 0) {
-        if (activeJobs.some(j => ['understanding', 'acquisition', 'extraction'].includes(j.stage))) {
-          return 'understanding';
-        }
-        if (activeJobs.some(j => j.stage === 'chunking')) {
-          return 'chunking';
-        }
-        if (activeJobs.some(j => j.stage === 'analysis')) {
-          return 'analysis';
-        }
-        if (activeJobs.some(j => j.stage === 'assembly')) {
-          return 'assembly';
-        }
-      }
-    }
-
-    // Fallback: If no jobs array or no active/failed jobs in the jobs array, use workspace.processing.stage
-    switch (processing.stage) {
-      case 'acquisition':
-      case 'extraction':
-      case 'understanding':
-        return 'understanding';
-      case 'chunking':
-        return 'chunking';
-      case 'analysis':
-        return 'analysis';
-      case 'assembly':
-        return 'assembly';
-      case 'done':
-        return 'curriculum';
-    }
-  }
-
-  // 4. Default: 'curriculum' if lessons exist, else 'intake'
-  return lessons.length > 0 ? 'curriculum' : 'intake';
+  return deriveActiveStage(workspace);
 }
 
 export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
@@ -376,22 +204,7 @@ function computeEffectiveStage(
   inspectedStage?: BuilderStage | null,
   drafts?: { isAnyDirtyOrOpen: () => boolean; editingStage: BuilderStage | null }
 ): BuilderStage {
-  const active = getActiveStage(workspace);
-  if (
-    active === 'chat' ||
-    active === 'recommendations' ||
-    active === 'starting_point' ||
-    active === 'material_input' ||
-    active === 'discovery' ||
-    active === 'goal_setup'
-  ) {
-    return active;
-  }
-  if (inspectedStage) return inspectedStage;
-  if (drafts && drafts.isAnyDirtyOrOpen() && drafts.editingStage) {
-    return drafts.editingStage;
-  }
-  return active;
+  return deriveEffectiveStage(workspace, inspectedStage, drafts);
 }
 
 export function getEffectiveStage(
@@ -438,7 +251,7 @@ function getLegacyStageIndex(stage: string): number {
 
 function jobMatchesSource(j: CohortTextJob, s: CohortSource): boolean {
   if (j.sourceId !== s.id) return false;
-  const jVersion = (j as any).sourceVersion;
+  const jVersion = (j as { sourceVersion?: number | null }).sourceVersion;
   return jVersion === undefined || jVersion === s.version;
 }
 
