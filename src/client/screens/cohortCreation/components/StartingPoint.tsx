@@ -1,14 +1,13 @@
 import type { StartingPoint as StartingPointValue } from '@/src/shared/cohort-creation/contracts';
 import Image from 'next/image';
-import { ArrowLeft, ArrowRight, Search, Target, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Search, Upload } from 'lucide-react';
 import { StartingPointArt } from './StartingPointArt';
 import { InkUnderline } from './InkUnderline';
 import styles from './StartingPoint.module.css';
 
 const choices = [
   { value: 'have_material', label: 'I already have material', description: 'A playlist, PDF, articles, videos, GitHub repo, Notion pages…', icon: Upload },
-  { value: 'find_material', label: 'Find material for me', description: 'I know what I want to learn. Help me find the best resources.', icon: Search },
-  { value: 'have_goal', label: 'I just have a goal', description: 'Help me figure out the rest — the material, structure, pacing, and everything in between.', icon: Target },
+  { value: 'find_material', label: 'Start with a goal', description: 'I know what I want to learn. Help me find the best resources.', icon: Search },
 ] satisfies { value: StartingPointValue; label: string; description: string; icon: typeof Upload }[];
 export function StartingPoint({ selected, onSelect, onBack, disabled = false, compact = false }: { selected: StartingPointValue | null; onSelect: (choice: StartingPointValue) => void; onBack: () => void; disabled?: boolean; compact?: boolean }) {
   if (compact) return <nav aria-label="Starting point" className={styles.compact}>
@@ -34,7 +33,7 @@ export function StartingPoint({ selected, onSelect, onBack, disabled = false, co
         aria-label={choice.label} aria-pressed={selected === choice.value} onClick={() => onSelect(choice.value)}>
         <StartingPointArt kind={choice.value} />
         <span className={styles.choiceBody}><span className={styles.choiceIcon}><choice.icon size={29} strokeWidth={1.5} /></span>
-          <span className={styles.choiceTitle}>{choice.value === 'find_material' ? <>Find material<br />for me</> : choice.label}</span><span className={styles.description}>{choice.description}</span>
+          <span className={styles.choiceTitle}>{choice.label}</span><span className={styles.description}>{choice.description}</span>
           <span className={styles.arrow}><ArrowRight size={23} /></span>
         </span>
       </button>)}

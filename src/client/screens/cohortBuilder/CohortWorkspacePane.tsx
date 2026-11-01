@@ -19,7 +19,6 @@ import { RecommendationsStageView } from './stages/RecommendationsStageView';
 import { StartingPointStageView } from './stages/StartingPointStageView';
 import { MaterialStageView } from './stages/MaterialStageView';
 import { DiscoveryStageView } from './stages/DiscoveryStageView';
-import { GoalStageView } from './stages/GoalStageView';
 import { CohortDraftProvider, useCohortDrafts } from './draft-context';
 import { getActiveStage, getEffectiveStage, type BuilderStage } from './stage-selectors';
 
@@ -397,8 +396,7 @@ function InnerCohortWorkspacePane({
           </button>
           {[
             { value: 'have_material' as const, label: 'I already have material' },
-            { value: 'find_material' as const, label: 'Find material for me' },
-            { value: 'have_goal' as const, label: 'I just have a goal' },
+            { value: 'find_material' as const, label: 'Start with a goal' },
           ].map(choice => (
             <button
               key={choice.value}
@@ -436,7 +434,7 @@ function InnerCohortWorkspacePane({
         <DiscoveryStageView workspace={workspace} dispatchAction={dispatchAction} />
       )}
       {effectiveStage === 'goal_setup' && (
-        <GoalStageView workspace={workspace} dispatchAction={dispatchAction} />
+        <DiscoveryStageView workspace={workspace} dispatchAction={dispatchAction} />
       )}
       {effectiveStage === 'intake' && (
         <IntakeStageView workspace={workspace} needsRebuild={progress.needsRebuild} dispatchAction={dispatchAction} />

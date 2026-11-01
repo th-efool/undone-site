@@ -388,8 +388,8 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'choose_starting_point') {
     const current = journey();
     if (['starting_point', 'recommendations', 'chat'].includes(current.step)) {
-      current.branch = action.choice;
-      current.step = action.choice === 'have_material' ? 'material_input' : action.choice === 'find_material' ? 'discovery' : 'goal_setup';
+      current.branch = action.choice === 'have_material' ? 'have_material' : 'find_material';
+      current.step = action.choice === 'have_material' ? 'material_input' : 'discovery';
       return navigationResult('Starting point selected.');
     }
     if (current.step === 'material_input' && action.choice === 'have_material') {
@@ -402,8 +402,8 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       return navigationResult('Goal setup already active.');
     }
     if (['material_input', 'discovery', 'goal_setup'].includes(current.step)) {
-      current.branch = action.choice;
-      current.step = action.choice === 'have_material' ? 'material_input' : action.choice === 'find_material' ? 'discovery' : 'goal_setup';
+      current.branch = action.choice === 'have_material' ? 'have_material' : 'find_material';
+      current.step = action.choice === 'have_material' ? 'material_input' : 'discovery';
       return navigationResult('Starting point switched.');
     }
     throw new Error('INVALID_JOURNEY_TRANSITION');
@@ -440,9 +440,9 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   }
   if (action.type === 'start_discovery') {
     const current = requireStep('discovery', 'chat', 'review', 'goal_setup', 'material_input');
-    if (current.step !== 'discovery') { current.branch = 'find_material'; current.step = 'discovery'; }
+    current.branch = 'find_material'; current.step = 'discovery';
     if (current.branch !== 'find_material') throw new Error('INVALID_JOURNEY_BRANCH');
-    if (next.discovery && ['queued', 'running', 'ready'].includes(next.discovery.status)) return navigationResult('Existing discovery retained.');
+    if (next.discovery && ['queued', 'running'].includes(next.discovery.status)) return navigationResult('Existing discovery retained.');
     next.discovery = { requestId: context.actionId, fingerprint: `pending:${current.intentVersion}:${context.actionId}`, status: 'queued', generation: (next.discovery?.generation ?? -1) + 1, items: [] };
     return navigationResult('Resource discovery requested.');
   }
