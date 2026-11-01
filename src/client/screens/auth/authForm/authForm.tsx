@@ -1,5 +1,6 @@
 'use client';
 
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import { useRef, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -41,6 +42,8 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const actionFailure = error && /unavailable|network error/i.test(error) ? error : null;
+  useFailureToast(actionFailure, 'Sign-in is unavailable. Your form is kept; please retry.', 'Auth');
   const signingIn = useRef(false);
   const router = useRouter();
   const isSignUp = activeTab === 'signup';
@@ -331,7 +334,7 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
         </form>
       )}
 
-      {error && <p role="alert" style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: 8 }}>{error}</p>}
+      {error && !actionFailure && <p role="alert" style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: 8 }}>{error}</p>}
 
       <section className={styles.legal}>
         <AuthLegal />

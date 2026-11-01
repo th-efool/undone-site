@@ -11,6 +11,8 @@
  *   live uncommitted editor buffers, and recovery bundle exports
  */
 
+import { reportSiteFailure } from '@/src/client/feedback/site-failures';
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NotesStateEntity } from '@/src/client/screens/dashboard/notes/models/notes.models';
 import type {
@@ -55,6 +57,7 @@ export function useLocalWorkspace(userId: string | null): UseLocalWorkspaceResul
   const [state, setState] = useState<NotesStateEntity | null>(null);
   const [syncSummary, setSyncSummary] = useState<SyncSummary>(DEFAULT_SYNC_SUMMARY);
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(userId));
+  useFailureToast(syncSummary.status === 'error' ? 'sync-error' : null, 'Cloud sync needs attention. Local edits are retained; use the sync controls.', 'NotesSync');
 
   if (userId !== prevUserId) {
     setPrevUserId(userId);
@@ -100,6 +103,7 @@ export function useLocalWorkspace(userId: string | null): UseLocalWorkspaceResul
       .catch((err) => {
         if (!isMounted) return;
         console.error(`[useLocalWorkspace] Failed to open workspace for ${cleanUserId}:`, err);
+        reportSiteFailure('notesLocal');
         setIsLoading(false);
       });
 
@@ -148,7 +152,11 @@ export function useLocalWorkspace(userId: string | null): UseLocalWorkspaceResul
           error: 'No active user workspace',
         };
       }
-      return facadeRef.current.apply(command);
+      try {
+        const receipt = await facadeRef.current.apply(command);
+        if (!receipt.ok) reportSiteFailure('notesLocal');
+        return receipt;
+      } catch (error) { reportSiteFailure('notesLocal'); throw error; }
     },
     [userId]
   );
@@ -170,7 +178,11 @@ export function useLocalWorkspace(userId: string | null): UseLocalWorkspaceResul
           error: 'No active user workspace',
         };
       }
-      return facadeRef.current.saveCanvasScene(noteId, scene);
+      try {
+        const receipt = await facadeRef.current.saveCanvasScene(noteId, scene);
+        if (!receipt.ok) reportSiteFailure('notesLocal');
+        return receipt;
+      } catch (error) { reportSiteFailure('notesLocal'); throw error; }
     },
     [userId]
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { filterNotes, toNotebookItems } from '../adapters/notes.adapter';
@@ -39,6 +40,7 @@ export function useNotes() {
   const [state, setState] = useState<NotesStateEntity | null>(() => notesRepository.getInitialState(userId));
   const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
   const [syncStatus, setSyncStatus] = useState<NotesSyncStatus>('saved');
+  useFailureToast(syncStatus === 'error' ? 'notes-save' : null, 'Could not save these notes. Keep this tab open and retain your edits.', 'NotesSave');
   const [notebookQuery, setNotebookQuery] = useState('');
   const [noteQuery, setNoteQuery] = useState('');
   const [toast, setToast] = useState('');
@@ -64,7 +66,7 @@ export function useNotes() {
       setState(loaded);
       setHasLoadedRemote(true);
       setSyncStatus('saved');
-    });
+    }).catch(() => { if (active) setSyncStatus('error'); });
     return () => {
       active = false;
     };

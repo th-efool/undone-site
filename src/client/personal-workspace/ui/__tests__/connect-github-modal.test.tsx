@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render as testingRender, screen, waitFor } from '@testing-library/react';
+import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvider';
+const render = (ui: React.ReactElement, options?: Parameters<typeof testingRender>[1]) =>
+  testingRender(ui, { wrapper: ToastProvider, ...options });
 import { ConnectGitHubModal } from '../connect-github-modal';
 
 afterEach(cleanup);
@@ -153,7 +156,7 @@ describe('ConnectGitHubModal', () => {
       expect(screen.getByRole('alert')).toBeDefined();
       expect(
         screen.getByText(
-          'Repository octocat/private-notes does not exist or token lacks permission',
+          'Could not complete the repository connection. Your notes remain on this device.',
         ),
       ).toBeDefined();
     });

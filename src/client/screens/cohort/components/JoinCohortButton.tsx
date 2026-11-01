@@ -1,5 +1,6 @@
 'use client';
 
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './JoinCohortButton.module.css';
@@ -16,6 +17,7 @@ export function JoinCohortButton({ cohortId, isLoggedIn }: JoinCohortButtonProps
   const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useFailureToast(error, 'Could not confirm membership. Check the cohort before retrying.', 'CohortJoin');
   const pending = React.useRef(false);
 
   const handleJoin = async () => {
@@ -77,7 +79,7 @@ export function JoinCohortButton({ cohortId, isLoggedIn }: JoinCohortButtonProps
       >
         {buttonText}
       </button>
-      {error && <p role="alert">{error}</p>}
+
     </>
   );
 }

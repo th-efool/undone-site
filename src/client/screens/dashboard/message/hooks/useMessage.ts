@@ -1,5 +1,6 @@
 'use client';
 
+import { reportSiteFailure } from '@/src/client/feedback/site-failures';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { conversationFilters, sidebarTabs } from '../constants';
@@ -74,6 +75,9 @@ function generateRequestId(): string {
 export function useMessage() {
   const { data: session } = safeUseSession();
   const currentUserId = session?.user?.id ?? null;
+  const actionAccount = useRef(currentUserId);
+  actionAccount.current = currentUserId;
+  const pendingPreferences = useRef(new Set<string>());
   const realtime = safeUseRealtime();
 
   const [selectedView, setSelectedView] = useState<MessageView>('landing');
@@ -858,6 +862,7 @@ export function useMessage() {
           };
         });
       } catch (err) {
+        reportSiteFailure('message');
         console.error('Failed to send message:', err);
         // Mark optimistic message as failed
         setMessagesByChannel((prev) => {
@@ -926,6 +931,7 @@ export function useMessage() {
           };
         });
       } catch (err) {
+        reportSiteFailure('message');
         console.error('Failed to retry message:', err);
         setMessagesByChannel((prev) => ({
           ...prev,
@@ -973,6 +979,7 @@ export function useMessage() {
       try {
         await messagesRepository.toggleReaction(messageId, emoji);
       } catch (err) {
+        reportSiteFailure('message');
         console.error('Failed to toggle reaction:', err);
       }
     },
@@ -1005,6 +1012,7 @@ export function useMessage() {
           };
         });
       } catch (err) {
+        reportSiteFailure('message');
         console.error('Failed to edit message:', err);
       }
     },
@@ -1028,6 +1036,7 @@ export function useMessage() {
       try {
         await messagesRepository.deleteMessage(messageId, reason);
       } catch (err) {
+        reportSiteFailure('message');
         console.error('Failed to delete message:', err);
       }
     },
@@ -1133,6 +1142,7 @@ export function useMessage() {
           )
         );
       } catch (err) {
+        reportSiteFailure('message');
         console.error('Failed to send DM message:', err);
         setMessagesByChannel((prev) => {
           const list = prev[channelId] ?? [];
@@ -1150,7 +1160,7 @@ export function useMessage() {
 
   const createDirectConversation = useCallback(
     async (recipientId: string): Promise<string> => {
-      const result = await messagesRepository.createDirectConversation(recipientId);
+      const result = await messagesRepository.createDirectConversation(recipientId).catch(error => { reportSiteFailure('message'); throw error; });
       await loadConversations();
       setSelectedSidebarTab('dm');
       setSelectedDMId(result.conversationId);
@@ -1162,7 +1172,7 @@ export function useMessage() {
 
   const createGroupConversation = useCallback(
     async (title: string, participantIds: string[]): Promise<string> => {
-      const result = await messagesRepository.createGroupConversation(title, participantIds);
+      const result = await messagesRepository.createGroupConversation(title, participantIds).catch(error => { reportSiteFailure('message'); throw error; });
       await loadConversations();
       setSelectedSidebarTab('dm');
       setSelectedDMId(result.conversationId);
@@ -1174,7 +1184,7 @@ export function useMessage() {
 
   const leaveGroupConversation = useCallback(
     async (conversationId: string): Promise<void> => {
-      await messagesRepository.leaveGroupConversation(conversationId);
+      await messagesRepository.leaveGroupConversation(conversationId).catch(error => { reportSiteFailure('message'); throw error; });
       setConversationsList((prev) => prev.filter((c) => c.id !== conversationId));
       if (selectedDMId === conversationId) {
         setSelectedDMId(null);
@@ -1241,6 +1251,7 @@ export function useMessage() {
           };
         });
       } catch (err) {
+        reportSiteFailure('message');
         console.error('Failed to retry DM message:', err);
         setMessagesByChannel((prev) => ({
           ...prev,
@@ -1255,79 +1266,52 @@ export function useMessage() {
 
   const deleteDMMessage = useCallback(
     (dmId: string, messageId: string) => {
-      const conv = conversationsList.find((c) => c.id === dmId);
-      const channelId = conv?.channelId;
-      if (channelId) {
-        setMessagesByChannel((prev) => ({
-          ...prev,
-          [channelId]: (prev[channelId] ?? []).filter((m) => m.id !== messageId),
-        }));
-        messagesRepository.deleteMessage(channelId, messageId).catch((err) => {
-          console.error('Failed to delete DM message on server:', err);
-        });
-      }
+      const channelId = conversationsList.find(conversation => conversation.id === dmId)?.channelId;
+      if (!channelId) return;
+      const owner = currentUserId;
+      void messagesRepository.deleteMessage(channelId, messageId).then(() => {
+        if (actionAccount.current !== owner) return;
+        setMessagesByChannel(previous => ({ ...previous, [channelId]: (previous[channelId] ?? []).filter(message => message.id !== messageId) }));
+      }).catch(() => reportSiteFailure('message'));
     },
-    [conversationsList]
+    [conversationsList, currentUserId]
   );
 
   const togglePinConversation = useCallback(
     (id: string) => {
-      let nextPinned = false;
-      setPinnedConversations((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) {
-          next.delete(id);
-          nextPinned = false;
-        } else {
-          next.add(id);
-          nextPinned = true;
-        }
-        return next;
-      });
-
-      let channelId: string | null = null;
-      const conv = conversationsList.find((c) => c.id === id);
-      if (conv?.channelId) {
-        channelId = conv.channelId;
-      } else {
-        const comm = communities.find((c) => c.cohortId === id);
-        channelId = comm?.channels[0]?.id ?? null;
-      }
-
-      if (channelId) {
-        messagesRepository.updateChannelPreferences(channelId, { isPinned: nextPinned }).catch((err) => {
-          console.warn('Failed to persist pin preference:', err);
+      const key = 'pin:' + id;
+      if (pendingPreferences.current.has(key)) return;
+      const channelId = conversationsList.find(item => item.id === id)?.channelId ?? communities.find(item => item.cohortId === id)?.channels[0]?.id;
+      if (!channelId) { reportSiteFailure('message'); return; }
+      const owner = currentUserId;
+      const nextPinned = !pinnedConversations.has(id);
+      pendingPreferences.current.add(key);
+      void messagesRepository.updateChannelPreferences(channelId, { isPinned: nextPinned }).then(() => {
+        if (actionAccount.current !== owner) return;
+        setPinnedConversations(previous => {
+          const next = new Set(previous);
+          if (nextPinned) next.add(id); else next.delete(id);
+          return next;
         });
-      }
-    },
-    [conversationsList, communities]
+      }).catch(() => { if (actionAccount.current === owner) reportSiteFailure('message'); })
+        .finally(() => pendingPreferences.current.delete(key));
+    }, [conversationsList, communities, pinnedConversations, currentUserId]
   );
 
   const muteConversation = useCallback(
     (id: string, hours: number) => {
+      const key = 'mute:' + id;
+      if (pendingPreferences.current.has(key)) return;
+      const channelId = conversationsList.find(item => item.id === id)?.channelId ?? communities.find(item => item.cohortId === id)?.channels[0]?.id;
+      if (!channelId) { reportSiteFailure('message'); return; }
+      const owner = currentUserId;
       const mutedUntilMs = Date.now() + hours * 60 * 60 * 1000;
-      const mutedUntilIso = new Date(mutedUntilMs).toISOString();
-      setMutedConversations((prev) => ({
-        ...prev,
-        [id]: mutedUntilMs,
-      }));
-
-      let channelId: string | null = null;
-      const conv = conversationsList.find((c) => c.id === id);
-      if (conv?.channelId) {
-        channelId = conv.channelId;
-      } else {
-        const comm = communities.find((c) => c.cohortId === id);
-        channelId = comm?.channels[0]?.id ?? null;
-      }
-
-      if (channelId) {
-        messagesRepository.updateChannelPreferences(channelId, { mutedUntil: mutedUntilIso }).catch((err) => {
-          console.warn('Failed to persist mute preference:', err);
-        });
-      }
-    },
-    [conversationsList, communities]
+      pendingPreferences.current.add(key);
+      void messagesRepository.updateChannelPreferences(channelId, { mutedUntil: new Date(mutedUntilMs).toISOString() }).then(() => {
+        if (actionAccount.current === owner) setMutedConversations(previous => ({ ...previous, [id]: mutedUntilMs }));
+      }).catch(() => { if (actionAccount.current === owner) reportSiteFailure('message'); })
+        .finally(() => pendingPreferences.current.delete(key));
+    }, [conversationsList, communities, currentUserId]
   );
 
   const markAllRead = useCallback(() => {

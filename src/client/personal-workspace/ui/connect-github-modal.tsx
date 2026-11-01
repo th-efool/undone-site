@@ -1,11 +1,11 @@
 'use client';
 
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Lock,
   Key,
   AlertTriangle,
-  AlertCircle,
   Loader2,
   X,
   ExternalLink,
@@ -80,6 +80,7 @@ export function ConnectGitHubModal({
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useFailureToast(error, 'Could not complete the repository connection. Your notes remain on this device.', 'NotesConnection');
   const [connected, setConnected] = useState(isConnected);
   const [connectedRepo, setConnectedRepo] = useState<string | null>(
     isConnected ? initialRepo || null : null,
@@ -412,17 +413,7 @@ export function ConnectGitHubModal({
               ) : null}
             </div>
 
-            {/* Error Banner if any */}
-            {error ? (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs"
-                data-testid="error-banner"
-              >
-                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                <p className="flex-1 leading-relaxed">{error}</p>
-              </div>
-            ) : null}
+
 
             {/* Quick Actions (Sync Now & Export Backup) */}
             <div className="grid grid-cols-2 gap-3">
@@ -540,17 +531,7 @@ export function ConnectGitHubModal({
         ) : (
           /* VIEW 2: Connect Flow (1-Click Primary + Manual Custom Fallback) */
           <form onSubmit={handleConnect} className="p-6 space-y-4">
-            {/* Error Banner */}
-            {error ? (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs"
-                data-testid="error-banner"
-              >
-                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                <p className="flex-1 leading-relaxed">{error}</p>
-              </div>
-            ) : null}
+
 
             {/* 1-Click GitHub Authorization Card (HERO) */}
             <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/70 via-zinc-50 to-zinc-100 dark:from-indigo-950/30 dark:via-zinc-800/60 dark:to-zinc-800/30 border border-indigo-200/60 dark:border-indigo-800/40 space-y-3.5 shadow-xs">

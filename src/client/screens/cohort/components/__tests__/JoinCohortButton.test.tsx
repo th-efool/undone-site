@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render as testingRender, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvider';
+const render = (ui: React.ReactElement, options?: Parameters<typeof testingRender>[1]) =>
+  testingRender(ui, { wrapper: ToastProvider, ...options });
 const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh }) }));
 import { JoinCohortButton } from '../JoinCohortButton';
@@ -29,15 +33,15 @@ describe('cohort join recovery', () => {
   it('explains uncertain membership after a connection failure', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
     render(<JoinCohortButton cohortId="cohort-a" isLoggedIn />); fireEvent.click(screen.getByRole('button', { name: 'Join Cohort' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('Reload the cohort to check your membership');
+    expect((await screen.findByRole('alert')).textContent).toContain('Could not confirm membership. Check the cohort before retrying.');
   });
-  it('immediately transitions to Joined state with disabled styling upon clicking', () => {
+  it('immediately transitions to Joining state with disabled styling upon clicking', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
     render(<JoinCohortButton cohortId="cohort-a" isLoggedIn />);
     const button = screen.getByRole('button', { name: 'Join Cohort' });
     fireEvent.click(button);
-    const joinedButton = screen.getByRole('button', { name: 'Joined ✓' }) as HTMLButtonElement;
-    expect(joinedButton).toBeTruthy();
-    expect(joinedButton.disabled).toBe(true);
+    const joiningButton = screen.getByRole('button', { name: 'Joining...' }) as HTMLButtonElement;
+    expect(joiningButton).toBeTruthy();
+    expect(joiningButton.disabled).toBe(true);
   });
 });

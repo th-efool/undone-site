@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render as testingRender, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvider';
+const render = (ui: React.ReactElement, options?: Parameters<typeof testingRender>[1]) =>
+  testingRender(ui, { wrapper: ToastProvider, ...options });
 import { AuthForm } from '../authForm/authForm';
 
 const mocks = vi.hoisted(() => ({ signIn: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
