@@ -16,6 +16,10 @@ export interface GoalStageViewProps {
   dispatchAction: (action: CohortAction, expected?: EntityRef[]) => Promise<boolean>;
 }
 
+/**
+ * @deprecated Superseded by DiscoveryStageView in Guide G3.
+ * Preserved for backwards compatibility with legacy draft tests.
+ */
 export function GoalStageView({
   workspace,
   dispatchAction,

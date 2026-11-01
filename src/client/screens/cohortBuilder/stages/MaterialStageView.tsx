@@ -49,6 +49,7 @@ export interface SourceItemRowProps {
 export const SourceItemRow = React.memo(function SourceItemRow({source,index,busy,onRemove}:SourceItemRowProps) {
  const videoId=extractYoutubeVideoId(source);
  return <li className={styles.sourceItem}>
+  {/* eslint-disable-next-line @next/next/no-img-element */}
   {videoId ? <img className={styles.thumbnail} src={'https://i.ytimg.com/vi/'+videoId+'/hqdefault.jpg'} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className={styles.fileIcon} aria-hidden="true">↗</span>}
   <div><small>{getSourceTypeBadge(source)}</small><h3>{source.label || 'Source '+(index+1)}</h3></div>
   <button type="button" disabled={busy} aria-label={'Remove source '+(index+1)} onClick={()=>onRemove(source.id)}><Trash2 size={18}/></button>
