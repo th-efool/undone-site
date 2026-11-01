@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render as testingRender, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import React from 'react';
+
+import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvider';
+const render = (ui: React.ReactNode) => testingRender(<ToastProvider>{ui}</ToastProvider>);
 import { CohortIntakeScreen } from '../CohortIntakeScreen';
 import { saveIntakeDraft } from '../intake-draft';
 
@@ -65,7 +68,7 @@ it('retains failed intake without sending the user to the legacy creator', async
   render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
 
   await waitFor(() => {
-    expect(screen.getByRole('alert').textContent).toContain('Could not save: DURABLE_DRIVER_REQUIRED');
+    expect(screen.getByRole('alert').textContent).toContain('Could not confirm creation. Your saved input is kept; use Retry to check again.');
     expect(screen.queryByRole('link', { name: /existing creator/i })).toBeNull();
   });
 });
@@ -87,7 +90,7 @@ it('displays error and does NOT offer legacy alternative when draft has source t
   render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
 
   await waitFor(() => {
-    expect(screen.getByRole('alert').textContent).toContain('Could not save: DURABLE_DRIVER_REQUIRED');
+    expect(screen.getByRole('alert').textContent).toContain('Could not confirm creation. Your saved input is kept; use Retry to check again.');
     expect(screen.getByText(/Retained text: Pasted text/)).toBeTruthy();
     expect(screen.queryByRole('link', { name: /continue with existing creator/i })).toBeNull();
   });
@@ -160,3 +163,5 @@ it('clears draft when discard is clicked in disabled state', () => {
   expect(screen.getByText(/No pending input/)).toBeTruthy();
   expect(sessionStorage.getItem('undone:cohort-intake')).toBeNull();
 });
+
+// Use the production notification boundary without changing any draft assertions.

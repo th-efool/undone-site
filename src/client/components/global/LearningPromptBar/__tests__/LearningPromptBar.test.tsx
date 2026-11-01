@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
+
+import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvider';
+import { render as testingRender, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
+const render = (ui: React.ReactElement, options?: Parameters<typeof testingRender>[1]) => testingRender(ui, { wrapper: ToastProvider, ...options });
 import ReactDOMServer from 'react-dom/server';
 import { hydrateRoot } from 'react-dom/client';
 
@@ -187,7 +190,7 @@ describe('LearningPromptBar Component (Unit B)', () => {
     fireEvent.click(beginBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Could not confirm your request. Retry to continue.')).toBeTruthy();
+      expect(screen.getByText('Could not complete your request. Your input is kept. Review attachments or retry.')).toBeTruthy();
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const firstReqId = JSON.parse(fetchMock.mock.calls[0][1].body).requestId;
@@ -325,7 +328,7 @@ describe('LearningPromptBar Component (Unit B)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Begin journey/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/exceeds the 3.5MB server limit/i)).toBeTruthy();
+      expect(screen.getByText('Could not complete your request. Your input is kept. Review attachments or retry.')).toBeTruthy();
     });
 
     const draft = readIntakeDraft('test-user-123');
@@ -485,3 +488,5 @@ describe('LearningPromptBar Component (Unit B)', () => {
     }
   });
 });
+
+// Use the production notification boundary without changing any draft assertions.

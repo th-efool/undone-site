@@ -1,4 +1,5 @@
 'use client';
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, BookOpen, Paperclip, Square, X } from 'lucide-react';
@@ -40,8 +41,21 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
   const dispatchAction = useDispatchAction<CohortAction>();
   const state = useInteractionState<CohortWorkspace>();
   const activity = useAssistantActivity();
+  const previousRuns = useRef(new Map<string, string>());
+  const [runFailure, setRunFailure] = useState('');
+  useFailureToast(runFailure, 'The assistant could not finish. Saved changes remain; send a follow-up to continue.', 'AssistantRun');
+  useEffect(() => {
+    for (const turn of activity.turns) {
+      if (!turn.runId) continue;
+      const previous = previousRuns.current.get(turn.runId);
+      if (previous && previous !== 'failed' && turn.status === 'failed') setRunFailure(turn.runId);
+      previousRuns.current.set(turn.runId, turn.status);
+    }
+  }, [activity.turns]);
   const [cancelError, setCancelError] = useState('');
   const [sendError, setSendError] = useState('');
+  useFailureToast(sendError, 'Could not send. Your draft is kept; retry when ready.', 'ChatSend');
+  useFailureToast(cancelError, 'Could not confirm Stop. Check the current run before retrying.', 'ChatStop');
   const committedSourceIds = useRef(new Set<string>());
   const activeTurn = activity.turns.find(turn => turn.status === 'running' || turn.status === 'queued');
   const selected = attachedEntity && state.view?.lessons.find(lesson => lesson.id === attachedEntity.entity.id);
@@ -354,17 +368,6 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
                 </span>
               )}
             </div>
-          </div>
-        )}
-
-        {activity.turns.some(turn => turn.status === 'failed' || turn.status === 'canceled') && (
-          <p className={styles.chatAlertRow}>Stopped or failed turns remain saved. Send a follow-up to retry the intended change.</p>
-        )}
-
-        {sendError && <p role="alert">{sendError}</p>}
-        {cancelError && (
-          <div className={styles.chatAlertRow} role="alert">
-            <span>{cancelError}</span>
           </div>
         )}
         {staleSelection && (

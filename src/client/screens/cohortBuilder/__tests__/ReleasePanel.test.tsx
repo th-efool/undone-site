@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render as testingRender, screen, waitFor } from '@testing-library/react';
+import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvider';
+
+const render = (ui: React.ReactElement, options?: Parameters<typeof testingRender>[1]) =>
+  testingRender(ui, { wrapper: ToastProvider, ...options });
 import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 const fake = vi.hoisted(() => ({
@@ -240,6 +244,9 @@ describe('ReleasePanel UI Component', () => {
       fireEvent.click(releaseBtn);
     });
 
-    expect(await screen.findByText(/Release blocked: Background processing not done\./)).toBeDefined();
+    expect(await screen.findByRole('alert')).toBeDefined();
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Could not confirm release. Your draft and settings are kept. Check its status before retrying.'
+    );
   });
 });

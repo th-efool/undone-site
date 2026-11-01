@@ -1,4 +1,5 @@
 'use client';
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -44,6 +45,7 @@ export function ReleasePanel({
   );
   const [isReleasing, setIsReleasing] = useState(false);
   const [releaseError, setReleaseError] = useState<string | null>(null);
+  useFailureToast(releaseError, 'Could not confirm release. Your draft and settings are kept. Check its status before retrying.', 'Release');
 
   // Synchronously compute readiness for current selection
   const readiness = useMemo(
@@ -245,16 +247,6 @@ export function ReleasePanel({
       )}
 
       {/* Error Notice */}
-      {releaseError && (
-        <div className={styles.blockersContainer} role="alert">
-          <h4 className={styles.blockersTitle}>
-            <AlertCircle size={15} />
-            Release Error
-          </h4>
-          <p className={styles.releaseErrorText}>{releaseError}</p>
-        </div>
-      )}
-
       {/* Existing Release Receipt Information */}
       {existingReceipt && (
         <div className={styles.receiptCard}>

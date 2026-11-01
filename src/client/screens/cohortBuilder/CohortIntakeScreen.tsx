@@ -1,4 +1,5 @@
 'use client';
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { LearningPromptBar } from '@/src/client/components/global/LearningPromptBar/LearningPromptBar';
@@ -26,6 +27,7 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
   const router = useSafeRouter();
   const [draft, setDraft] = useState<CohortIntake | null>(null);
   const [error, setError] = useState('');
+  useFailureToast(error, 'Could not confirm creation. Your saved input is kept; use Retry to check again.', 'CohortIntake');
   const [busy, setBusy] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [pane, setPane] = useState<'chat' | 'workspace'>('workspace');
@@ -252,9 +254,6 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
                       </p>
                     </div>
                   ) : null}
-                  <div className={styles.noticeError} role="alert" style={{ marginBottom: '20px' }}>
-                    <p>Could not save: {error}. Your input is retained; retry when available.</p>
-                  </div>
                   <div className={styles.actions}>
                     <button
                       type="button"

@@ -1,4 +1,5 @@
 'use client';
+import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useId } from 'react';
 import { useRouter } from 'next/navigation';
@@ -9,7 +10,6 @@ import {
   ArrowRight,
   Paperclip,
   Sparkles,
-  AlertCircle,
   X,
 } from 'lucide-react';
 import { TextBar } from '@/src/client/components/ui';
@@ -456,6 +456,7 @@ export const LearningPromptBar = React.memo(
         ? composerAttachments.errors[composerAttachments.errors.length - 1]
         : '';
     const displayedError = intakeError || latestComposerError;
+    useFailureToast(displayedError, 'Could not complete your request. Your input is kept. Review attachments or retry.', 'LearningPromptBar');
 
     return (
       <div
@@ -677,20 +678,6 @@ export const LearningPromptBar = React.memo(
           }
         />
 
-        {displayedError && (
-          <div className={styles.intakeErrorBanner} role="alert">
-            <AlertCircle size={18} className={styles.intakeErrorIcon} aria-hidden="true" />
-            <span className={styles.intakeErrorText}>{displayedError}</span>
-            <button
-              type="button"
-              className={styles.intakeErrorDismiss}
-              onClick={() => setIntakeError('')}
-              aria-label="Dismiss error"
-            >
-              <X size={15} />
-            </button>
-          </div>
-        )}
       </div>
     );
   },
