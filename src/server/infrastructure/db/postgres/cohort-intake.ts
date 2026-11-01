@@ -53,9 +53,43 @@ export async function acceptCohortIntake(ownerId: string, input: unknown, prisma
           expectedRevision: 0, entityVersions: [], action: { type: 'add_text_source',
             sourceId: deterministicUuid(`${workspaceId}:source`), ...body.source } }, plan: cohortDomain.plan });
     }
-    await repo.appendMessage({ id: deterministicUuid(`${workspaceId}:message`), workspaceId, ownerId,
-      role: 'user', parts: [{ type: 'text', text: body.prompt }], requestId: `${body.requestId}:message`,
-      ...(journeyEnabled ? { scheduleAssistant: isPlanMode, scheduleRun: isPlanMode } : {}) });
+    const sourceRefs: Array<{ type: 'entity_ref'; entity: { kind: string; id: string; version: number }; label: string }> = (initial.sources ?? []).map(s => ({
+      type: 'entity_ref' as const,
+      entity: { kind: 'source', id: s.id, version: s.version },
+      label: s.label,
+    }));
+
+    if (sourceRefs.length <= 99) {
+      await repo.appendMessage({
+        id: deterministicUuid(`${workspaceId}:message`),
+        workspaceId,
+        ownerId,
+        role: 'user',
+        parts: [{ type: 'text', text: body.prompt }, ...sourceRefs],
+        requestId: `${body.requestId}:message`,
+        ...(journeyEnabled ? { scheduleAssistant: isPlanMode, scheduleRun: isPlanMode } : {}),
+      });
+    } else {
+      await repo.appendMessage({
+        id: deterministicUuid(`${workspaceId}:message-sources`),
+        workspaceId,
+        ownerId,
+        role: 'user',
+        parts: sourceRefs.slice(0, 100),
+        requestId: `${body.requestId}:message-sources`,
+        scheduleAssistant: false,
+        scheduleRun: false,
+      });
+      await repo.appendMessage({
+        id: deterministicUuid(`${workspaceId}:message`),
+        workspaceId,
+        ownerId,
+        role: 'user',
+        parts: [{ type: 'text', text: body.prompt }],
+        requestId: `${body.requestId}:message`,
+        ...(journeyEnabled ? { scheduleAssistant: isPlanMode, scheduleRun: isPlanMode } : {}),
+      });
+    }
     if (journeyEnabled && !isPlanMode) {
       const current = await tx.interactionWorkspace.findUniqueOrThrow({ where: { id: workspaceId } });
       await enqueueJourneyJobPlanInTransaction(

@@ -196,6 +196,36 @@
   color: #5863f8;
 }
 
+.userAttachmentsRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: min(75%, 520px);
+  margin-left: auto;
+  margin-bottom: 6px;
+}
+
+.sourceAttachmentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(280px, 100%);
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--creation-heading, #1f1d1a) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--creation-line, #d8dcf0) 60%, transparent);
+  color: var(--creation-heading, #1f1d1a);
+  font-family: var(--font-manrope-next), -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .userBubble {
   width: fit-content;
   max-width: min(75%, 520px);
@@ -517,6 +547,16 @@
   line-height: 1.5;
 }
 
+.composerTextarea:focus,
+.composerTextarea:focus-visible,
+.composer textarea:focus,
+.composer textarea:focus-visible,
+.page .composerCard :is(textarea, .composerTextarea):focus-visible,
+.page .composer :is(textarea, .composerTextarea):focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .composerTextarea::placeholder,
 .composer textarea::placeholder {
   color: #8c93a8;
@@ -690,8 +730,27 @@
   border: 1px solid color-mix(in srgb, var(--creation-line) 40%, transparent);
 }
 
-.page[data-variant='review'] .tools {
+.page[data-variant='review'] .rail .tools {
   display: none;
+}
+
+.reviewNavButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--creation-blue, #2563eb);
+  color: #fff;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.reviewNavButton:hover {
+  background: var(--creation-blue-hover, #1d4ed8);
 }
 
 .srOnly {

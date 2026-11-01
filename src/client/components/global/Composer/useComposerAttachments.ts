@@ -205,18 +205,21 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
     const newLinks: LinkItem[] = [];
 
     for (const s of sources) {
-      if (!s.text || knownIds.has(s.id)) continue;
+      if (knownIds.has(s.id)) continue;
       knownIds.add(s.id);
+      const text = s.text ?? '';
       const extraction: ClientSourceExtraction = {
-        text: s.text,
-        locations: s.locations ?? [{ start: 0, end: s.text.length }],
+        text,
+        locations: s.locations ?? [{ start: 0, end: text.length }],
         provenance: s.provenance,
-        checksum: s.checksum ?? sha256(s.text),
+        checksum: s.checksum ?? (text ? sha256(text) : undefined),
       };
-      try {
-        reserveBytes(s.id, extraction);
-      } catch {
-        break; // Stop restoring if text budget is reached
+      if (text) {
+        try {
+          reserveBytes(s.id, extraction);
+        } catch {
+          // If text storage budget is exceeded, continue restoring as metadata-only source
+        }
       }
 
       const isFile = s.label.toLowerCase().endsWith('.pdf') || s.input?.kind === 'pdf' || (s.provenance as { pageCount?: number } | undefined)?.pageCount !== undefined;
@@ -224,7 +227,7 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
         newFiles.push({
           id: s.id,
           name: s.label,
-          size: byteLengthUtf8(s.text),
+          size: text ? byteLengthUtf8(text) : 0,
           type: 'application/pdf',
           status: 'ready',
           extraction,

@@ -287,4 +287,33 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
     expect(screen.getByRole('button', { name: 'Questline' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByText('Paxos & Consensus Basics')).toBeTruthy();
   });
+
+  it('renders source attachment chips above user message bubble with source styling', () => {
+    fakeState.view = baseWorkspace;
+    fakeState.messages = [
+      {
+        id: 'msg-user-attachments',
+        role: 'user',
+        parts: [
+          {
+            type: 'text',
+            text: 'Here are the docs for our study plan',
+          },
+          {
+            type: 'entity_ref',
+            label: 'Distributed Systems Spec.pdf',
+            entity: { kind: 'source', id: 'src-1', version: 1 },
+          },
+        ],
+      },
+    ];
+
+    render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+
+    expect(screen.getByText('Distributed Systems Spec.pdf')).toBeTruthy();
+    expect(screen.getByText('Here are the docs for our study plan')).toBeTruthy();
+    const row = screen.getByRole('group', { name: /Attached references/i });
+    expect(row).toBeTruthy();
+    expect(row.textContent).toContain('Distributed Systems Spec.pdf');
+  });
 });

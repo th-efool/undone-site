@@ -130,7 +130,14 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
         }
       }
 
-      const entityRefs = attachedEntity ? [attachedEntity] : [];
+      const sourceRefs: Array<{ entity: EntityRef; label: string }> = readySources.map(s => ({
+        entity: { kind: 'source', id: s.id, version: s.version ?? 0 },
+        label: s.label,
+      }));
+      const entityRefs = [
+        ...(attachedEntity ? [attachedEntity] : []),
+        ...sourceRefs,
+      ];
       const ok = await sendMessage(textToSend, entityRefs);
       if (ok) {
         if (!customText) setInput(current => current === rawText ? '' : current);
@@ -229,7 +236,40 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
                     />
                   </div>
                 )}
+                {isUser && (
+                  (() => {
+                    const entityParts = m.parts.filter(
+                      (p): p is Extract<typeof p, { type: 'entity_ref' }> => p.type === 'entity_ref' && !!p.entity
+                    );
+                    if (entityParts.length === 0) return null;
+                    return (
+                      <div className={styles.userAttachmentsRow} role="group" aria-label="Attached references">
+                        {entityParts.map((p, idx) => {
+                          const isSource = p.entity.kind === 'source';
+                          const fullTitle = p.label ?? p.entity.id;
+                          return (
+                            <span
+                              key={idx}
+                              className={isSource ? styles.sourceAttachmentChip : styles.entityChip}
+                              title={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
+                            >
+                              {isSource ? (
+                                <Paperclip size={11} className={styles.entityChipIcon} aria-hidden="true" />
+                              ) : (
+                                <BookOpen size={11} className={styles.entityChipIcon} aria-hidden="true" />
+                              )}
+                              <span className={styles.entityChipText}>{fullTitle}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
+                )}
                 <div className={isUser ? styles.userBubble : styles.assistantBubble}>
+                  {isUser && !m.parts.some(p => p.type === 'text' && p.text.trim()) && (
+                    <p className={styles.userText}>Shared reference materials</p>
+                  )}
                   {m.parts.map((p, idx) => {
                     if (p.type === 'text') {
                       return isUser ? (
@@ -238,7 +278,8 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
                         <ChatMarkdown key={idx} content={p.text} />
                       );
                     }
-                    if (p.type === 'entity_ref' && p.entity) {
+                    if (p.type === 'entity_ref' && p.entity && !isUser) {
+                      const isSource = p.entity.kind === 'source';
                       const fullTitle = p.label ?? p.entity.id;
                       const entityId = p.entity.id;
                       const entityVersion = p.entity.version;
@@ -246,12 +287,13 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
                         <div key={idx} className={styles.chipsContainer}>
                           <button
                             type="button"
-                            className={styles.entityChip}
+                            className={isSource ? styles.sourceAttachmentChip : styles.entityChip}
                             data-entity-id={entityId}
                             data-entity-version={entityVersion}
-                            title={`Lesson: ${fullTitle}`}
-                            aria-label={`Lesson: ${fullTitle}`}
+                            title={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
+                            aria-label={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
                             onClick={() => {
+                              if (isSource) return;
                               const targetId = entityId.startsWith('lesson-') ? entityId : `lesson-${entityId}`;
                               if (typeof window !== 'undefined') {
                                 window.dispatchEvent(
@@ -267,8 +309,12 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
                               }
                             }}
                           >
-                            <BookOpen size={12} className={styles.entityChipIcon} aria-hidden="true" />
-                            <span className={styles.entityChipPrefix}>Lesson:</span>
+                            {isSource ? (
+                              <Paperclip size={12} className={styles.entityChipIcon} aria-hidden="true" />
+                            ) : (
+                              <BookOpen size={12} className={styles.entityChipIcon} aria-hidden="true" />
+                            )}
+                            <span className={styles.entityChipPrefix}>{isSource ? 'Source:' : 'Lesson:'}</span>
                             <span className={styles.entityChipText}>{fullTitle}</span>
                           </button>
                         </div>

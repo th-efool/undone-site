@@ -120,4 +120,24 @@ describe('useComposerAttachments', () => {
     expect(result.current.links).toHaveLength(1);
     expect(result.current.errors).toHaveLength(0);
   });
+
+  it('restores metadata-only sources with empty text without dropping them', () => {
+    const { result } = renderHook(() => useComposerAttachments());
+    const emptyTextSource = {
+      id: 'src-empty-1',
+      version: 1,
+      label: 'https://example.com/metadata-only',
+      text: '',
+      checksum: null,
+      state: 'ready' as const,
+      input: { kind: 'web' as const, url: 'https://example.com/metadata-only' },
+    };
+
+    act(() => {
+      result.current.restoreSources([emptyTextSource]);
+    });
+    expect(result.current.links).toHaveLength(1);
+    expect(result.current.links[0].url).toBe('https://example.com/metadata-only');
+    expect(result.current.links[0].status).toBe('ready');
+  });
 });

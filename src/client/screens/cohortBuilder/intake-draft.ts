@@ -6,8 +6,8 @@ export function saveIntakeDraft(body: CohortIntakeInput, ownerId: string | null)
     sessionStorage.setItem(key, JSON.stringify({ body: validated, ownerId, createdAt: Date.now() }));
   } catch {
     try {
-      const { sources: _dropped, ...lightweight } = validated;
-      void _dropped;
+      const lightweightSources = validated.sources?.map(s => ({ ...s, text: '' }));
+      const lightweight = { ...validated, sources: lightweightSources };
       sessionStorage.setItem(key, JSON.stringify({ body: lightweight, ownerId, createdAt: Date.now() }));
     } catch {
       /* Silently ignore if storage quota is completely exhausted */

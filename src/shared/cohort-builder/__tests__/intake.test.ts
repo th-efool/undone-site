@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, expect, it } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 import { cohortIntakeEnabled, cohortIntakeSchema, initialCohort } from '../intake';
 import { cohortWorkspaceSchema, planCohortAction, CohortSource } from '../contracts';
 import { planJourneyJobs } from '@/src/server/domain/cohort-builder/journey-job-plan';
@@ -86,4 +86,64 @@ it('rejects a source editor based on an older source version', () => {
   expect(() => planCohortAction(state, { type: 'edit_text_source', sourceId: 'source', label: 'Old', text: 'Attempted edit' }, {
     actionId: body.requestId, workspaceId: body.requestId, expectedRevision: 2, currentRevision: 2, entityVersions: new Map([['source', 0]]),
   })).toThrow('STALE_ENTITY');
+});
+
+it('preserves metadata-only sources when sessionStorage quota requires text stripping', () => {
+  const sourcesPayload: CohortSource[] = [
+    {
+      id: 'src-meta',
+      version: 1,
+      label: 'https://example.com/guide',
+      text: 'Long extracted text body',
+      state: 'ready',
+      checksum: 'a'.repeat(64),
+      input: { kind: 'web', url: 'https://example.com/guide' },
+    },
+  ];
+  const intakeWithSources = {
+    ...body,
+    requestId: '22222222-2222-4222-8222-222222222222',
+    sources: sourcesPayload,
+  };
+
+  // Mock Storage.prototype.setItem to fail first setItem (simulating full body quota fail)
+  let calls = 0;
+  const original = Storage.prototype.setItem;
+  const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, val: string) {
+    calls++;
+    if (calls === 1) {
+      throw new Error('QuotaExceededError');
+    }
+    return original.call(this, key, val);
+  });
+
+  try {
+    saveIntakeDraft(intakeWithSources, null);
+    const restored = readIntakeDraft('owner');
+    expect(restored).not.toBeNull();
+    expect(restored?.sources).toHaveLength(1);
+    expect(restored?.sources?.[0].label).toBe('https://example.com/guide');
+    expect(restored?.sources?.[0].text).toBe(''); // empty text restored cleanly
+    expect(restored?.sources?.[0].input).toEqual({ kind: 'web', url: 'https://example.com/guide' });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+it('supports 100-source intake without truncation', () => {
+  const hundredSources: CohortSource[] = Array.from({ length: 100 }, (_, i) => ({
+    id: `src-${i}`,
+    version: 1,
+    label: `Source ${i}`,
+    text: `Content ${i}`,
+    checksum: 'b'.repeat(64),
+    state: 'ready',
+  }));
+  const intake = cohortIntakeSchema.parse({
+    requestId: '33333333-3333-4333-8333-333333333333',
+    prompt: 'Learn distributed consensus',
+    mode: 'plan',
+    sources: hundredSources,
+  });
+  expect(intake.sources).toHaveLength(100);
 });
