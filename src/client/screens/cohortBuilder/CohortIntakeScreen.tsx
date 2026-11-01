@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Lightbulb, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import type { CohortIntake } from '@/src/shared/cohort-builder/intake';
 import { useTheme } from '@/src/client/hooks/useTheme';
@@ -12,7 +13,16 @@ import { clearIntakeDraft, readIntakeDraft, saveIntakeDraft } from './intake-dra
 import builderStyles from './CohortBuilder.module.css';
 import styles from './CohortIntakeScreen.module.css';
 
+function useSafeRouter() {
+  try {
+    return useRouter();
+  } catch {
+    return null;
+  }
+}
+
 export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enabled: boolean }) {
+  const router = useSafeRouter();
   const [draft, setDraft] = useState<CohortIntake | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -34,7 +44,12 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
       const body = await response.json();
       if (!response.ok) throw new Error(body.code);
       // Keep acknowledged identity until navigation succeeds: retry returns the same workspace.
-      window.location.assign(`/quest/build/${body.workspaceId}`);
+      const targetUrl = `/quest/build/${body.workspaceId}`;
+      if (router) {
+        router.push(targetUrl);
+      } else {
+        window.location.assign(targetUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'INTAKE_UNAVAILABLE');
       setBusy(false);

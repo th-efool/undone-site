@@ -85,7 +85,7 @@ export function ExploreDesktop({ model: explore }: ExploreDesktopProps) {
           onChange={setQuery}
         />
         <Tooltip content="Build custom cohort" placement="bottom">
-          <Link href="/create-cohort" className={styles.buildCohortBtn}>
+          <Link href="/quest/start" className={styles.buildCohortBtn}>
             <span className={styles.btnLabel}>BUILD A COHORT</span>
             <span className={styles.iconCircle}>
               <Loader size={18} strokeWidth={2.5} />

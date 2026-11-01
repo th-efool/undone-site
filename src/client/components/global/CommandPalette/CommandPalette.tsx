@@ -87,7 +87,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         subtitle: 'Start a new learning journey',
         icon: <BookOpen size={16} />,
         category: 'action',
-        action: () => navigate('/create-cohort'),
+        action: () => navigate('/quest/start'),
       },
     ],
     [navigate]

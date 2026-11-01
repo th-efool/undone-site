@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
-import React, { Suspense } from 'react';
-import { CreateCohort } from '@/src/client/screens/dashboard/createCohort';
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Create a Cohort',
@@ -18,23 +17,5 @@ export const metadata: Metadata = {
 };
 
 export default function CreateCohortPage() {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'WebPage',
-    name: 'Undone > Create a Cohort',
-    description: 'Create and organize a new cohort on Undone. Bring your community together to learn and grow.',
-  };
-
-  return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <h1 className="sr-only">Create a Cohort</h1>
-      <Suspense fallback={<div>Loading...</div>}>
-        <CreateCohort />
-      </Suspense>
-    </>
-  );
+  redirect('/quest/start');
 }
