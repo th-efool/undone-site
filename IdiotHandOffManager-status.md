@@ -74,3 +74,56 @@
 
 ### Active Blockers
 - None.
+
+---
+
+## Guide G3: Cohort Material Intake Revision & Ready Stage Repair
+- **Manager Run Date**: 2026-11-01
+- **Guide File**: `IdiotHandOffGuide-cohort-material-intake.md`
+- **Guide SHA256**: `DD6D92830BB11595722DD755F7E6A29B1AB30EAC29982858FA4AD77A7613E5BC`
+- **Git Baseline Commit**: `eeb7077a9477ec5ee9653835f8fc32da574ea1be`
+- **Status**: Verified & Complete (All V1-V5 Gates Passed, Vercel Pipeline Ready)
+
+### Combined Work Graph & Dependency Table
+
+| Item ID | Description | Predecessors | Read Set | Write Set | Shared Resources | Owner | State | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| **Phase 1: Shared Contracts & Models** |
+| G3/S07 | Replace contracts.ts (S7) | None | `contracts.ts` | `src/shared/cohort-builder/contracts.ts` | Shared builder contracts | contracts-specialist | verified | Applied exact S7 payload; planCohortAction mapped have_goal -> find_material / discovery |
+| **Phase 2: UI Components & Screen Revisions** |
+| G3/S01 | Replace MaterialStageView.tsx (S1) | G3/S07 | `MaterialStageView.tsx` | `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx` | Material stage view | intake-specialist | verified | Applied exact S1 payload; URL first, compact input, previews above input |
+| G3/S02 | Replace MaterialStageView.module.css (S2) | None | `MaterialStageView.module.css` | `src/client/screens/cohortBuilder/stages/MaterialStageView.module.css` | Material stage styles | intake-specialist | verified | Applied exact S2 CSS payload; responsive grid & sticky Continue |
+| G3/S03 | Replace DiscoveryStageView.tsx (S3) | G3/S07 | `DiscoveryStageView.tsx` | `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx` | Discovery stage view | intake-specialist | verified | Applied exact S3 payload; goal input & explicit resource candidate checkboxes |
+| G3/S04 | Replace StartingPoint.tsx (S4) | None | `StartingPoint.tsx` | `src/client/screens/cohortCreation/components/StartingPoint.tsx` | Starting point component | intake-specialist | verified | Applied exact S4 payload; 2 choices (have_material & find_material) |
+| G3/S05 | Replace StartingPoint.module.css (S5) | None | `StartingPoint.module.css` | `src/client/screens/cohortCreation/components/StartingPoint.module.css` | Starting point styles | intake-specialist | verified | Applied exact S5 CSS payload; 2-card responsive layout |
+| G3/S06 | Replace CohortWorkspacePane.tsx (S6) | G3/S01, S03, S04, S07 | `CohortWorkspacePane.tsx` | `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` | Workspace pane container | intake-specialist | verified | Applied exact S6 payload; compact 2-choice tabs & goal_setup discovery routing |
+| **Phase 3: Ready Screen Repair (Incident G2)** |
+| G3/G02 | Repair ReadyStageView.tsx Back navigation | None | `ReadyStageView.tsx` | `src/client/screens/cohortBuilder/stages/ReadyStageView.tsx` | Ready stage view | ready-repair-specialist | verified | Applied G2 repairs: act(requiresReady=false), back_to_starting_point + choose_starting_point |
+| **Phase 4: Test Migrations & New Coverage** |
+| G3/T01 | Migrate material-stage-view & checkpoint3 tests | Phase 2, Phase 3 | `material-stage-view.test.tsx` | `material-stage-view.test.tsx`, `journey-checkpoint3-material.test.tsx` | Vitest | test-specialist | verified | 12/12 tests pass in each file; all Section E material criteria verified |
+| G3/T02 | Migrate journey-checkpoint4-branch tests | Phase 2, Phase 3 | `journey-checkpoint4-branch.test.tsx` | `journey-checkpoint4-branch.test.tsx` | Vitest | test-specialist | verified | 14/14 tests pass; goal save false, failed search, reset on resultId, selection preservation |
+| G3/T03 | Add ReadyStageView G2 Back button test coverage | Phase 3 | `ReadyStageView.tsx` | `src/client/screens/cohortBuilder/__tests__/ready-stage-view.test.tsx` | Vitest | test-specialist | verified | 3/3 tests pass; Back enabled on incomplete build, dispatches 2 transitions, aborts on false |
+| **Phase 5: Full System Verification Gate** |
+| G3/V01 | Subsystem Vitest Verification | All phases | Cohort builder test suite | None | Vitest | manager | verified | 33 test files, 374 tests passed in 12.71s |
+| G3/V02 | Surface Regression Test Suite | All phases | Client & Shared test suites | None | Vitest | manager | verified | 150 test files, 1,206 tests passed in 60.95s |
+| G3/V03 | Strict TypeScript Compilation | All phases | All TypeScript sources | None | `tsc` | manager | verified | `npx tsc --noEmit --incremental false` -> 0 errors in 31.9s |
+| G3/V04 | Production Next.js Build | All phases | All 50 routes compiled | None | `next build` | manager | verified | Production build simulation passed across 50/50 pages in 67.2s |
+| G3/V05 | Git Diff & Whitespace Verification | All phases | Working tree | None | `git diff --check` | manager | verified | Clean exit code 0; 0 whitespace issues |
+| G3/V06 | Vercel Deployment Pre-Verification | All phases | Full deployment pipeline | None | `npm run verify:vercel` | manager | verified | All 5 pipeline stages PASSED cleanly |
+
+### G3 Phase Schedule & Progress
+- **Phase 1: Shared Contracts & Models**: Verified
+- **Phase 2: UI Components & Screen Revisions**: Verified
+- **Phase 3: Ready Screen Repair (Incident G2)**: Verified
+- **Phase 4: Test Migrations & New Coverage**: Verified
+- **Phase 5: Full System Verification Gate**: Verified (1,206 tests passing, tsc 0 errors, production build 50/50 pages, Vercel pipeline green)
+
+### Concrete Repair Instructions & Deviations
+- **R1 (`src/shared/cohort-builder/__tests__/contracts.test.ts`)**: Updated starting point choice assertion so that `have_goal` maps to `find_material` per R1 merged goal search.
+- **R2 (`src/shared/cohort-builder/__tests__/journey-actions.test.ts`)**: Aligned `choose_starting_point` test to verify `have_goal` routes to `discovery` step and `find_material` branch. Updated `start_discovery` test to verify branch normalizes to `find_material`.
+- **R3 (`src/client/screens/cohortBuilder/__tests__/journey-checkpoint2-navigation.test.tsx` & `journey-stages.test.tsx`)**: Updated starting point card assertions from 3 choices to 2 choices (`'I already have material'` and `'Start with a goal'`).
+- **R4 (`src/client/screens/cohortCreation/__tests__/CreationExperience.test.tsx`)**: Updated starting point selection button from `'I just have a goal'` to `'Start with a goal'`.
+- **R5 (`src/client/screens/cohortBuilder/__tests__/journey-checkpoint5-processing.test.tsx`)**: Aligned Back button action expectations with the G2 repair (`back_to_starting_point` followed by `choose_starting_point`).
+- **R6 (`src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx` & `journey-checkpoint3-material.test.tsx`)**: Aligned test suite with Screen 4 revised intake specifications (URL first/default, disabled alternate mode buttons, previews preceding form in DOM, only Remove button in preview, playlist capacity handling up to 100).
+- **R7 (`src/client/screens/cohortBuilder/__tests__/journey-checkpoint4-branch.test.tsx`)**: Aligned discovery suite with revised goal search UI (goal save false prevents search, failed search retains input, new result ID resets selection, selection commit false preserves checks, and `goal_setup` drafts route to discovery).
+- **R8 (`src/client/screens/cohortBuilder/__tests__/ready-stage-view.test.tsx`)**: Added dedicated unit test suite for `ReadyStageView` verifying actionable Back button on incomplete build, sequential transition dispatch, and action abort on initial failure.
