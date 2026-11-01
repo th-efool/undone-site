@@ -134,18 +134,6 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
           </Link>
           {isChatStep ? (
             <div className={styles.tools}>
-              {state.view?.lessons && state.view.lessons.length > 0 && (
-                <button
-                  type="button"
-                  className={styles.reviewNavButton}
-                  onClick={async () => {
-                    await dispatchAction({ type: 'open_review' });
-                  }}
-                  aria-label="Review curriculum workspace"
-                >
-                  Review curriculum ({state.view.lessons.length})
-                </button>
-              )}
               <span className={styles.srOnly}>Rev #{state.revision}</span>
               <ThemeToggle />
               <Link href="/home" className={styles.account} aria-label="Open your account">

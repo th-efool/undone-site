@@ -28,9 +28,13 @@ describe('AI Tools Optimization & Stage Filtering', () => {
     const keys = Object.keys(tools);
     expect(keys).toContain('start_search');
     expect(keys).toContain('set_intent');
+    expect(keys).toContain('choose_starting_point');
+    expect(keys).toContain('create_own_cohort');
     expect(keys).toContain('add_web_source');
     expect(keys).toContain('add_youtube_source');
     expect(keys).toContain('add_pdf_source');
+    expect(keys).not.toContain('draft_curriculum');
+    expect(keys).not.toContain('add_lesson');
   });
 
   it('filters tools strictly for the material_input stage', () => {

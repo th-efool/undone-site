@@ -508,21 +508,9 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return navigationResult('Source processing requested.');
   }
   if (action.type === 'open_review') {
-    const current = requireStep('ready', 'chat');
-    if (current.step === 'ready') {
-      if (!isBuildComplete(next)) {
-        throw new Error('ASSEMBLY_NOT_READY');
-      }
-    } else {
-      if (!next.lessons.length) throw new Error('NO_LESSONS');
-      if (next.sources.length && !isBuildComplete(next)) throw new Error('ASSEMBLY_NOT_READY');
-      if (['queued', 'processing'].includes(next.processing.status) ||
-          next.processing.jobs?.some(job => ['queued', 'running'].includes(job.status))) {
-        throw new Error('PROCESSING_ACTIVE');
-      }
-      if (next.processing.status !== 'ready') {
-        next.processing = { ...next.processing, status: 'ready', stage: 'done', error: null };
-      }
+    const current = requireStep('ready');
+    if (!isBuildComplete(next)) {
+      throw new Error('ASSEMBLY_NOT_READY');
     }
     current.step = 'review';
     return navigationResult('Curriculum review opened.');

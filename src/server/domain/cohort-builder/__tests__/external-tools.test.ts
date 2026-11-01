@@ -126,17 +126,18 @@ it('forbids deterministic transport fixtures outside explicit isolated developme
   expect(()=>localSourceFixture()).toThrow('LOCAL_SOURCE_FIXTURE_FORBIDDEN');
 });
 
-it('bounds chat AI tools to conversational planning and excludes lifecycle processing triggers', () => {
+it('bounds chat AI tools to conversational planning and studio starting-point transitions while excluding ungrounded lesson mutation', () => {
   const tools = createCohortAiTools({ workspaceId: 'workspace', ownerId: 'owner', observedRevision: 1, stage: 'chat', repo: {} as any, domain: {} as any });
   const toolNames = Object.keys(tools);
-  expect(toolNames).toContain('add_lesson');
-  expect(toolNames).toContain('draft_curriculum');
+  expect(toolNames).toContain('choose_starting_point');
+  expect(toolNames).toContain('create_own_cohort');
   expect(toolNames).toContain('edit_presentation');
   expect(toolNames).toContain('add_web_source');
+  expect(toolNames).toContain('start_discovery');
+  expect(toolNames).not.toContain('add_lesson');
+  expect(toolNames).not.toContain('draft_curriculum');
   expect(toolNames).not.toContain('begin_material_processing');
   expect(toolNames).not.toContain('start_goal_generation');
-  expect(toolNames).toContain('start_discovery');
-  expect(toolNames).not.toContain('create_own_cohort');
 });
 
 it.each(['review', 'goal_setup', 'material_input'])('exposes co-design tools in %s and commits draft lessons in order', async stage => {

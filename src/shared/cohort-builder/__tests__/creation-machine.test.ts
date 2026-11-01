@@ -367,5 +367,36 @@ describe('Cohort Creation State Machine (creation-state, creation-machine, creat
       expect(capabilities.canOpenReview).toBe(false);
       expect(capabilities.canPreparePrivateRelease).toBe(false);
     });
+
+    it('rejects open_review from chat, allows begin_material_processing from discovery, and hides stepper on unbuilt review', () => {
+      const chatWs = createReadySourceWorkspace();
+      chatWs.journey!.step = 'chat';
+      const withLesson = planCohortAction(
+        chatWs,
+        {
+          type: 'add_lesson',
+          lessonId: 'l1',
+          title: 'Lesson 1',
+          objective: 'Learn basics',
+        },
+        createContext()
+      ).nextState;
+
+      expect(getCreationCapabilities(withLesson).canOpenReview).toBe(false);
+      expect(() =>
+        planCohortAction(withLesson, { type: 'open_review' }, createContext())
+      ).toThrow('INVALID_JOURNEY_TRANSITION');
+
+      const discoveryWs = createReadySourceWorkspace();
+      discoveryWs.journey!.step = 'discovery';
+      discoveryWs.journey!.branch = 'find_material';
+      expect(getCreationCapabilities(discoveryWs).canBeginMaterialProcessing).toBe(true);
+
+      const unbuiltReviewWs: CohortWorkspace = {
+        ...withLesson,
+        journey: { ...withLesson.journey!, step: 'review' },
+      };
+      expect(deriveCreationViewModel(unbuiltReviewWs, null).hideStepper).toBe(true);
+    });
   });
 });

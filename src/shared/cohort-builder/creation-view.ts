@@ -331,7 +331,10 @@ export function deriveCreationViewModel(
     effectiveStage === 'material_input' ||
     effectiveStage === 'discovery' ||
     effectiveStage === 'goal_setup';
-  const hideStepper = isJourneyInitialStep || effectiveStage === 'published';
+  const hideStepper =
+    isJourneyInitialStep ||
+    effectiveStage === 'published' ||
+    (effectiveStage === 'review' && !isBuildComplete(workspace));
 
   return {
     activeStage,

@@ -274,6 +274,7 @@ export function getCreationCapabilities(
     !isPublished &&
     (workspace.sources ?? []).length > 0 &&
     (step === 'material_input' ||
+      step === 'discovery' ||
       step === 'goal_setup' ||
       step === 'review' ||
       step === 'chat');
@@ -285,13 +286,7 @@ export function getCreationCapabilities(
 
   const canCancelProcessing = !isPublished && isProcessingActive;
 
-  const canOpenReview =
-    !isPublished &&
-    ((step === 'ready' && buildComplete) ||
-      (step === 'chat' &&
-        (workspace.lessons ?? []).length > 0 &&
-        (workspace.sources.length === 0 || buildComplete) &&
-        !isProcessingActive));
+  const canOpenReview = !isPublished && step === 'ready' && buildComplete;
 
   const privateReadiness = buildComplete
     ? validateCohortReadiness(workspace, 'private_activation')
