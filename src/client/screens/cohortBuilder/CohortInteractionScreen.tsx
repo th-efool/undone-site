@@ -198,6 +198,7 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
             <CohortWorkspacePane
               workspaceId={workspaceId}
               ownerId={ownerId}
+              onNavigateToDestination={url => window.location.assign(url)}
               onSelectLessonForChat={attached => {
                 setAttachedEntity(attached);
                 setPane('chat');

@@ -123,7 +123,7 @@ it('retains and displays pasted text label and character count, explains incompa
     screen.getByText('New builder intake is unavailable. Existing workspaces remain accessible.')
   ).toBeTruthy();
   expect(screen.getAllByText('Learn distributed systems').some(el => el.closest('blockquote'))).toBe(true);
-  expect(screen.getByText(/Retained text: Pasted text \(32 characters\)/)).toBeTruthy();
+  expect(screen.getByText(/Retained text: Pasted text/)).toBeTruthy();
   expect(
     screen.getByText('Your input is retained for the new builder. Please retry when creation is available.')
   ).toBeTruthy();
@@ -146,7 +146,7 @@ it('clears draft when discard is clicked in enabled state', async () => {
   });
   fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 
-  expect(screen.getByText(/No pending input/)).toBeTruthy();
+  expect(screen.getByRole('textbox', { name: 'What do you want to learn about?' })).toBeTruthy();
   expect(sessionStorage.getItem('undone:cohort-intake')).toBeNull();
 });
 

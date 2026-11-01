@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { LearningPromptBar } from '@/src/client/components/global/LearningPromptBar/LearningPromptBar';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Lightbulb, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -282,9 +283,8 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
                   <span className={styles.eyebrow}>No active quest</span>
                   <h1 className={styles.title}>Start a new cohort</h1>
                 </div>
-                <p className={styles.subtitle}>
-                  No pending input found. <a className={styles.linkButton} href="/#explore">Return to landing</a> to begin.
-                </p>
+                <p className={styles.subtitle}>Describe what you want to learn or add reference materials.</p>
+                {enabled ? <LearningPromptBar /> : <p>No pending input found. Intake is currently unavailable.</p>}
               </div>
             )}
           </main>

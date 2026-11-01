@@ -67,9 +67,19 @@ async function extractSingleLink(kind: ReturnType<typeof detectSourceKind>, url:
   return { title: title || 'Web page', extraction };
 }
 
-export function toCohortSource(item: { id: string; label: string; extraction: ClientSourceExtraction }): CohortSource {
+export function toCohortSource(item: { id: string; label: string; extraction: ClientSourceExtraction; url?: string; kind?: ReturnType<typeof detectSourceKind> | 'text' }): CohortSource {
   const { text, locations, provenance, checksum } = item.extraction;
-  return { id: item.id, version: 1, label: item.label, text, locations, provenance, checksum: checksum ?? sha256(text), state: 'ready' };
+  let input: CohortSource['input'];
+  if (item.url && item.kind === 'youtube') {
+    input = { kind: 'youtube', url: item.url, mode: 'video_observation' };
+  } else if (item.url && item.kind === 'github') {
+    const url = new URL(provenance?.repoUrl ?? item.url);
+    const segments = url.pathname.split('/').filter(Boolean);
+    input = { kind: 'github', repoUrl: url.origin + '/' + segments.slice(0, 2).join('/'), ref: provenance?.ref ?? segments[3] ?? 'main' };
+  } else if (item.url) {
+    input = { kind: 'web', url: item.url };
+  }
+  return { id: item.id, version: 1, label: item.label, text, locations, provenance, checksum: checksum ?? sha256(text), state: 'ready', ...(input ? { input } : {}) };
 }
 
 export function useComposerAttachments(options: UseComposerAttachmentsOptions = {}) {
@@ -233,7 +243,7 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
           extraction,
         });
       } else {
-        const url = s.input?.kind === 'web' ? s.input.url : s.input?.kind === 'youtube' ? s.input.url : s.label;
+        const url = s.input?.kind === 'web' || s.input?.kind === 'youtube' ? s.input.url : s.input?.kind === 'github' ? s.input.repoUrl : s.provenance?.finalUrl ?? s.provenance?.repoUrl ?? (s.provenance?.videoId ? `https://www.youtube.com/watch?v=${s.provenance.videoId}` : s.label);
         newLinks.push({
           id: s.id,
           url,
@@ -256,7 +266,7 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
 
   const getReadySources = useCallback((): CohortSource[] => [
     ...files.flatMap((f) => (f.status === 'ready' && f.extraction ? [toCohortSource({ id: f.id, label: f.name, extraction: f.extraction })] : [])),
-    ...links.flatMap((l) => (l.status === 'ready' && l.extraction ? [toCohortSource({ id: l.id, label: l.title || l.url, extraction: l.extraction })] : [])),
+    ...links.flatMap((l) => (l.status === 'ready' && l.extraction ? [toCohortSource({ id: l.id, label: l.title || l.url, extraction: l.extraction, url: l.url, kind: l.kind })] : [])),
   ], [files, links]);
 
   return { files, links, isExtracting, totalCount: files.length + links.length, errors, addFiles, removeFile, addLink, removeLink, clearAll, getReadySources, restoreSources };

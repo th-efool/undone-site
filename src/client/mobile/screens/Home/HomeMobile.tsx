@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import Link from 'next/link';
 import { ActiveCohorts } from '@/src/client/screens/dashboard/home/components/ActiveCohorts/ActiveCohorts';
 import { ChannelHub } from '@/src/client/screens/dashboard/home/components/ChannelHub/ChannelHub';
 import { RecentlyCompleted } from '@/src/client/screens/dashboard/home/components/RecentlyCompleted/RecentlyCompleted';
@@ -51,6 +52,7 @@ export function HomeMobile({ model: home }: HomeMobileProps) {
         </div>
       </header>
 
+      <Link href="/quest/start" className={styles.createQuest}>Start a new quest</Link>
       <ChannelHub />
 
       {home.syncError && (

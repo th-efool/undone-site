@@ -6,6 +6,7 @@ import { useWorkspaceMessages, useSendMessage, useInteractionState, useDispatchA
 import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useComposerAttachments, AttachmentTray } from '@/src/client/components/global/Composer';
 import { useAssistantActivity } from './useAssistantActivity';
+import { sourceAttachmentAction } from './source-attachment-action';
 import { stageSuggestions } from './chat-suggestions';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
@@ -40,6 +41,8 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
   const state = useInteractionState<CohortWorkspace>();
   const activity = useAssistantActivity();
   const [cancelError, setCancelError] = useState('');
+  const [sendError, setSendError] = useState('');
+  const committedSourceIds = useRef(new Set<string>());
   const activeTurn = activity.turns.find(turn => turn.status === 'running' || turn.status === 'queued');
   const selected = attachedEntity && state.view?.lessons.find(lesson => lesson.id === attachedEntity.entity.id);
   const staleSelection = !!attachedEntity && (!selected || selected.version !== attachedEntity.entity.version);
@@ -91,55 +94,16 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
     setSending(true);
 
     try {
-      // 1. Dispatch attached sources directly into workspace
+      setSendError('');
       for (const source of readySources) {
-        const extraction = {
-          text: source.text,
-          locations: source.locations && source.locations.length > 0 ? source.locations : [{ start: 0, end: Math.max(source.text.length, 1) }],
-          provenance: source.provenance,
-          checksum: source.checksum ?? undefined,
-        };
-
-        if (source.label.toLowerCase().endsWith('.pdf') || (source.provenance as { pageCount?: number } | undefined)?.pageCount !== undefined) {
-          await dispatchAction({
-            type: 'add_pdf_source',
-            label: source.label,
-            extraction,
-          });
-        } else if (source.input?.kind === 'youtube' || source.label.includes('youtube.com') || source.label.includes('youtu.be')) {
-          await dispatchAction({
-            type: 'add_youtube_source',
-            url: (source.input as { url?: string } | undefined)?.url || source.label,
-            label: source.label,
-            mode: 'video_observation',
-            extraction,
-          });
-        } else if (source.input?.kind === 'github' || source.label.includes('github.com')) {
-          await dispatchAction({
-            type: 'add_github_source',
-            repoUrl: (source.input as { repoUrl?: string } | undefined)?.repoUrl || source.label,
-            ref: (source.input as { ref?: string } | undefined)?.ref || 'main',
-            label: source.label,
-            extraction,
-          });
-        } else if (source.input?.kind === 'web' || source.label.startsWith('http')) {
-          await dispatchAction({
-            type: 'add_web_source',
-            url: (source.input as { url?: string } | undefined)?.url || source.label,
-            label: source.label,
-            extraction,
-          });
-        } else {
-          await dispatchAction({
-            type: 'add_text_source',
-            label: source.label,
-            text: source.text,
-          });
-        }
+        if (committedSourceIds.current.has(source.id) || state.view?.sources.some(item => item.id === source.id)) continue;
+        const ok = await dispatchAction(sourceAttachmentAction(source));
+        if (!ok) throw new Error('Could not save an attachment. Your message and attachments are kept; retry.');
+        committedSourceIds.current.add(source.id);
       }
 
       const sourceRefs: Array<{ entity: EntityRef; label: string }> = readySources.map(s => ({
-        entity: { kind: 'source', id: s.id, version: s.version ?? 0 },
+        entity: { kind: 'source', id: s.id, version: state.view?.sources.find(source => source.id === s.id)?.version ?? 0 },
         label: s.label,
       }));
       const entityRefs = [
@@ -151,7 +115,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
         if (!customText) setInput(current => current === rawText ? '' : current);
         composerAttachments.clearAll();
         onClearAttachedEntity();
+        committedSourceIds.current.clear();
       }
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : 'Could not send. Please retry.');
     } finally {
       setSending(false);
     }
@@ -394,6 +361,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
           <p className={styles.chatAlertRow}>Stopped or failed turns remain saved. Send a follow-up to retry the intended change.</p>
         )}
 
+        {sendError && <p role="alert">{sendError}</p>}
         {cancelError && (
           <div className={styles.chatAlertRow} role="alert">
             <span>{cancelError}</span>

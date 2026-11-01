@@ -306,7 +306,7 @@ export const LearningPromptBar = React.memo(
       }
     };
 
-    const isBusy = !draftRestored || submitting || composerAttachments.isExtracting;
+    const isBusy = !draftRestored || status === 'loading' || submitting || composerAttachments.isExtracting;
     const effectivePlaceholder = selectedMode === 'plan'
       ? 'Describe what you want to learn, your background, or paste links to plan...'
       : placeholder;
@@ -328,7 +328,7 @@ export const LearningPromptBar = React.memo(
         }
       }
 
-      if (!draftRestored || !textToSearch.trim() || submitInFlight.current || submitting || composerAttachments.isExtracting) return;
+      if (!draftRestored || status === 'loading' || !textToSearch.trim() || submitInFlight.current || submitting || composerAttachments.isExtracting) return;
 
       if (customOnSubmit) {
         customOnSubmit(textToSearch.trim());
@@ -393,9 +393,7 @@ export const LearningPromptBar = React.memo(
         if (!ownerId && status === 'unauthenticated') {
           submitInFlight.current = false;
           setSubmitting(false);
-          const returnUrl = mode === 'plan'
-            ? `/?q=${encodeURIComponent(textToSearch.trim())}&mode=plan`
-            : `/?q=${encodeURIComponent(textToSearch.trim())}`;
+          const returnUrl = '/quest/start';
           const authHref = `/auth?returnTo=${encodeURIComponent(returnUrl)}`;
           if (router) router.push(authHref);
           else window.location.href = authHref;
