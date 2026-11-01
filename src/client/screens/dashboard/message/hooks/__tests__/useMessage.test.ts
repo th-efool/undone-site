@@ -23,6 +23,7 @@ vi.mock('@/src/client/repositories/messagesRepository', () => ({
     fetchConversations: vi.fn(),
     sendTypingSignal: vi.fn(),
     updateReadWatermark: vi.fn(),
+    deleteMessage: vi.fn(),
   },
 }));
 
@@ -193,5 +194,42 @@ describe('useMessage Hook - Phase 5 Community Realtime Integration', () => {
 
     expect(messagesRepository.sendChannelMessage).not.toHaveBeenCalled();
     expect(result.current.communityChat.messages).toHaveLength(0);
+  });
+
+  it('deletes direct message passing messageId directly to messagesRepository', async () => {
+    vi.mocked(messagesRepository.fetchConversations).mockResolvedValue([
+      {
+        id: 'conv-dm-1',
+        kind: 'DIRECT',
+        channelId: 'chan-dm-1',
+        unreadCount: 0,
+        participantCount: 2,
+        accessGeneration: 1,
+        title: 'Direct Chat',
+        otherParticipant: {
+          id: 'user-2',
+          name: 'Peer User',
+          username: 'peer',
+          image: null,
+        },
+        lastMessage: undefined,
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+    vi.mocked(messagesRepository.deleteMessage).mockResolvedValue({} as any);
+
+    const { result } = renderHook(() => useMessage());
+
+    await waitFor(() => {
+      expect(result.current.conversations).toHaveLength(1);
+    });
+
+    act(() => {
+      result.current.actions.deleteDMMessage('conv-dm-1', 'msg-target-999');
+    });
+
+    await waitFor(() => {
+      expect(messagesRepository.deleteMessage).toHaveBeenCalledWith('msg-target-999');
+    });
   });
 });

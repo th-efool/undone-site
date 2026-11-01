@@ -9,6 +9,7 @@ export const ToastContext = createContext<ToastContextValue | undefined>(undefin
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
   const addToast = useCallback((toast: Omit<ToastItem, 'id'>) => {
     const duration = toast.duration ?? (toast.type === 'error' ? 0 : 5000);

@@ -31,7 +31,7 @@ import { useRealtime } from '@/src/client/realtime';
 
 const DRAFTS_STORAGE_KEY = 'sidequest-message-drafts';
 
-function safeUseSession() {
+function useSafeSession() {
   try {
     return useSession();
   } catch {
@@ -39,7 +39,7 @@ function safeUseSession() {
   }
 }
 
-function safeUseRealtime() {
+function useSafeRealtime() {
   try {
     return useRealtime();
   } catch {
@@ -73,12 +73,14 @@ function generateRequestId(): string {
 }
 
 export function useMessage() {
-  const { data: session } = safeUseSession();
+  const { data: session } = useSafeSession();
   const currentUserId = session?.user?.id ?? null;
   const actionAccount = useRef(currentUserId);
-  actionAccount.current = currentUserId;
+  useEffect(() => {
+    actionAccount.current = currentUserId;
+  }, [currentUserId]);
   const pendingPreferences = useRef(new Set<string>());
-  const realtime = safeUseRealtime();
+  const realtime = useSafeRealtime();
 
   const [selectedView, setSelectedView] = useState<MessageView>('landing');
   const [selectedSidebarTab, setSelectedSidebarTab] = useState<SidebarTab>('community');
@@ -1269,7 +1271,7 @@ export function useMessage() {
       const channelId = conversationsList.find(conversation => conversation.id === dmId)?.channelId;
       if (!channelId) return;
       const owner = currentUserId;
-      void messagesRepository.deleteMessage(channelId, messageId).then(() => {
+      void messagesRepository.deleteMessage(messageId).then(() => {
         if (actionAccount.current !== owner) return;
         setMessagesByChannel(previous => ({ ...previous, [channelId]: (previous[channelId] ?? []).filter(message => message.id !== messageId) }));
       }).catch(() => reportSiteFailure('message'));
