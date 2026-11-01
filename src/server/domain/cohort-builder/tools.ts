@@ -32,7 +32,12 @@ const CO_DESIGN_TOOLS = [
 ];
 
 const STAGE_TOOL_NAMES: Record<string, string[]> = {
-  chat: [...CO_DESIGN_TOOLS, 'create_own_cohort', 'choose_starting_point'],
+  chat: [
+    ...ALWAYS_TOOLS, 'set_audience', 'set_daily_minutes', 'edit_presentation',
+    'add_lesson', 'draft_curriculum', 'edit_lesson', 'remove_lesson', 'reorder_lessons', 'set_lesson_pin',
+    'add_web_source', 'add_youtube_source', 'add_github_source',
+    'add_text_source', 'add_pdf_source',
+  ],
   review: [...CO_DESIGN_TOOLS, 'prepare_release', 'commit_release'],
   recommendations: [...ALWAYS_TOOLS, 'create_own_cohort', 'choose_starting_point'],
   starting_point: [...ALWAYS_TOOLS, 'choose_starting_point', 'back_to_recommendations'],

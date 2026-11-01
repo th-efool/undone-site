@@ -30,6 +30,36 @@ describe('cohort metadata and timestamped chunk projection', () => {
     expect(deriveCohortDescription(state)).not.toContain('i want to learn');
   });
 
+  it('gives learning intent precedence over unrelated attachment titles even for long intents', () => {
+    const longIntentWorkspace = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Draft Curriculum',
+      intent: 'i want to learn about VCs, investors & how things behind works in this',
+      audience: '',
+      dailyMinutes: 20,
+      lessons: [],
+      sources: [
+        {
+          id: 'src-unrelated',
+          version: 1,
+          label: 'Totally Unrelated Cat Video Compilation',
+          text: '',
+          checksum: null,
+          state: 'ready',
+          input: { kind: 'web', url: 'https://example.com/cats' },
+        },
+      ],
+    });
+
+    const title = deriveCohortTitle(longIntentWorkspace);
+    expect(title).not.toContain('Cat Video');
+    expect(title.toLowerCase()).toContain('vcs');
+
+    const desc = deriveCohortDescription(longIntentWorkspace);
+    expect(desc.toLowerCase()).toContain('vcs');
+    expect(desc).toContain('referencing Totally Unrelated Cat Video Compilation');
+  });
+
   it('groups full timed observations into minute-sized chunks, retaining the final remainder and every character', () => {
     const state = videoSource();
     const source = state.sources[0];

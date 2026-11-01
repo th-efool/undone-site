@@ -155,8 +155,10 @@ export function deriveCohortTitle(workspace: Pick<CohortWorkspace, 'title' | 'in
   }
 
   const cleanedIntentTopic = cleanRawIntentToTopic(rawIntent);
-  if (cleanedIntentTopic && cleanedIntentTopic.split(/\s+/).length <= 6) {
-    const titledTopic = toTitleCase(cleanedIntentTopic);
+  if (cleanedIntentTopic) {
+    const words = cleanedIntentTopic.split(/\s+/);
+    const shortTopic = words.length <= 6 ? cleanedIntentTopic : words.slice(0, 6).join(' ');
+    const titledTopic = toTitleCase(shortTopic);
     if (!/\b(?:fundamentals|mastery|systems|engineering|architecture|cohort|foundations)\b/i.test(titledTopic)) {
       return `${titledTopic}: Foundations & Practice`.slice(0, 120);
     }
@@ -174,10 +176,6 @@ export function deriveCohortTitle(workspace: Pick<CohortWorkspace, 'title' | 'in
   const topConcepts = currentConcepts(workspace).slice(0, 2);
   if (topConcepts.length > 0) {
     return `${topConcepts.join(' & ')} Mastery`.slice(0, 120);
-  }
-
-  if (cleanedIntentTopic) {
-    return toTitleCase(cleanedIntentTopic.split(/\s+/).slice(0, 6).join(' ')).slice(0, 120);
   }
 
   return currentTitle || 'Structured Learning Cohort';
@@ -201,7 +199,7 @@ export function deriveCohortDescription(workspace: Pick<CohortWorkspace, 'title'
   }
 
   if (sourceLabels.length > 0) {
-    return `A structured learning cohort built from ${sourceLabels.join(', ')} to master ${cleanedTopic} through ${workspace.dailyMinutes}-minute daily sessions.`;
+    return `A structured learning cohort designed to build practical mastery in ${cleanedTopic}, referencing ${sourceLabels.join(', ')} and paced for ${workspace.dailyMinutes}-minute daily study sessions.`;
   }
 
   return `A structured learning cohort designed to build practical mastery in ${cleanedTopic} through grounded ${workspace.dailyMinutes}-minute study sessions.`;

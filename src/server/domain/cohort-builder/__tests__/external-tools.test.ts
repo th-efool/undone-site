@@ -126,7 +126,20 @@ it('forbids deterministic transport fixtures outside explicit isolated developme
   expect(()=>localSourceFixture()).toThrow('LOCAL_SOURCE_FIXTURE_FORBIDDEN');
 });
 
-it.each(['chat', 'review', 'goal_setup', 'material_input'])('exposes co-design tools in %s and commits draft lessons in order', async stage => {
+it('bounds chat AI tools to conversational planning and excludes lifecycle processing triggers', () => {
+  const tools = createCohortAiTools({ workspaceId: 'workspace', ownerId: 'owner', observedRevision: 1, stage: 'chat', repo: {} as any, domain: {} as any });
+  const toolNames = Object.keys(tools);
+  expect(toolNames).toContain('add_lesson');
+  expect(toolNames).toContain('draft_curriculum');
+  expect(toolNames).toContain('edit_presentation');
+  expect(toolNames).toContain('add_web_source');
+  expect(toolNames).not.toContain('begin_material_processing');
+  expect(toolNames).not.toContain('start_goal_generation');
+  expect(toolNames).not.toContain('start_discovery');
+  expect(toolNames).not.toContain('create_own_cohort');
+});
+
+it.each(['review', 'goal_setup', 'material_input'])('exposes co-design tools in %s and commits draft lessons in order', async stage => {
   let revision = 1;
   const commitAction = vi.fn(async (_input: unknown) => ({ revision: ++revision, receipt: { summary: 'accepted', changed: [] } }));
   const tools = createCohortAiTools({ workspaceId: 'workspace', ownerId: 'owner', observedRevision: 1, stage, repo: { commitAction } as any, domain: { plan: () => {} } as any });
