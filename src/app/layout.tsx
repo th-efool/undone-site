@@ -7,6 +7,7 @@ import { MotionProvider } from '@/src/client/providers/MotionProvider';
 import { SliderProgressEngine } from '@/src/client/components/ui/Slider/SliderProgressEngine';
 import { SessionProvider } from 'next-auth/react';
 import { DevLoggerInit } from '@/src/client/providers/DevLoggerInit';
+import { ToastProvider } from '@/src/client/components/global/Toast/ToastProvider';
 import './globals.css';
 
 const geistSans = Geist({
@@ -203,6 +204,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
       </head>
       <body className="min-h-screen bg-background text-text font-sans antialiased">
         <SessionProvider refetchOnWindowFocus={false}>
+          <ToastProvider>
           <DevLoggerInit />
           <a
             href="#main-content"
@@ -215,6 +217,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
           <ReactQueryProvider>
             <MotionProvider>{children}</MotionProvider>
           </ReactQueryProvider>
+          </ToastProvider>
         </SessionProvider>
       </body>
     </html>

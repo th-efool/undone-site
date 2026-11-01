@@ -23,8 +23,7 @@ export function Toast({ item, onClose }: ToastProps) {
   return (
     <div
       className={clsx(styles.toast, styles[`type-${item.type}`])}
-      role="status"
-      aria-live="polite"
+      role={item.type === 'error' ? 'alert' : 'status'}
     >
       <span className={styles.icon}>{icons[item.type]}</span>
       <span className={styles.message}>{item.message}</span>
