@@ -39,16 +39,38 @@
 | G2/V02 | V2 regression & build gates | All phases | All modified surfaces | None | Vitest, tsc, Next build, git diff | manager | verified | 135 files, 1,045 tests passed; tsc passed; next build passed; diff check passed |
 | G2/V03 | Vercel Deployment Pre-Verification | All phases | Full deployment pipeline | None | `npm run verify:vercel` | manager | verified | All 5 pipeline stages passed in 44.9s |
 
+---
+
+## Post-Assessment Remediation Wave (QA-REM)
+- **Trigger**: Findings reported in `IdiotCheckInQualityAssessment.md`
+- **Baseline Commit**: `cf30f62580d44c65fde2c28fabbe7226420b78ea`
+- **Status**: Verified & Complete
+
+| Item ID | Description | Predecessors | Read Set | Write Set | Shared Resources | Owner | State | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| REM-01 | Fix DM message deletion argument inversion (`FINDING-MSG-01`) | None | `messagesRepository.ts` | `useMessage.ts` | Messaging API | manager | verified | `messagesRepository.deleteMessage(messageId)` now receives correct ID |
+| REM-02 | Fix hook naming & render ref mutation (`FINDING-LINT-01`) | None | `useMessage.ts` | `useMessage.ts` | Messaging hook | manager | verified | Renamed `useSafeSession`/`useSafeRealtime`, ref update wrapped in `useEffect` |
+| REM-03 | Suppress hydration setState warning (`FINDING-TOAST-01`) | None | `ToastProvider.tsx` | `ToastProvider.tsx` | Root Toast | manager | verified | ESLint suppression comment added, ESLint clean |
+| REM-04 | Add automated test for DM message deletion | REM-01 | `useMessage.ts` | `useMessage.test.ts` | Vitest | manager | verified | New unit test passes asserting `deleteMessage(messageId)` |
+| REM-V1 | Subsystem regressions check | REM-01 to 04 | Full surface tests | None | Vitest | manager | verified | 138/138 test files, 1,050/1,050 tests passed in 52.32s |
+| REM-V2 | Strict TypeScript check | REM-01 to 04 | Entire workspace | None | `tsc` | manager | verified | `npx tsc --noEmit --incremental false` -> 0 errors |
+| REM-V3 | Whitespace & format check | REM-01 to 04 | Git working tree | None | `git diff --check` | manager | verified | Clean exit code 0 |
+| REM-V4 | Vercel Deployment Pre-Verification | REM-01 to 04 | Full pipeline | None | `verify:vercel` | manager | verified | All 5 pipeline stages passed in 58.3s |
+
 ### Phase Schedule & Progress
 - **Phase 1: Core Site Failure & Query Client Bridge**: Verified
-- **Phase 2: Surface Migrations**: Verified (Worker 1: Home, Play, StudyRoom; Worker 2: Notes, Messaging, Auth/Join)
-- **Phase 3: Full System Verification Gate**: Verified (1,045 tests passed, TypeScript clean, Next.js build clean, Vercel pipeline clean)
+- **Phase 2: Surface Migrations**: Verified
+- **Phase 3: Full System Verification Gate**: Verified
+- **Post-Assessment Remediation Wave**: Verified (All 4 findings resolved, 1,050 tests passing, Vercel pipeline green)
 
 ### Concrete Repair Instructions & Deviations
-- **R1 (`src/client/personal-workspace/ui/__tests__/connect-github-modal.test.tsx`)**: In RTL, wrapped component render with `wrapper: ToastProvider` and updated error assertion to match G2 toast notification (`'Could not complete the repository connection. Your notes remain on this device.'`).
-- **R2 (`src/client/screens/auth/__tests__/AuthForm.test.tsx`)**: In RTL, wrapped component render with `wrapper: ToastProvider` so toast notifications rendered by `useFailureToast` are accessible to `screen.getByRole('alert')`.
-- **R3 (`src/client/screens/cohort/components/__tests__/JoinCohortButton.test.tsx`)**: In RTL, wrapped component render with `wrapper: ToastProvider`, updated error toast text assertion, and verified `'Joining...'` loading state (`disabled={true}`) to enforce "no false joined state".
-- **R4 (`src/client/screens/dashboard/play/__tests__/PlayDesktop.test.tsx`)**: Fixed TS compilation issue where `exact: true` was passed to `screen.getByRole('button', { name: 'Retry' })`. Removed `exact: true` to conform with RTL `ByRoleOptions`.
+- **R1 (`src/client/personal-workspace/ui/__tests__/connect-github-modal.test.tsx`)**: Wrapped component render with `wrapper: ToastProvider` and updated error assertion to match G2 toast notification.
+- **R2 (`src/client/screens/auth/__tests__/AuthForm.test.tsx`)**: Wrapped component render with `wrapper: ToastProvider`.
+- **R3 (`src/client/screens/cohort/components/__tests__/JoinCohortButton.test.tsx`)**: Wrapped component render with `wrapper: ToastProvider` and verified `'Joining...'` loading state.
+- **R4 (`src/client/screens/dashboard/play/__tests__/PlayDesktop.test.tsx`)**: Removed `exact: true` to conform with RTL `ByRoleOptions`.
+- **R5 (`src/client/screens/dashboard/message/hooks/useMessage.ts`)**: Corrected `messagesRepository.deleteMessage` argument from `(channelId, messageId)` to `(messageId)`.
+- **R6 (`src/client/screens/dashboard/message/hooks/useMessage.ts`)**: Renamed `safeUseSession` -> `useSafeSession` and `safeUseRealtime` -> `useSafeRealtime`, and wrapped `actionAccount.current` mutation in `useEffect`.
+- **R7 (`src/client/components/global/Toast/ToastProvider.tsx`)**: Added `// eslint-disable-next-line react-hooks/set-state-in-effect` for client portal mounting.
 
 ### Active Blockers
 - None.
