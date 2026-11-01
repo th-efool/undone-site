@@ -1,0 +1,12 @@
+import { beforeEach, expect, it, vi } from 'vitest';
+const fake = vi.hoisted(() => ({ owner: vi.fn(), query: vi.fn(), find: vi.fn() }));
+vi.mock('@/src/server/infrastructure/auth/getCreationOwner', () => ({ getCreationOwner: fake.owner }));
+vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: { $queryRaw: fake.query, interactionWorkspace: { findFirst: fake.find } } }));
+import { GET } from '../route';
+const id = '54103d7b-2709-4dd6-bb18-522f96b97241';
+const request = () => GET(new Request('https://undone.one/api/test'), { params: Promise.resolve({ workspaceId: id }) });
+beforeEach(() => { vi.resetAllMocks(); fake.owner.mockResolvedValue('owner-one'); fake.find.mockResolvedValue({ id }); fake.query.mockResolvedValue([{ id: 'run-one', status: 'failed', category: 'PROVIDER_BUSY' }]); });
+it('requires authentication before querying runs', async () => { fake.owner.mockResolvedValue(null); expect((await request()).status).toBe(404); expect(fake.query).not.toHaveBeenCalled(); });
+it('rejects a foreign workspace and includes ownership in SQL parameters', async () => { fake.find.mockResolvedValue(null); const response = await request(); expect(response.status).toBe(404); expect(fake.query.mock.calls[0].slice(1)).toEqual([id, 'owner-one']); expect(await response.text()).not.toContain('run-one'); });
+it('returns safe owner-scoped diagnostics without caching', async () => { const response = await request(); expect(response.status).toBe(200); expect(response.headers.get('cache-control')).toBe('private, no-store'); expect(await response.json()).toEqual({ runs: [{ id: 'run-one', status: 'failed', category: 'PROVIDER_BUSY' }] }); });
+it('returns a safe service failure', async () => { fake.query.mockRejectedValue(new Error('database password secret')); const response = await request(); expect(response.status).toBe(503); expect(await response.text()).not.toContain('secret'); });

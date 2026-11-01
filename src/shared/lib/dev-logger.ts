@@ -73,7 +73,8 @@ function shouldEnableLogsByDefault(): { enabled: boolean; level: UndoneLogLevel 
       }
       const stored = localStorage.getItem('UNDONE_DEBUG');
       if (stored === 'true') {
-        const storedLevel = (localStorage.getItem('UNDONE_LOG_LEVEL') as UndoneLogLevel) || 'DEBUG';
+        const stored = localStorage.getItem('UNDONE_LOG_LEVEL');
+        const storedLevel = stored && stored in LEVEL_MAP ? stored as UndoneLogLevel : 'DEBUG';
         return { enabled: true, level: storedLevel };
       }
     } catch {
@@ -153,6 +154,7 @@ class UndoneDevLogger {
   }
 
   public setLevel(level: UndoneLogLevel) {
+    if (!(level in LEVEL_MAP)) return;
     this.currentLevel = level;
     this.isEnabled = true;
     this.consolaInstance.level = LEVEL_MAP[level];

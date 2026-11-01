@@ -1,0 +1,4 @@
+.panel { position: fixed; bottom: max(16px, env(safe-area-inset-bottom)); right: 16px; width: min(640px, calc(100vw - 32px)); max-height: 55vh; overflow: auto; z-index: 9999; padding: 16px; border: 1px solid #555; border-radius: 12px; background: #181818; color: #fafafa; font: 13px/1.5 monospace; }
+.panel header { display: flex; justify-content: space-between; gap: 12px; }
+.panel button, .panel select { min-height: 36px; padding: 6px 10px; margin: 4px; background: #333; color: #fff; border: 1px solid #777; border-radius: 5px; }
+.panel pre { white-space: pre-wrap; overflow-wrap: anywhere; }
