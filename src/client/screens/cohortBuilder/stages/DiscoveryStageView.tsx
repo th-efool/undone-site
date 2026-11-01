@@ -5,7 +5,7 @@ import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/
 import type { EntityRef } from 'interaction-builder/core';
 import type { YouTubeSearchItem } from '@/src/app/api/import/youtube/search/route';
 import { extractYoutubeClient } from '@/src/client/lib/sourceExtractors/youtubeClientExtractor';
-import { SourceItemRow } from './MaterialStageView';
+import { groupSourcesForDisplay, SourceGroupCard } from './MaterialStageView';
 import styles from './MaterialStageView.module.css';
 
 export interface DiscoveryStageViewProps {
@@ -64,6 +64,7 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
 
   const sources = workspace.sources ?? [];
   const atCapacity = sources.length >= MAX_SOURCES;
+  const displayGroups = groupSourcesForDisplay(sources);
 
   const getMatchingSourcesForItem = (item: YouTubeSearchItem) => {
     if (item.kind === 'playlist') {
@@ -195,31 +196,50 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
     }
   };
 
+  const handleRemovePlaylist = async (sourceIds: string[]) => {
+    setBusy(true);
+    setError(null);
+    try {
+      for (const sourceId of sourceIds) {
+        const ok = await dispatchAction({ type: 'remove_source', sourceId });
+        if (!ok) {
+          setError('Could not remove playlist. Please try again.');
+          break;
+        }
+      }
+    } catch {
+      setError('Could not remove playlist. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <section className={styles.workspace} aria-label="Goal discovery">
       <div className={styles.continueSection}>
         <button
           type="button"
+          aria-label="Continue to curriculum"
           disabled={busy || searching || !sources.length}
           onClick={() => void act({ type: 'begin_material_processing' })}
         >
-          Continue to curriculum →
+          Next →
         </button>
       </div>
 
       {sources.length > 0 && (
         <section aria-label="Added material">
           <h2>
-            Added material <small>{sources.length}</small>
+            Added material <small>{displayGroups.length}</small>
           </h2>
           <ul className={styles.sources}>
-            {sources.map((source, index) => (
-              <SourceItemRow
-                key={source.id}
-                source={source}
-                index={index}
+            {displayGroups.map((group) => (
+              <SourceGroupCard
+                key={group.kind === 'playlist' ? group.batchKey : group.source.id}
+                group={group}
                 busy={busy}
-                onRemove={(sourceId) => void act({ type: 'remove_source', sourceId })}
+                onRemoveSingle={(sourceId) => void act({ type: 'remove_source', sourceId })}
+                onRemovePlaylist={(sourceIds) => void handleRemovePlaylist(sourceIds)}
               />
             ))}
           </ul>
@@ -261,53 +281,65 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
             {results.map((item) => {
               const matchedSources = getMatchingSourcesForItem(item);
               const isIncluded = matchedSources.length > 0;
+              const isPlaylist = item.kind === 'playlist';
 
               return (
-                <li key={item.id} className={styles.sourceItem}>
-                  {item.thumbnailUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      className={styles.thumbnail}
-                      src={item.thumbnailUrl}
-                      alt=""
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <span className={styles.fileIcon} aria-hidden="true">
-                      ▶
+                <li
+                  key={item.id}
+                  className={`${styles.sourceItem} ${isPlaylist ? styles.playlistCard : ''}`}
+                >
+                  <div className={styles.thumbWrap}>
+                    {item.thumbnailUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        className={styles.thumbnail}
+                        src={item.thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span className={styles.fileIcon} aria-hidden="true">
+                        ▶
+                      </span>
+                    )}
+                    <span
+                      className={`${styles.typeBadge} ${isPlaylist ? styles.playlistBadge : ''}`}
+                    >
+                      {isPlaylist ? '▶ PLAYLIST' : 'VIDEO'}
                     </span>
-                  )}
-                  <div>
+                  </div>
+                  <div className={styles.cardBody}>
                     <small>
-                      {item.kind === 'playlist' ? 'YouTube Playlist' : 'YouTube Video'} ·{' '}
-                      {item.channelTitle}
+                      {isPlaylist ? 'YouTube Playlist' : 'YouTube Video'} · {item.channelTitle}
                     </small>
                     <h3>{item.title}</h3>
                   </div>
-                  {isIncluded ? (
-                    <button
-                      type="button"
-                      className={styles.excludeBtn}
-                      disabled={busy}
-                      aria-label={`Exclude ${item.title}`}
-                      title="Exclude from material"
-                      onClick={() => void handleExcludeItem(item)}
-                    >
-                      −
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className={styles.includeBtn}
-                      disabled={busy || atCapacity}
-                      aria-label={`Include ${item.title}`}
-                      title="Include in material"
-                      onClick={() => void handleIncludeItem(item)}
-                    >
-                      +
-                    </button>
-                  )}
+                  <div className={styles.cardFooter}>
+                    {isIncluded ? (
+                      <button
+                        type="button"
+                        className={styles.excludeBtn}
+                        disabled={busy}
+                        aria-label={`Exclude ${item.title}`}
+                        title="Exclude from material"
+                        onClick={() => void handleExcludeItem(item)}
+                      >
+                        −
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.includeBtn}
+                        disabled={busy || atCapacity}
+                        aria-label={`Include ${item.title}`}
+                        title="Include in material"
+                        onClick={() => void handleIncludeItem(item)}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}
