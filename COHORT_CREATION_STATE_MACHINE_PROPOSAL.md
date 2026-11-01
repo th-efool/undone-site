@@ -1,201 +1,175 @@
-# Cohort creation: state-machine architecture proposal
-
-Status: architecture proposal, not an implementation handoff or deployed fix.
-Audit baseline: eeb7077aab471fc237b1043cd1f8807c15926eba, 2026-11-01. Root: D:/ThisPC/Documents/SideQuestHQ/undone-site. No application code changed. Existing unfinished material-intake handoff is not approved by this proposal; its payloads require revision against this architecture before execution.
-
-## 1. Recommendation
-
-Use one server-authoritative, typed domain state machine for cohort creation, with small independent regions for discovery, building and release. Keep navigation as a separate client concern. All buttons, chat tools and workers go through the same guarded transitions. Compute readiness, allowed actions and progress from the same accepted state.
-
-Use a pure TypeScript transition function, existing Zod boundary schemas, existing transaction/command receipts and existing durable workers. Do not introduce a second orchestration platform, global event bus, microservices, event sourcing rewrite or a second database. A state-machine library is optional tooling, not the source of the guarantees. For this repository, start without a new runtime dependency; exhaustive discriminated unions and a transition table are sufficient.
-
-This cannot make providers, networks or disks infallible. The enforceable promise is: failures do not masquerade as success; stale work does not become current; retries do not duplicate committed effects; saved work remains recoverable. Compile-time types catch invalid program structure; runtime guards validate persisted data and external results; transactions protect concurrent transitions; tests demonstrate the combinations.
-
-## 2. Evidence-backed diagnosis
-
-### A. Navigation and completion have separate authorities
-
-`src/client/screens/cohortBuilder/stage-selectors.ts#computeActiveStage` returns ready when journey.step is ready, without first establishing processing readiness. `stages/ReadyStageView.tsx` separately computes ready from processing.status and lesson count. Its success heading is unconditional. `CohortWorkspacePane.tsx#getProcessingProgress` separately interprets job states, source states and processing status.
-
-Consequence: the screen, checklist and buttons can disagree without a type error. This is sufficient to explain how the contradictory UI is possible, but does not prove which production write produced the screenshot.
-
-### B. Two paths write completion with different evidence
-
-`src/shared/cohort-builder/contracts.ts` can invoke `client-pipeline.ts#runDeterministicPipeline` directly for sources with retained text and locations. That function writes processing ready/done, increments generation and writes journey ready. It replaces the processing object without a jobs projection.
-
-`src/server/domain/cohort-builder/text-assembly-acceptance.ts` uses durable job identity, source evidence, dependency fingerprint, artifact validation and transaction locks before projecting completion.
-
-A fast path is valuable. Separate definitions of accepted completion are not. Both paths must produce the same validated build result and commit through one acceptance boundary; they need not take the same amount of time or create artificial jobs.
-
-### C. Recovery is gated by success
-
-ReadyStageView's shared act wrapper returns when !ready, including for Back. The Back button itself is not disabled by !ready. It also dispatches back_to_starting_point instead of opening material collection. Go to my feed prepares release and opens review without checking the first boolean result. These are concrete action/state inconsistencies.
-
-### D. Tool availability is coupled to visual stage
-
-`src/server/domain/cohort-builder/tools.ts` exposes start_search (community cohorts) in chat but omits start_discovery there. Other stages expose both. Context instructions ask the model to distinguish resource search from community search, but the resource tool is unavailable in that chat tool set.
-
-This is a structural routing hazard consistent with the supplied conversation, not a verified reconstruction of its actual tool journal. Capabilities should depend on domain facts and permissions, not whether a particular screen is open.
-
-### E. Shape validation is weaker than business validity
-
-`contracts.ts` independently stores journey.step, processing.status/stage, source states, optional fingerprint, lessons and release state. Strict Zod objects reject unknown fields, but their existence does not prove cross-field invariants such as current assembly matching current sources. A nonempty lesson list can be a draft, not a completed build.
-
-### F. Shortcuts have semantic consequences too
-
-`client-pipeline.ts` currently derives analyses from text prefixes and a templated question. Successful deterministic processing does not by itself prove rich instructional analysis. Build quality requirements must explicitly distinguish metadata-only evidence, real transcripts, observed video content and authored material. Do not label metadata-derived output as full-video understanding. State-machine correctness and educational quality are separate acceptance dimensions.
-
-### G. Existing strengths to retain
-
-Keep revision-checked commands and stable tool request IDs, serialized tool commits, durable job leases, source version checks, assembly artifact validation, release content hashes/effect receipts and SSE revision handling. These are useful foundations already present. Audit their integration; do not replace them simply to obtain a cleaner diagram.
-
-## 3. The proposed model
-
-The workspace has content plus independent lifecycle regions. Avoid one giant enumeration containing every combination of search, chat, editor and build state.
-
-| Region | States | Authority |
-|---|---|---|
-| Draft content | Intent, source references, authored curriculum edits, content revision | Accepted domain commands |
-| Discovery | idle / searching / results / failed / canceled | Discovery request and verified result |
-| Build | idle / running / failed / canceled / completed | Build request and accepted result |
-| Release | idle / committing / failed / committed | Frozen candidate and durable release receipt |
-| View | plan / materials / processing details / review | Client route/view selection; never proof of completion |
-| Chat turn | existing queued / running / finished / failed lifecycle | Existing interaction runtime |
-
-No separate persisted ready boolean or success-screen state. `canActivate`, `canReviewCurrentBuild`, `needsRebuild`, progress and success copy are derived from validated domain state. Distinguish reviewing a draft curriculum from reviewing a completed build so manual co-design remains available.
-
-Build states are a discriminated union. A completed member requires a build ID, immutable accepted output reference and input fingerprint; running requires a request ID and captured inputs; failure requires a safe error code and retry classification. A released member requires its durable receipt. Fields required for one state cannot be optional decorations shared with every other state.
-
-Do not force editing, resource search and chat to stop while processing. Capture build inputs at StartBuild; subsequent edits make that output outdated. Either continue the old job for cache reuse or explicitly cancel it according to cost policy, but never silently attach it as current.
-
-### Fingerprints and revision meanings
-
-- Workspace revision: concurrency order, including changes unrelated to build inputs.
-- Source version: semantic revision of a source and its extraction/provenance.
-- Build input fingerprint: canonical manifest of source IDs/versions/evidence checksums, intent, audience, pace and algorithm versions actually used by build stages.
-- Release content hash: exact reviewed publishable output including presentation and authored overrides.
-
-Do not use workspace revision alone as freshness: a chat or cosmetic edit should not force extraction. Do not use sourceFingerprint alone as whole-build freshness: it currently hashes source id/version/text, not all pedagogical inputs. Maintain stage-specific fingerprints to reuse acquisition/chunking when only audience or pace changes.
-
-A completed build may remain stored while stale. The UI says Changes need rebuilding and can inspect the previous version clearly labelled. It cannot activate that version as though it included new changes.
-
-## 4. One command boundary
-
-Every mutation follows:
-
-1. Decode and validate command envelope; authenticate owner.
-2. Load current state under existing revision/transaction protection.
-3. Run the authoritative capability/transition guard using current state.
-4. Produce next domain state and durable work intents, with no network call inside the reducer.
-5. Commit state, command receipt and work intents atomically using the existing repository mechanisms.
-6. Workers execute external effects outside the transaction and submit validated completion commands.
-7. Stream accepted revision/state to clients. Clients reconcile by revision; they do not create authoritative completion locally.
-
-The UI may predict available actions for responsiveness using the same pure guard; the server always rechecks. A capability computed on an old snapshot is not authorization.
-
-Use a structured command result: accepted with receipt/revision; rejected with a stable reason and recovery action; unknown delivery outcome with request ID for reconciliation. Replace ambiguous Promise<boolean> at workflow boundaries incrementally. A timeout after server commit must resolve the existing command ID, not blindly create a new request. Do not roll back unrelated edits or confirmed server effects.
-
-Batch operations that users perceive as atomic, such as saving build settings and starting that exact build, should be one command. This removes client chains that proceed after a failed save. Keep ordinary content edits small. Multi-lesson drafting should either commit the validated draft atomically within existing payload limits or explicitly report accepted partial results; never claim the full draft exists after a partial loop.
-
-## 5. Transition rules
-
-| Command/event | Required evidence | Accepted effect | Failure behavior |
-|---|---|---|---|
-| AddSourceReference | Valid supported reference; ownership; capacity | Save source identity and metadata | Preserve input; no phantom preview |
-| DiscoverResources | Saved nonempty goal and request identity | Capture discovery inputs and enqueue | Preserve goal; retry same request after unknown outcome |
-| AcceptDiscoveryResult | Request ID/input fingerprint match | Retain candidates | Superseded result cannot replace newer results |
-| SelectResources | Verified current result and candidate membership | Add selected typed references atomically | No partial insertion on rejected selection |
-| StartBuild | Valid selected inputs and explicit user intent | Capture immutable input manifest and schedule | Show specific missing input; keep draft |
-| AcceptStageResult | Job lease, source version, dependency hash, validated artifact | Accept reusable artifact | Discard stale result; preserve current state |
-| CompleteBuild | All required current artifacts plus valid curriculum/evidence | Create accepted output and completed state | Remain failed/running honestly; no success view |
-| EditInputs | Valid edit against expected versions | Persist edit; derive staleness/dependent work | Preserve user draft on conflict |
-| CancelBuild | Matching active build | Cancel/fence further acceptance | Late completion cannot resurrect canceled build |
-| RetryBuild | Classified retryable failure | Retry failed dependency closure; reuse accepted artifacts | Never blindly redo paid work |
-| Activate / Publish | Reviewed current output; explicit mode; expected content hash | Freeze candidate and commit existing release effect | Retry/reconcile receipt; do not duplicate cohort |
-| OpenMaterials | View access only | Change view | Never require build success |
-
-StartBuild is not permission to publish. Background processing never chooses a navigation destination. Inspecting an earlier stage never mutates processing. Completion may present an available Review action; if the user is editing materials, preserve that view and show a completion notification rather than hijacking it.
-
-Fast builds may complete immediately. Show all genuinely completed stages, without artificial timers. Slow builds show accepted progress. An empty/failed job projection must never imply completion.
-
-## 6. Modules and ownership
-
-Refactor within existing folders rather than introduce a parallel framework:
-
-- `src/shared/cohort-builder/creation-state.ts`: domain unions and runtime invariant validation, schema version compatibility decoder.
-- `src/shared/cohort-builder/creation-machine.ts`: pure guarded transitions and capability rules. This owns lifecycle decisions, not source adapters or UI markup.
-- `src/shared/cohort-builder/creation-view.ts`: one view model for progress, current/stale output, action availability and safe explanations.
-- Existing source adapters/extractors: produce typed candidates/evidence, never mark whole build complete.
-- Existing server command/repository layer: ownership, transaction, request identity and work intents.
-- Existing job planner/workers: schedule/execute and submit validated results. Fast local computation is an execution strategy behind this boundary.
-- Existing release service: effect reconciliation and receipt. The client navigates using confirmed receipt.destinationUrl only.
-- Existing screens: render the view model, hold unsaved fields, dispatch commands. No independent readiness rules.
-- Chat tools: thin named adapters to the same commands. Community search and material discovery have distinct names and capabilities.
-
-Split content editing handlers away from lifecycle rules as needed, but do not turn every action into a class/service. Keep the machine small; heavy content arrays and binary artifacts stay in their existing stores. A state diagram is documentation generated or checked against the transition table, not another manually maintained authority.
-
-## 7. AI as an untrusted command client
-
-AI may propose content and invoke allowed commands. It cannot write lifecycle state, declare a job accepted, forge evidence or navigate as a side effect of adding a lesson. Distinguish draft curriculum from built content.
-
-Expose commands based on actual domain capabilities. Rename model-facing tools to unambiguous names such as search_community_cohorts and discover_learning_resources. Keep old wire aliases during migration if needed. In Plan mode, enforce the allowed command set on the server, not only in prompt text. Explicit user creation intent grants the appropriate session scope; do not repeatedly ask for the same approval. Activation/publication remains separately explicit.
-
-Use committed receipts for deterministic status displays: Search started, 3 sources added, Build finished. Natural-language prose can summarize, but cannot be the source of a success badge. Model output quality still needs evaluation; a tool schema cannot eliminate every misleading sentence.
-
-## 8. Failure behavior and observability
-
-Expected failure is a state with a recovery path, not a page takeover. Preserve fields, accepted materials and valid output. Show the existing top-right toast for the action failure; retain contextual retry/status where the user needs it. No full reload to approximate rollback.
-
-Use the existing logger and diagnostics. Correlate workspaceId, commandId, buildId, inputFingerprint, jobId, attempt, fromState, toState, revision, rejectionCode and duration. Server logs retain private details under existing access controls; browser diagnostics receive sanitized codes and owned operation summaries. Never log raw source text or secrets for convenience.
-
-Measure queue wait, provider duration, extraction duration, time to first useful chat content, time to accepted build, reconnect lag, stale-result rejection and duplicate request recovery separately. This distinguishes slow computation from stale UI. Add a diagnostic invariant check that detects contradictory snapshots and offers safe recovery instead of rendering All set. Detection does not silently rewrite old data.
-
-“Anti-fragile” here means each real incident becomes a minimized replay fixture plus an invariant test, so the same class of failure gets harder to reintroduce. It does not mean production failures automatically improve the product without engineering work.
-
-## 9. Validation strategy
-
-Current audit ran:
-`npx vitest run src/client/screens/cohortBuilder/__tests__/stage-selectors.test.ts src/client/screens/cohortBuilder/__tests__/stage-canonical-progress.test.ts src/shared/cohort-builder/__tests__/client-pipeline.test.ts`
-Result: 3 files, 67 tests passed. This verifies the existing tested behaviors, not the new architecture or the incident fix. Production state/logs were not inspected this turn.
-
-Required new tests are architectural, not screenshots alone:
-
-1. Transition matrix: every command in every lifecycle state either transitions correctly or rejects with no mutation.
-2. Sequence tests with reproducible seeds: edit, start, cancel, retry, back, change source, reload and complete in varied order; assert invariants after every accepted transition.
-3. Stale worker result, revoked lease, duplicate completion, late completion after cancel, and result from older source version.
-4. Two tabs editing; duplicate clicks; request committed but response lost; stream reconnect/out-of-order revision.
-5. Fast and durable strategies both satisfy the accepted-output contract; progress and readiness agree. Compare semantically equivalent outputs where algorithms are equal, not arbitrary provider text byte-for-byte.
-6. Plan-mode command boundaries and resource/community tool separation.
-7. Release crash before/after effect commit; retry resolves exactly one receipt and destination.
-8. Browser tests for disabled-action reasons, Back during failed build, preserved unsaved edits, preview ordering and real mobile scrolling.
-9. Historical snapshot migration fixtures, including ready-with-incomplete-processing. Ambiguous legacy state becomes recoverable needs-verification, never fabricated completion.
-10. Educational quality checks for evidence coverage, unsupported claims, curriculum usefulness and metadata-only limitations. Passing lifecycle tests does not replace these.
-
-Prefer the existing test runner and deterministic seeded sequences first. Add property-testing tooling only if it materially simplifies the matrix. A failing invariant blocks merge. Do not weaken fixtures merely to make the new model pass.
-
-## 10. Incremental migration and gates
-
-### Phase 1: Record invariants and reproduce incidents
-Freeze the scope to creation. Capture current fixture shapes, source/version chains, ready-screen incident, tool availability and release behavior. Document which existing contracts are authoritative. Add the contradictory-state tests before moving code. Gate: each reported incident has a failing/reproducible test or is explicitly marked unconfirmed.
-
-### Phase 2: One readiness/view projection
-Introduce pure validation and capabilities over existing snapshots. Make stepper, ReadyStageView, Continue/Back/Review and chat status consume it. Guard navigation separately from processing. Initially read existing fields through a compatibility adapter; do not add another writable ready flag. Gate: cross-component consistency and recovery tests pass.
-
-### Phase 3: One command/acceptance path
-Route direct UI commands and AI tools through the shared guards. Normalize fast and durable results to the same acceptance contract. Introduce structured receipts at workflow boundaries and atomic StartBuild settings capture. Gate: duplicate/stale/unknown-outcome tests pass; old lifecycle writers are removed from active paths.
-
-### Phase 4: Persist explicit lifecycle state
-Add a versioned decoder and idempotent migration. Map provable legacy results to completed; leave ambiguous results recoverable. Retain old published output and receipts. Stop old writers for migrated workspaces; do not maintain indefinitely competing v1/v2 writes. Gate: historical fixtures, revision conflicts and rollback compatibility verified.
-
-### Phase 5: Simplify UI and remove compatibility debt
-Implement the requested two-option entry, compact material previews, link default and sticky Continue against new commands. Delete replaced selectors/progress predicates and dead branch UI after caller verification. Keep historical data readers until migration coverage is demonstrated. Gate: full desktop/mobile flow plus pipeline/release integration and build/type checks pass.
-
-Roll out to controlled test workspaces first. Shadow-compute read-only decisions to compare against old selectors where useful; never dual-run effects. Then enable for a limited cohort. Rollback must not feed v2 snapshots into a v1-only writer: pause affected mutations or use a tested compatibility decoder. Keep successful releases available throughout.
-
-## 11. Lean-code guardrails and decision
-
-Accept the architecture only if it reduces decision duplication. Track number of writable lifecycle authorities (target one), readiness predicates (target one shared domain rule), separate progress derivations (target one), action implementations per entry method (target one), and production code added/deleted. Count adapters and temporary compatibility code separately, with removal gates.
-
-Do not promise net line reduction before implementing migration. Temporary additions are acceptable only when they replace named existing logic. Do not create a state-machine wrapper while retaining all old switches underneath. Do not build a universal workflow engine for unrelated Feed/Notes/Messaging.
-
-Recommended decision: adopt this bounded state-machine refactor. Preserve reliable infrastructure; replace competing lifecycle decisions. The deliverable following approval would be an execution-ready migration handoff with exact schema, reducer, adapter, caller and test payloads. This proposal supplies the architecture and acceptance gates, not those unimplemented payloads.
+# Cohort Creation State-Machine Refactor Proposal
+
+**Baseline analyzed:** `13944cdf` (`master`) — updated from initial `eeb7077a` analysis after Guide G3 (`8ab41a00..0603c64f`) and G3-QA Remediation (`d2afeb11..13944cdf`)
+**Scope:** Cohort Creation Journey, Material Intake, Processing Pipeline, Readiness/Review, Release Activation, and AI Tool/State Coupling
+**Companion Execution Guide:** `IdiotHandOffGuide.md`
+
+---
+
+## 0. Delta Since `eeb7077a` (What Changed in `8ab41a00..13944cdf`)
+
+Between `eeb7077a` and `13944cdf`, Guide G3 (`IdiotHandOffGuide-cohort-material-intake.md`) and its QA remediation wave landed several UI and local handler repairs that were originally listed under Section 2.C and Phase 5:
+
+1. **2-Option Entry & Merged Goal Discovery (Formerly Phase 5 — Completed)**:
+   - `src/client/screens/cohortCreation/components/StartingPoint.tsx` now presents the 2-option entry (`have_material`, `find_material`), and `src/shared/cohort-builder/contracts.ts` normalizes legacy `have_goal` to `find_material` / `discovery`.
+   - `src/client/screens/cohortBuilder/stages/MaterialStageView.tsx` now implements URL-first material entry, compact source previews above the form, disabled file/text pills (`Unavailable in this flow`), and a sticky `Continue to curriculum →` bar.
+   - `src/client/screens/cohortBuilder/stages/DiscoveryStageView.tsx` now implements goal input + explicit candidate selection checkboxes (`select_discovery_resources`).
+   - `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` routes legacy `goal_setup` to `DiscoveryStageView` and computes `effectiveInspectedStage` purely during render without a conditional `useEffect` hook (`d2afeb11`).
+2. **Local `ReadyStageView` Handler Repairs (Formerly Section 2.C — Partially Completed)**:
+   - `src/client/screens/cohortBuilder/stages/ReadyStageView.tsx` now passes `requiresReady = false` to `act(handleBack, false)` so `Back to material` is not blocked when `!ready`.
+   - `ReadyStageView.tsx#handleActivate` now checks `const prepared = await dispatchAction({ type: 'prepare_release', mode: 'private_activation' }); if (!prepared) return;` before dispatching `open_review` (`4d2a602f`).
+   - `ReadyStageView.tsx` now conditionally renders `'All set.'` vs `'In progress.'` based on local `ready` (`4d2a602f`).
+3. **AI Tool Availability Boundary Verification (Section 2.D Refinement)**:
+   - `src/server/domain/cohort-builder/__tests__/external-tools.test.ts` enforces a security/product invariant that `chat` (Plan mode) bounds AI tools to conversational planning and excludes lifecycle triggers (`start_discovery`, `begin_material_processing`). Therefore, capability guards must preserve the Plan-mode boundary while unifying domain transition guards across `contracts.ts` and `creation-machine.ts`.
+
+### What Remains Unresolved at `13944cdf` (Target of `IdiotHandOffGuide.md`)
+
+1. **Five Competing Readiness & Progress Authorities**:
+   - `stage-selectors.ts#computeActiveStage` still blindly returns `'ready'` whenever `workspace.journey.step === 'ready'`, even if `processing.status` is `'queued' | 'processing' | 'failed'`, `sourceFingerprint` is `null`, or `lessons.length === 0`.
+   - `ReadyStageView.tsx` still defines its own local `const ready = workspace.processing.status === 'ready' && workspace.lessons.length > 0` without checking `sourceFingerprint`, source states, job completion, or `validateCohortReadiness`.
+   - `CohortWorkspacePane.tsx#getProcessingProgress` (~198 lines) still duplicates stage/job/source progress interpretation separately from `stage-selectors.ts`.
+2. **Post-Build Mutation Stranding (`journey.step === 'ready'` with `processing.status === 'queued'`)**:
+   - When `add_*_source`, `edit_text_source`, `remove_source`, `set_intent`, `set_audience`, or `set_daily_minutes` runs after a build has reached `journey.step === 'ready'`, `contracts.ts` sets `processing.status = 'queued'` (or `'idle'` if all sources are removed) while leaving `journey.step = 'ready'`.
+3. **Dual Completion Writers (`client-pipeline.ts` vs `text-assembly-acceptance.ts`)**:
+   - Fast synchronous completion (`runDeterministicPipeline`) and durable worker acceptance (`acceptAssemblyProjection`) still construct completed workspace state independently rather than sharing one validated completion projection helper (`projectAcceptedBuildCompletion`).
+4. **Missing Shared State-Machine & View-Model Layer**:
+   - `src/shared/cohort-builder/creation-state.ts`, `src/shared/cohort-builder/creation-machine.ts`, and `src/shared/cohort-builder/creation-view.ts` do not exist yet.
+
+---
+
+## 1. Executive Summary
+
+ Cohort Creation currently spreads lifecycle state across **four overlapping structures** in `CohortWorkspace` and **five separate readiness/stage evaluators** across client and server files:
+
+1. **`workspace.journey`** (`step`, `branch`, `processingStarted`, `intentVersion`)
+2. **`workspace.processing`** (`status`, `stage`, `generation`, `sourceFingerprint`, `error`, `jobs[]`)
+3. **`workspace.discovery` / `workspace.recommendations`** (`status`, `requestId`, `fingerprint`, `resultId`, `generation`, `items[]`)
+4. **`workspace.release`** (`status`, `mode`, `candidateHash`, `cohortId`, `receipt`)
+
+Because these four sub-states are mutated independently by `planCohortAction`, `runDeterministicPipeline`, `planTextStage`, `acceptAssemblyProjection`, and durable background workers—without a single state-machine authority enforcing cross-field invariants—the application can enter **contradictory states** (for example: `journey.step === 'ready'` while `processing.status === 'queued'` or `lessons.length === 0`, or `processing.status === 'ready'` while `sources` have been edited or `intent`/`audience`/`dailyMinutes` changed).
+
+This proposal replaces the implicit, scattered transition rules with an **explicit, hierarchical, invariant-checked Cohort Creation State Machine** shared between server and client.
+
+---
+
+## 2. Root-Cause Diagnosis of Current Architecture
+
+### A. Five Competing Authorities for "What Stage Is Active / Is the Build Ready?"
+
+| Authority | File & Function | What It Checks | Where It Diverges |
+| :--- | :--- | :--- | :--- |
+| **1. UI Active Stage** | `src/client/screens/cohortBuilder/stage-selectors.ts` (`computeActiveStage`) | Returns `workspace.journey.step` directly if set (`'ready'`, `'review'`, `'material_input'`, etc.); only inspects `processing.jobs` when `journey.step === 'processing'` or `journey` is undefined. | If `journey.step === 'ready'` but a source/intent edit sets `processing.status = 'queued'`, `computeActiveStage` **still returns `'ready'`**, trapping the user on `ReadyStageView` with `"Build not complete"`. |
+| **2. Stepper Progress** | `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` (`getProcessingProgress`) | Independently inspects `sources`, `processing.status`, `processing.stage`, and `processing.jobs` (lines 55–252) to compute `steps[]` and `needsRebuild`. | Completely separate implementation from `stage-selectors.ts` (`getStageProgressDetails` / `isStageComplete`). Can report `needsRebuild: true` while `ReadyStageView` or `CurriculumStageView` is mounted. |
+| **3. Ready Screen Gate** | `src/client/screens/cohortBuilder/stages/ReadyStageView.tsx` | `const ready = workspace.processing.status === 'ready' && workspace.lessons.length > 0;` | Ignores `processing.sourceFingerprint`, ignores whether sources are `'pending'`/`'stale'`, and ignores `validateCohortReadiness`. |
+| **4. Action Guard (`open_review`)** | `src/shared/cohort-builder/contracts.ts` | Checks `current.step === 'ready'` AND `processing.status === 'ready' && processing.sourceFingerprint && lessons.length > 0`. | Checks `Boolean(sourceFingerprint)` where `ReadyStageView` did not. |
+| **5. Release Gate (`prepare_release`)** | `src/shared/cohort-builder/readiness.ts` (`validateCohortReadiness`) | Checks `intent`, `title`, `dailyMinutes`, `lessons`, `chunks`, `orphaned` evidence, `processing.status`, `sources.every(s => s.state === 'ready')`, and restricted source rights. | Can reject `prepare_release` even when `ReadyStageView` and `open_review` both claim the cohort is `"Ready"`. |
+
+### B. Dual Completion Paths (`runDeterministicPipeline` vs Durable Workers)
+
+In `contracts.ts` (`begin_material_processing`), there are two completely different execution paths:
+1. **Synchronous Fast Path (`canRunDeterministicPipeline`)**: Runs `runDeterministicPipeline(next)` inside `planCohortAction`, synthesizing accepted `jobs`, setting `processing.status = 'ready'`, `processing.stage = 'done'`, and `journey.step = 'ready'` in a single action revision.
+2. **Asynchronous Durable Worker Path**: Sets `journey.step = 'processing'` and `processing.status = 'queued'`. Background workers (`text-source-processor`, `text-assembly-processor`, `text-assembly-acceptance.ts`) advance jobs across multiple DB transactions and only set `journey.step = 'ready'` when `acceptAssemblyProjection` commits.
+
+**Why this causes bugs:**
+- If a user is on `journey.step === 'ready'` (or `'review'`) and mutates a source or changes `intent`, `audience`, or `dailyMinutes`, `contracts.ts` sets `processing.status = 'queued'`, **but leaves `journey.step = 'ready'`**!
+- As a result, `journey.step` says `'ready'`, `processing.status` says `'queued'`, and `CohortWorkspacePane` renders `ReadyStageView` in a broken half-state (`"Build not complete"`).
+
+---
+
+## 3. Target Architecture: Orthogonal Regions + Derived View State
+
+### Core Design Principle
+**Never store a derived UI screen name (`'ready'`, `'processing'`) that can contradict the underlying data.**
+Instead, model the workspace lifecycle as **three explicit, orthogonal state regions** plus **one pure selector (`deriveCreationViewModel`)** that computes the active screen, stepper state, and allowed user capabilities from a single source of truth.
+
+```
++-----------------------------------------------------------------------+
+|                    CohortCreationMachine (Pure Core)                  |
+|                                                                       |
+|  Region 1: Intent & Intake Mode                                       |
+|    mode: 'chat' | 'recommendations' | 'starting_point'                |
+|          | 'discovery' | 'material_input' | 'workspace'               |
+|    branch: 'have_material' | 'find_material' | null                   |
+|                                                                       |
+|  Region 2: Build Artifact Lifecycle (Deterministic Evidence State)    |
+|    state: 'not_started'                                               |
+|         | 'queued'      (generation, stage, targetInputHash)          |
+|         | 'running'     (generation, stage, jobs[])                   |
+|         | 'ready'       (generation, acceptedInputHash, lessons > 0)  |
+|         | 'stale'       (priorAcceptedHash != currentInputHash)       |
+|         | 'failed'      (generation, stage, error, retryable)         |
+|         | 'canceled'    (generation, stage)                           |
+|                                                                       |
+|  Region 3: Release Lifecycle                                          |
+|    state: 'draft'                                                     |
+|         | 'prepared'    (mode, candidateHash)                         |
+|         | 'released'    (mode, cohortId, receipt)                     |
++-----------------------------------------------------------------------+
+                                   |
+                                   v
+         deriveCreationViewModel(workspace, inspectedStage, drafts)
+                                   |
+                                   v
+  { activeStage, effectiveStage, readyStageViewModel,
+    capabilities, progress, invariants }
+```
+
+---
+
+## 4. Formal State & Transition Specification
+
+### 4.1 Canonical Build Input Fingerprint (`computeBuildInputFingerprint`)
+Alongside `computeSourceEvidenceFingerprint(workspace)` (which hashes `[source.id, source.version, source.text]` for stage-level text pipeline verification), `creation-state.ts` defines `computeBuildInputFingerprint(workspace)` over **all inputs that affect the generated curriculum**:
+- Sorted `sources`: `[source.id, source.version, source.input ?? source.text]`
+- `intent` (trimmed)
+- `audience` (trimmed)
+- `dailyMinutes`
+- Pinned/manual lesson overrides (`[lesson.id, lesson.version, lesson.title, lesson.objective, lesson.pinned, lesson.sourceChunkIds]`)
+
+### 4.2 Authoritative Transition Table
+
+| Current State | Event / Action | Guard | Next State |
+| :--- | :--- | :--- | :--- |
+| Any `step !== 'published'` | `back_to_recommendations` | `release.status !== 'released'` | `step = 'recommendations'` (preserves `sources`, `lessons`, `processing`) |
+| Any `step !== 'published'` | `back_to_starting_point` | `release.status !== 'released'` | `step = 'starting_point'` (preserves `sources`, `lessons`, `processing`) |
+| `recommendations \| starting_point \| material_input \| discovery \| goal_setup \| ready \| review` | `choose_starting_point(choice)` | `release.status !== 'released'` | If `choice === 'have_material'`: `step = 'material_input', branch = 'have_material'`. If `'find_material' \| 'have_goal'`: `step = 'discovery', branch = 'find_material'`. |
+| `discovery \| goal_setup` | `start_discovery` | `intent.trim().length > 0` | `step = 'discovery'`, `branch = 'find_material'`, `discovery.status = 'queued'` |
+| `discovery` | `select_discovery_resources` | Valid `discoveryResult` proof & candidate IDs | Attaches selected sources; `step = 'material_input'`; if `processingStarted`, queues build |
+| `material_input \| discovery \| goal_setup` | `begin_material_processing` | `sources.length > 0` | `processingStarted = true`; if `canRunDeterministicPipeline(ws)` -> `projectAcceptedBuildCompletion` (`step = 'ready'`, `processing.status = 'ready'`); else `step = 'processing'`, `processing.status = 'queued'` |
+| `processing` | `projectAcceptedBuildCompletion` | All sources `'ready'`, valid chunks/analyses/lessons | `processing.status = 'ready'`, `processing.stage = 'done'`, `step = 'ready'` |
+| `ready` | Source / Pedagogical Mutation (`add_*_source`, `edit_text_source`, `remove_source`, `set_intent`, `set_audience`, `set_daily_minutes`) | `processingStarted === true` | `normalizePostMutationLifecycle`: if `sources.length === 0`, `step = 'material_input'`, `processingStarted = false`, `processing.status = 'idle'`; else if `processing.status === 'queued'`, `step = 'processing'` |
+| `ready` | `open_review` | `isBuildComplete(ws)` | `step = 'review'` |
+| `ready \| review` | `prepare_release(mode)` | `validateCohortReadiness(ws, mode).ready` | `release = { status: 'prepared', mode, candidateHash }` |
+| `ready \| review` | `commit_release(mode, hash, receipt)` | `release.status === 'prepared'` & matching `candidateHash` | `release = { status: 'released', ... }`, `step = 'published'` |
+
+---
+
+## 5. Module Layout & Migration Plan
+
+### 5.1 New Shared Modules (`src/shared/cohort-builder/`)
+1. **`src/shared/cohort-builder/creation-state.ts`**:
+   - Defines `CreationStep`, `CreationBranch`, `DiscoveryRegionState`, `BuildRegionState`, `ReleaseRegionState`, `CreationMachineState`, and `WorkspaceInvariantReport`.
+   - Implements `computeSourceEvidenceFingerprint`, `computeBuildInputFingerprint`, `isBuildComplete`, `isBuildStale`, `validateWorkspaceInvariants`, and `deriveCreationMachineState`.
+2. **`src/shared/cohort-builder/creation-machine.ts`**:
+   - Defines `CreationCapabilities` and `AcceptedBuildArtifacts`.
+   - Implements `getCreationCapabilities(workspace)`, `canChooseStartingPointFromStep(step)`, `projectAcceptedBuildCompletion(state, artifacts)`, and `normalizePostMutationLifecycle(state)`.
+3. **`src/shared/cohort-builder/creation-view.ts`**:
+   - Defines `BuilderStage`, `ProcessingStep`, `ProcessingProgress`, `ReadyStageViewModel`, `CreationViewModel`, and `STEP_TO_STAGE_MAP`.
+   - Implements `deriveProcessingProgress(workspace)`, `deriveActiveStage(workspace)`, `deriveEffectiveStage(workspace, inspectedStage, drafts)`, `deriveReadyStageViewModel(workspace)`, and `deriveCreationViewModel(workspace, inspectedStage, drafts)`.
+
+### 5.2 Refactored Existing Modules
+1. **`src/shared/cohort-builder/client-pipeline.ts`**:
+   - Delegates `sourceFingerprint` to `computeSourceEvidenceFingerprint` and delegates the final assembly projection in `runDeterministicPipeline` to `projectAcceptedBuildCompletion`.
+2. **`src/server/domain/cohort-builder/text-assembly-acceptance.ts`**:
+   - Delegates workspace completion projection in `acceptAssemblyProjection` to `projectAcceptedBuildCompletion` so fast and durable builds share one completion writer.
+3. **`src/shared/cohort-builder/contracts.ts`**:
+   - Uses `canChooseStartingPointFromStep` to allow direct branch switching from `'ready'` and `'review'` as well as intake steps.
+   - Uses `isBuildComplete(next)` for the `open_review` readiness guard.
+   - Calls `normalizePostMutationLifecycle(next)` after source and pedagogical mutations so post-build edits never strand the workspace on `journey.step === 'ready'` while `processing.status === 'queued'`.
+4. **`src/client/screens/cohortBuilder/stage-selectors.ts`**:
+   - Delegates `computeActiveStage` and `computeEffectiveStage` to `deriveActiveStage` and `deriveEffectiveStage` from `@/src/shared/cohort-builder/creation-view`, eliminating contradictory `'ready'` stage routing when a build is incomplete or actively rebuilding.
+5. **`src/client/screens/cohortBuilder/CohortWorkspacePane.tsx`**:
+   - Replaces its duplicate 198-line `getProcessingProgress` implementation with a re-export of `deriveProcessingProgress` from `@/src/shared/cohort-builder/creation-view` and consumes `deriveCreationViewModel`.
+   - Guards compact starting-point tab switching with `const backed = await dispatchAction({ type: 'back_to_starting_point' }); if (!backed) return;`.
+6. **`src/client/screens/cohortBuilder/stages/ReadyStageView.tsx`**:
+   - Replaces ad-hoc `const ready = ...` and inline header/badge ternary logic with `deriveReadyStageViewModel(workspace)` from `@/src/shared/cohort-builder/creation-view`.
