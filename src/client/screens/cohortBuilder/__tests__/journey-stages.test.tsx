@@ -121,6 +121,20 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
       });
       expect(getEffectiveStage(ws, 'chunking')).toBe('recommendations');
     });
+
+    it('getActiveStage and getEffectiveStage return "chat" when journey.step is "chat"', () => {
+      const ws = createWorkspace({
+        journey: {
+          version: 1,
+          step: 'chat',
+          branch: null,
+          processingStarted: false,
+          intentVersion: 0,
+        },
+      });
+      expect(getActiveStage(ws)).toBe('chat');
+      expect(getEffectiveStage(ws, 'chunking')).toBe('chat');
+    });
   });
 
   describe('RecommendationsStageView', () => {

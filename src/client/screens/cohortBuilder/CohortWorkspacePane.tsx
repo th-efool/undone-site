@@ -21,7 +21,7 @@ import { MaterialStageView } from './stages/MaterialStageView';
 import { DiscoveryStageView } from './stages/DiscoveryStageView';
 import { GoalStageView } from './stages/GoalStageView';
 import { CohortDraftProvider, useCohortDrafts } from './draft-context';
-import { getActiveStage as selectActiveStage, type BuilderStage } from './stage-selectors';
+import { getActiveStage, getEffectiveStage, type BuilderStage } from './stage-selectors';
 
 import { ReadyStageView } from './stages/ReadyStageView';
 
@@ -31,6 +31,7 @@ const PublicationStageView = dynamic(
 );
 
 export type Stage = BuilderStage;
+export { getActiveStage, getEffectiveStage };
 
 export interface ProcessingStep {
   label: 'Understanding' | 'Chunking' | 'Analyzing' | 'Building';
@@ -43,32 +44,6 @@ export interface ProcessingProgress {
   currentStepIndex: number;
   steps: ProcessingStep[];
   needsRebuild: boolean;
-}
-
-export function getActiveStage(workspace: CohortWorkspace): Stage {
-  return selectActiveStage(workspace);
-}
-
-export function getEffectiveStage(
-  workspace: CohortWorkspace,
-  inspectedStage?: Stage | null,
-  drafts?: { isAnyDirtyOrOpen: () => boolean; editingStage: Stage | null }
-): Stage {
-  const active = getActiveStage(workspace);
-  if (
-    active === 'recommendations' ||
-    active === 'starting_point' ||
-    active === 'material_input' ||
-    active === 'discovery' ||
-    active === 'goal_setup'
-  ) {
-    return active;
-  }
-  if (inspectedStage) return inspectedStage;
-  if (drafts && drafts.isAnyDirtyOrOpen() && drafts.editingStage) {
-    return drafts.editingStage;
-  }
-  return active;
 }
 
 export function getProcessingProgress(workspace: CohortWorkspace): ProcessingProgress {

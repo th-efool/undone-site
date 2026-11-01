@@ -26,6 +26,7 @@ export type StageProgressDetails = {
 };
 
 export type BuilderStage =
+  | 'chat'
   | 'recommendations'
   | 'starting_point'
   | 'material_input'
@@ -201,6 +202,9 @@ export function clearStageSelectorsCache(): void {
  */
 function computeActiveStage(workspace: CohortWorkspace): BuilderStage {
   if (workspace.journey) {
+    if (workspace.journey.step === 'chat') {
+      return 'chat';
+    }
     if (workspace.journey.step === 'recommendations') {
       return 'recommendations';
     }
@@ -369,10 +373,12 @@ export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
  */
 function computeEffectiveStage(
   workspace: CohortWorkspace,
-  inspectedStage: BuilderStage | null
+  inspectedStage?: BuilderStage | null,
+  drafts?: { isAnyDirtyOrOpen: () => boolean; editingStage: BuilderStage | null }
 ): BuilderStage {
   const active = getActiveStage(workspace);
   if (
+    active === 'chat' ||
     active === 'recommendations' ||
     active === 'starting_point' ||
     active === 'material_input' ||
@@ -381,15 +387,20 @@ function computeEffectiveStage(
   ) {
     return active;
   }
-  return inspectedStage ?? active;
+  if (inspectedStage) return inspectedStage;
+  if (drafts && drafts.isAnyDirtyOrOpen() && drafts.editingStage) {
+    return drafts.editingStage;
+  }
+  return active;
 }
 
 export function getEffectiveStage(
   workspace: CohortWorkspace,
-  inspectedStage: BuilderStage | null
+  inspectedStage?: BuilderStage | null,
+  drafts?: { isAnyDirtyOrOpen: () => boolean; editingStage: BuilderStage | null }
 ): BuilderStage {
-  if (!workspace || typeof workspace !== 'object') {
-    return computeEffectiveStage(workspace, inspectedStage);
+  if (!workspace || typeof workspace !== 'object' || drafts) {
+    return computeEffectiveStage(workspace, inspectedStage, drafts);
   }
   let innerMap = effectiveStageCache.get(workspace);
   if (!innerMap) {
