@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useWorkspaceView, useDispatchAction, useInteractionState } from '@/src/client/interaction/hooks';
@@ -31,6 +31,13 @@ const PublicationStageView = dynamic(
 
 export type Stage = BuilderStage;
 export { getActiveStage, getEffectiveStage };
+
+const STEP_TO_STAGE_MAP: Record<ProcessingStep['label'], Stage> = {
+  Understanding: 'understanding',
+  Chunking: 'chunking',
+  Analyzing: 'analysis',
+  Building: 'assembly',
+};
 
 export interface ProcessingStep {
   label: 'Understanding' | 'Chunking' | 'Analyzing' | 'Building';
@@ -282,8 +289,14 @@ function InnerCohortWorkspacePane({
   }
 
   const progress = getProcessingProgress(workspace);
-  const activeStage = getActiveStage(workspace);
-  const effectiveStage = getEffectiveStage(workspace, inspectedStage, drafts);
+  const isInspectedStageAccessible = Boolean(
+    inspectedStage &&
+      progress.steps.some(
+        s => STEP_TO_STAGE_MAP[s.label] === inspectedStage && (s.isComplete || s.isCurrent || s.isFailed)
+      )
+  );
+  const effectiveInspectedStage = isInspectedStageAccessible ? inspectedStage : null;
+  const effectiveStage = getEffectiveStage(workspace, effectiveInspectedStage, drafts);
   const isJourneyInitialStep =
     effectiveStage === 'recommendations' ||
     effectiveStage === 'starting_point' ||
@@ -292,22 +305,6 @@ function InnerCohortWorkspacePane({
     effectiveStage === 'goal_setup';
   const hideStepper = isJourneyInitialStep || effectiveStage === 'published';
 
-  const stepToStageMap: Record<ProcessingStep['label'], Stage> = {
-    Understanding: 'understanding',
-    Chunking: 'chunking',
-    Analyzing: 'analysis',
-    Building: 'assembly',
-  };
-
-  useEffect(() => {
-    if (inspectedStage) {
-      const inspectedStep = progress.steps.find(s => stepToStageMap[s.label] === inspectedStage);
-      if (!inspectedStep || (!inspectedStep.isComplete && !inspectedStep.isCurrent && !inspectedStep.isFailed)) {
-        setInspectedStage(null);
-      }
-    }
-  }, [activeStage, progress.steps, inspectedStage]);
-
   return (
     <main className={styles.rightPane} aria-label="Cohort Curriculum Workspace">
       {/* Stepper Navigation */}
@@ -315,9 +312,9 @@ function InnerCohortWorkspacePane({
         <div className={styles.stepperNav}>
           <ol className={styles.creationSteps} aria-label="Creation journey progress">
             {progress.steps.map((step, index) => {
-              const stepStage = stepToStageMap[step.label];
-              const isInspected = inspectedStage === stepStage;
-              const isCurrent = inspectedStage ? isInspected : step.isCurrent;
+              const stepStage = STEP_TO_STAGE_MAP[step.label];
+              const isInspected = effectiveInspectedStage === stepStage;
+              const isCurrent = effectiveInspectedStage ? isInspected : step.isCurrent;
               const isAccessible = step.isComplete || step.isCurrent || step.isFailed;
               return (
                 <li
