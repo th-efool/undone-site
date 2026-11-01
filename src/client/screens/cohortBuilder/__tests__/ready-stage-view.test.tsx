@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import {
   cohortWorkspaceSchema,
   type CohortWorkspace,
+  type CohortAction,
 } from '@/src/shared/cohort-builder/contracts';
 import { ReadyStageView } from '../stages/ReadyStageView';
 
@@ -68,7 +69,7 @@ function createReadyWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorks
 }
 
 describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
-  let dispatchedActions: any[] = [];
+  let dispatchedActions: CohortAction[] = [];
   let actionResults: Record<string, boolean> = {};
 
   beforeEach(() => {
@@ -81,7 +82,7 @@ describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
     vi.restoreAllMocks();
   });
 
-  const mockDispatchAction = async (action: any) => {
+  const mockDispatchAction = async (action: CohortAction): Promise<boolean> => {
     dispatchedActions.push(action);
     if (action.type in actionResults) {
       return actionResults[action.type];
@@ -183,5 +184,37 @@ describe('ReadyStageView (Incident G2 Back repair and Action Gates)', () => {
       { type: 'prepare_release', mode: 'private_activation' },
       { type: 'open_review' },
     ]);
+  });
+
+  it('4. Header copy is truthful based on ready state', () => {
+    // Incomplete build
+    const wsIncomplete = createReadyWorkspace({
+      lessons: [],
+      processing: { status: 'queued', stage: 'acquisition', generation: 1, sourceFingerprint: null, error: null },
+    });
+    const { unmount } = render(<ReadyStageView workspace={wsIncomplete} dispatchAction={mockDispatchAction} />);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('In progress.');
+    expect(screen.getByText('Building your curriculum')).toBeTruthy();
+    unmount();
+
+    // Complete build
+    const wsComplete = createReadyWorkspace();
+    render(<ReadyStageView workspace={wsComplete} dispatchAction={mockDispatchAction} />);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('All set.');
+    expect(screen.getByText('Your learning experience is ready')).toBeTruthy();
+  });
+
+  it('5. Activation aborts open_review if prepare_release returns false', async () => {
+    actionResults['prepare_release'] = false;
+    const ws = createReadyWorkspace();
+    render(<ReadyStageView workspace={ws} dispatchAction={mockDispatchAction} />);
+
+    const feedBtn = screen.getByRole('button', { name: /Go to my feed/i });
+    await act(async () => {
+      fireEvent.click(feedBtn);
+    });
+
+    expect(dispatchedActions).toEqual([{ type: 'prepare_release', mode: 'private_activation' }]);
+    expect(dispatchedActions).not.toContainEqual({ type: 'open_review' });
   });
 });

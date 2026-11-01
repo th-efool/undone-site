@@ -56,7 +56,8 @@ export function ReadyStageView({
 
   const handleActivate = async () => {
     // Prepare private activation
-    await dispatchAction({ type: 'prepare_release', mode: 'private_activation' });
+    const prepared = await dispatchAction({ type: 'prepare_release', mode: 'private_activation' });
+    if (!prepared) return;
     await dispatchAction({ type: 'open_review' });
   };
 
@@ -71,17 +72,23 @@ export function ReadyStageView({
       <div className={styles.layout}>
         <div className={styles.content}>
           <header className={styles.heading}>
-            <p className={styles.eyebrow}>Your learning experience is ready</p>
+            <p className={styles.eyebrow}>
+              {ready ? 'Your learning experience is ready' : 'Building your curriculum'}
+            </p>
             <h1>
-              All set.
-              <span className={styles.rays} aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
+              {ready ? 'All set.' : 'In progress.'}
+              {ready && (
+                <span className={styles.rays} aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              )}
             </h1>
             <p>
-              I’ve turned your material into a learning experience. Review your cohort, or activate it privately to start learning in your feed.
+              {ready
+                ? 'I’ve turned your material into a learning experience. Review your cohort, or activate it privately to start learning in your feed.'
+                : 'Your material is being processed into lessons. You can wait for the build to finish, or return to edit your material.'}
             </p>
           </header>
 
