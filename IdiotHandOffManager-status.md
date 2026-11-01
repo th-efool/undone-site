@@ -156,3 +156,46 @@
 - **`FINDING-READY-02`**: Updated `ReadyStageView.tsx` header to render truthful contextual status ("In progress." / "Building your curriculum") when the build is incomplete (`ready === false`).
 - **`FINDING-TOOL-01`**: Verified that `start_discovery` is deliberately excluded from `STAGE_TOOL_NAMES['chat']` per architectural test `src/server/domain/cohort-builder/__tests__/external-tools.test.ts:138` ("bounds chat AI tools to conversational planning and excludes lifecycle processing triggers"). Retained intentional invariant.
 - **`FINDING-LINT-01`**: Added `@next/next/no-img-element` rule suppression for `MaterialStageView.tsx` YouTube thumbnail.
+
+---
+
+## Guide G4: Cohort Creation State-Machine Refactor
+- **Manager Run Date**: 2026-11-01
+- **Guide File**: `IdiotHandOffGuide.md`
+- **Guide SHA256**: `3d7ec2ef56e798b67f90691658dce77bea6c8b1d2485beca6b88ae33e711eb15`
+- **Git Baseline Commit**: `7149efe5`
+- **Status**: Completed (All 10 steps applied, all 6 verification gates passed)
+
+### Combined Work Graph & Dependency Table
+
+| Item ID | Description | Predecessors | Read Set | Write Set | Shared Resources | Owner | State | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| **Phase 1: Shared Creation State Machine Core** |
+| G4/S01 | Create creation-state.ts (S1) | None | `contracts.ts`, `hash.ts` | `src/shared/cohort-builder/creation-state.ts` | Shared builder contracts | state-machine-specialist | verified | SHA256: `a26ffef62921fb07b5e041c45fb93c520db37497a7314841c7c24d930820d138` |
+| G4/S02 | Create creation-machine.ts (S2) | G4/S01 | `creation-state.ts`, `contracts.ts` | `src/shared/cohort-builder/creation-machine.ts` | Shared builder contracts | state-machine-specialist | verified | SHA256: `c6694e0935b71496a19b000f81ff608a78b733bc22ca832eab9830d160c9fa2a` |
+| G4/S03 | Create creation-view.ts (S3) | G4/S01, G4/S02 | `creation-state.ts`, `creation-machine.ts` | `src/shared/cohort-builder/creation-view.ts` | Shared builder view model | view-specialist | verified | SHA256: `635ea7c5119b85d3d1382095187c8525766099f91349d4a2ca0e3c9aa24f38f0` |
+| **Phase 2: Pipeline, Contracts & Assembly Refactoring** |
+| G4/S04 | Modify client-pipeline.ts (S4) | G4/S01, G4/S02 | `creation-state.ts`, `creation-machine.ts` | `src/shared/cohort-builder/client-pipeline.ts` | Client pipeline | pipeline-specialist | verified | SHA256: `65aa6b7fcb5c56023a3bbc2960c9b2443d9ff14f89272b298b421e9119472fbf` |
+| G4/S05 | Modify text-assembly-acceptance.ts (S5) | G4/S02 | `creation-machine.ts` | `src/server/domain/cohort-builder/text-assembly-acceptance.ts` | Assembly acceptance | pipeline-specialist | verified | SHA256: `efd9cdc043420a118b6e83213c7a60181813c892892ced0edc276df05f5c403f` |
+| G4/S06 | Modify contracts.ts (S6) | G4/S01, G4/S02 | `creation-state.ts`, `creation-machine.ts` | `src/shared/cohort-builder/contracts.ts` | Shared builder contracts | contracts-specialist | verified | SHA256: `bfccc5dea77d5a0358bf979e791ebe870e400d3f2305575d0856c799eeef1dfb8` |
+| **Phase 3: Selectors & UI Integration** |
+| G4/S07 | Modify stage-selectors.ts (S7) | G4/S03 | `creation-view.ts` | `src/client/screens/cohortBuilder/stage-selectors.ts` | Stage selectors | ui-specialist | verified | SHA256: `fcae47b894b01d7a0e61a14d736bdc4ccbbeb3a61fd7df285859503376fd2833` |
+| G4/S08 | Modify CohortWorkspacePane.tsx (S8) | G4/S03, G4/S07 | `creation-view.ts`, `stage-selectors.ts` | `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` | Workspace pane | ui-specialist | verified | SHA256: `79a80b8cd162def10d70316a532c01590bfd42e110d908af836a1ca5a433d632` |
+| G4/S09 | Modify ReadyStageView.tsx (S9) | G4/S03 | `creation-view.ts` | `src/client/screens/cohortBuilder/stages/ReadyStageView.tsx` | Ready stage view | ui-specialist | verified | SHA256: `7ab99d43a3d2abfb5dc9e1021cd7cbcae1b1b8b3168b8e08f5b4b5433911cab8` |
+| **Phase 4: Test Suite & Invariant Verification** |
+| G4/S10 | Create creation-machine.test.ts (S10) | Phase 1–3 | All touched files | `src/shared/cohort-builder/__tests__/creation-machine.test.ts` | Vitest | test-specialist | verified | SHA256: `326f2e17a2d2f934e66b349d2b9a7db22f939cd54bd0752a324617d47cb4a7da` |
+| **Phase 5: Full System Verification Gate** |
+| G4/V01 | V1 State-Machine Unit Test Suite | Phase 4 | `creation-machine.test.ts` | None | Vitest | manager | verified | 9 passed (9 tests), 0 failures (520ms) |
+| G4/V02 | V2 Core Cohort Builder Tests | Phase 4 | 11 core test files | None | Vitest | manager | verified | 11 passed (177 tests), 0 failures (10.61s) |
+| G4/V03 | V3 TypeScript Compilation | Phase 4 | Entire workspace | None | `tsc` | manager | verified | `npx tsc --noEmit --incremental false` -> 0 errors (24.6s) |
+| G4/V04 | V4 ESLint Cleanliness Check | Phase 4 | 11 created/modified files | None | `eslint` | manager | verified | 0 errors, 0 warnings across all files |
+| G4/V05 | V5 Git Diff Hygiene | Phase 4 | Working copy | None | `git diff --check` | manager | verified | Exit code 0, zero whitespace/conflict errors |
+| G4/V06 | V6 Vercel Deployment Pre-Verification | Phase 4 | Full deployment pipeline | None | `verify:vercel` | manager | verified | All 5 pipeline stages PASSED cleanly (78.3s) |
+
+### Phase Schedule & Execution Status
+- **Pre-Flight Check**: Verified (`ALL_BASELINE_HASHES_VERIFIED`)
+- **Phase 1: Shared Creation State Machine Core**: Completed & Verified
+- **Phase 2: Pipeline, Contracts & Assembly Refactoring**: Completed & Verified
+- **Phase 3: Selectors & UI Integration**: Completed & Verified
+- **Phase 4: Test Suite & Invariant Verification**: Completed & Verified
+- **Phase 5: Full System Verification Gate**: Completed & Verified (All gates V1–V6 pass)
