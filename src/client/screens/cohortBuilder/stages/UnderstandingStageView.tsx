@@ -127,7 +127,10 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
                   </button>
                 </div>
               ) : (
-                <>
+                <div className={styles.controlButtonsRow}>
+                  <button type="button" onClick={() => void dispatchAction({ type: 'open_materials' })}>
+                    ← Back to material
+                  </button>
                   {isFailed && (
                     <>
                       {workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>}
@@ -141,7 +144,7 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
                       {isComplete ? 'Re-understand selected material' : 'Understand selected material'}
                     </button>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>
