@@ -62,9 +62,19 @@ describe('AI Tools Optimization & Stage Filtering', () => {
     expect(keys).toContain('add_lesson');
     expect(keys).toContain('remove_lesson');
     expect(keys).toContain('prepare_release');
-    expect(keys).toContain('commit_release');
+    expect(keys).not.toContain('commit_release');
     expect(keys).not.toContain('add_youtube_source');
     expect(keys).not.toContain('begin_material_processing');
+  });
+
+  it('filters tools strictly for the review and published stages without commit_release', () => {
+    const reviewTools = createCohortAiTools({ ...baseDeps, stage: 'review' });
+    expect(Object.keys(reviewTools)).toContain('prepare_release');
+    expect(Object.keys(reviewTools)).not.toContain('commit_release');
+
+    const publishedTools = createCohortAiTools({ ...baseDeps, stage: 'published' });
+    expect(Object.keys(publishedTools)).toContain('prepare_release');
+    expect(Object.keys(publishedTools)).not.toContain('commit_release');
   });
 
   it('returns all tools when stage is undefined or unknown (backwards compatibility)', () => {

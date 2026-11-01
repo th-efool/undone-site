@@ -38,7 +38,7 @@ const STAGE_TOOL_NAMES: Record<string, string[]> = {
     'add_web_source', 'add_youtube_source', 'add_github_source',
     'add_text_source', 'add_pdf_source',
   ],
-  review: [...CO_DESIGN_TOOLS, 'prepare_release', 'commit_release'],
+  review: [...CO_DESIGN_TOOLS, 'prepare_release'],
   recommendations: [...ALWAYS_TOOLS, 'create_own_cohort', 'choose_starting_point'],
   starting_point: [...ALWAYS_TOOLS, 'choose_starting_point', 'back_to_recommendations'],
   discovery: [...ALWAYS_TOOLS, 'select_discovery_resources', 'start_discovery', 'back_to_starting_point', 'choose_starting_point'],
@@ -52,13 +52,13 @@ const STAGE_TOOL_NAMES: Record<string, string[]> = {
   ready: [
     ...ALWAYS_TOOLS,
     'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
-    'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release',
+    'set_audience', 'set_daily_minutes', 'prepare_release',
     'cancel_text_processing', 'retry_text_job'
   ],
   published: [
     ...ALWAYS_TOOLS,
     'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
-    'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release'
+    'set_audience', 'set_daily_minutes', 'prepare_release'
   ],
 };
 
