@@ -590,6 +590,23 @@ describe('grounded cohort workspace UI', () => {
     fireEvent.keyDown(steps[2], { key: 'Enter' });
     expect(screen.queryByTestId('stage-inspection-banner')).toBeNull();
   });
+  it('renders invariant diagnostic recovery banner when cross-region invariants are violated', async () => {
+    fake.actions = [];
+    fake.state = currentFixture(cohortWorkspaceSchema.parse({
+      schemaVersion: 1, title: 'Systems', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 25,
+      sources: [{ id: 'source-1', version: 0, label: 'Notes', text: 'Quorums overlap.', checksum: 'a'.repeat(64), state: 'ready' }],
+      chunks: [],
+      lessons: [],
+      processing: { status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null },
+      journey: { version: 1, step: 'ready', branch: 'have_material', processingStarted: true, intentVersion: 0 },
+    }));
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    const banner = screen.getByTestId('workspace-invariant-banner');
+    expect(banner).toBeTruthy();
+    expect(banner.textContent).toContain('Workspace state discrepancy: READY_WITHOUT_COMPLETE_BUILD');
+    fireEvent.click(screen.getByRole('button', { name: 'Return to chat' }));
+    expect(fake.actions).toContainEqual({ type: 'close_panel' });
+  });
 });
 
 

@@ -115,6 +115,28 @@ function InnerCohortWorkspacePane({
       className={styles.rightPane}
       aria-label="Cohort Curriculum Workspace"
     >
+      {/* Workspace Invariant Discrepancy Banner */}
+      {!viewModel.invariants.valid && (
+        <div
+          data-testid="workspace-invariant-banner"
+          className={styles.invariantBanner}
+          role="alert"
+        >
+          <div className={styles.invariantBannerContent}>
+            <AlertCircle size={16} aria-hidden="true" />
+            <span>
+              Workspace state discrepancy: {viewModel.invariants.violations.join(', ')}.
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.resetStageBtn}
+            onClick={() => void dispatchAction({ type: 'close_panel' })}
+          >
+            Return to chat
+          </button>
+        </div>
+      )}
       {/* Stepper Navigation */}
       {!hideStepper && (
         <div className={styles.stepperNav}>

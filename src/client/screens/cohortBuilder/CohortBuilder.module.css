@@ -962,6 +962,25 @@
   gap: 16px;
 }
 
+.invariantBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  margin: 0 0 16px;
+  background: color-mix(in srgb, var(--creation-amber, #f59e0b) 12%, var(--creation-surface));
+  border: 1px solid var(--creation-amber, #f59e0b);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--creation-ink);
+}
+
+.invariantBannerContent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .inspectingBanner {
   display: flex;
   align-items: center;
