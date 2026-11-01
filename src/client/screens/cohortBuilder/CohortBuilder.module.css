@@ -530,18 +530,27 @@
   box-shadow: 0 4px 24px rgba(88, 99, 248, 0.12), 0 0 0 1px #5863f8;
 }
 
+.composerInputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  width: 100%;
+}
+
 .composerTextarea,
 .composer textarea {
-  width: 100%;
+  flex: 1;
   min-width: 0;
-  min-height: 48px;
+  min-height: 24px;
   max-height: 160px;
   resize: none;
-  border: 0;
-  outline: none;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
   background: transparent;
   color: var(--creation-heading, #1f2937);
-  padding: 14px 18px 8px 18px;
+  padding: 6px 4px;
   font-family: inherit;
   font-size: 15px;
   line-height: 1.5;
@@ -553,8 +562,9 @@
 .composer textarea:focus-visible,
 .page .composerCard :is(textarea, .composerTextarea):focus-visible,
 .page .composer :is(textarea, .composerTextarea):focus-visible {
-  outline: none;
-  box-shadow: none;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 .composerTextarea::placeholder,
@@ -562,31 +572,13 @@
   color: #8c93a8;
 }
 
-.composerToolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 12px 10px 14px;
-}
-
-.toolbarLeft {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.toolbarRight {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .attachBtn,
 .composer button.attachBtn {
   border: 1px solid transparent;
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
   background: transparent;
   color: var(--creation-muted, #6b7280);
   display: grid;
@@ -594,6 +586,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: none;
+  margin-bottom: 1px;
 }
 
 .attachBtn:hover:not(:disabled),
@@ -621,12 +614,20 @@
   place-items: center;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
+  margin-bottom: 1px;
 }
 
 .sendBtn:hover:not(:disabled),
 .composer button:not(.attachBtn):hover:not(:disabled) {
   background: #333333;
   transform: scale(1.03);
+}
+
+.sendBtn:disabled,
+.composer button:not(.attachBtn):disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .sendBtn:active:not(:disabled),

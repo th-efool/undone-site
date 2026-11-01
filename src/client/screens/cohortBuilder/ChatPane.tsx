@@ -47,11 +47,19 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const nearBottom = useRef(true);
   const isInitialMount = useRef(true);
   const showsProcessing = state.view?.journey?.step === 'processing' || state.view?.journey?.step === 'ready';
 
   const composerAttachments = useComposerAttachments({ maxFiles: 10, maxLinks: 20 });
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [input]);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -248,10 +256,19 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
                           const isSource = p.entity.kind === 'source';
                           const fullTitle = p.label ?? p.entity.id;
                           return (
-                            <span
+                            <button
+                              type="button"
                               key={idx}
                               className={isSource ? styles.sourceAttachmentChip : styles.entityChip}
+                              data-entity-id={p.entity.id}
+                              data-entity-version={p.entity.version}
                               title={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
+                              aria-label={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
+                              onClick={() => {
+                                if (isSource) return;
+                                const targetId = p.entity.id.startsWith('lesson-') ? p.entity.id : `lesson-${p.entity.id}`;
+                                document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+                              }}
                             >
                               {isSource ? (
                                 <Paperclip size={11} className={styles.entityChipIcon} aria-hidden="true" />
@@ -259,7 +276,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
                                 <BookOpen size={11} className={styles.entityChipIcon} aria-hidden="true" />
                               )}
                               <span className={styles.entityChipText}>{fullTitle}</span>
-                            </span>
+                            </button>
                           );
                         })}
                       </div>
@@ -432,18 +449,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
             </div>
           )}
 
-          <textarea
-            aria-label="Message the cohort assistant"
-            placeholder={placeholder}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={1}
-            aria-busy={sending || composerAttachments.isExtracting}
-            className={styles.composerTextarea}
-          />
-
-          <div className={styles.composerToolbar}>
+          <div className={styles.composerInputRow}>
             <input
               ref={fileInputRef}
               type="file"
@@ -456,34 +462,42 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
               }}
             />
 
-            <div className={styles.toolbarLeft}>
-              <button
-                type="button"
-                className={styles.attachBtn}
-                onClick={() => fileInputRef.current?.click()}
-                title="Attach reference files (.pdf, .txt, .md, .json)"
-                aria-label="Attach reference file"
-                disabled={sending || composerAttachments.isExtracting}
-              >
-                <Paperclip size={18} />
-              </button>
-            </div>
+            <button
+              type="button"
+              className={styles.attachBtn}
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach reference files (.pdf, .txt, .md, .json)"
+              aria-label="Attach reference file"
+              disabled={sending || composerAttachments.isExtracting}
+            >
+              <Paperclip size={18} />
+            </button>
 
-            <div className={styles.toolbarRight}>
-              <button
-                type="submit"
-                aria-label="Send message"
-                className={styles.sendBtn}
-                disabled={
-                  sending ||
-                  staleSelection ||
-                  composerAttachments.isExtracting ||
-                  (!input.trim() && !attachedEntity && composerAttachments.getReadySources().length === 0)
-                }
-              >
-                <ArrowUp size={18} strokeWidth={2.4} />
-              </button>
-            </div>
+            <textarea
+              ref={textareaRef}
+              aria-label="Message the cohort assistant"
+              placeholder={placeholder}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              aria-busy={sending || composerAttachments.isExtracting}
+              className={styles.composerTextarea}
+            />
+
+            <button
+              type="submit"
+              aria-label="Send message"
+              className={styles.sendBtn}
+              disabled={
+                sending ||
+                staleSelection ||
+                composerAttachments.isExtracting ||
+                (!input.trim() && !attachedEntity && composerAttachments.getReadySources().length === 0)
+              }
+            >
+              <ArrowUp size={18} strokeWidth={2.4} />
+            </button>
           </div>
         </form>
       </div>
