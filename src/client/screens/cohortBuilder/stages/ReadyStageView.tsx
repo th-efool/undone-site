@@ -135,7 +135,9 @@ export function ReadyStageView({
           <p>
             {viewModel.sourceCount}{' '}
             {viewModel.sourceCount === 1 ? 'source' : 'sources'} ·{' '}
-            {viewModel.chunkCount} learning pieces · {viewModel.lessonCount}{' '}
+            {viewModel.chunkCount}{' '}
+            {viewModel.chunkCount === 1 ? 'learning piece' : 'learning pieces'} ·{' '}
+            {viewModel.lessonCount}{' '}
             {viewModel.lessonCount === 1 ? 'lesson' : 'lessons'}
           </p>
         </div>
@@ -150,7 +152,7 @@ export function ReadyStageView({
         aria-labelledby="ready-included-heading"
       >
         <span id="ready-included-heading" className={styles.sectionLabel}>
-          What’s included
+          What's included
         </span>
         <div className={styles.featureGrid}>
           {FEATURES.map(feature => {

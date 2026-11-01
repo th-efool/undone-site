@@ -340,12 +340,12 @@ describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
       expect(screen.getByText(/Your learning experience is ready/i)).toBeTruthy();
       expect(screen.getByRole('heading', { level: 1, name: /All set/i })).toBeTruthy();
       expect(
-        screen.getByText(/I’ve turned your material into a learning experience/i)
+        screen.getByText(/I['’]ve turned your material into a learning experience/i)
       ).toBeTruthy();
 
       // Material summary card
       expect(screen.getByRole('heading', { level: 2, name: 'Distributed Systems Cohort' })).toBeTruthy();
-      expect(screen.getByText(/1 source · 1 learning pieces · 2 lessons/i)).toBeTruthy();
+      expect(screen.getByText(/1 source · 1 learning piece · 2 lessons/i)).toBeTruthy();
       expect(screen.getByText('Processed')).toBeTruthy();
 
       // 4 Feature cards

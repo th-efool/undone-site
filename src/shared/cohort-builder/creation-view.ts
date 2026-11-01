@@ -287,7 +287,7 @@ export function deriveReadyStageViewModel(
       : 'Building your curriculum',
     heading: isReady ? 'All set.' : 'In progress.',
     subtitle: isReady
-      ? 'I’ve turned your material into a learning experience and set it up in your personal feed. You can jump straight in, or review the cohort structure first.'
+      ? "I've turned your material into a learning experience and set it up in your personal feed. You can jump straight in, or review the cohort structure first."
       : 'Your material is still being processed into a curriculum. You can wait for completion or go back to adjust your sources.',
     badgeLabel: isReady ? 'Processed' : 'Build not complete',
     sourceCount: (workspace.sources ?? []).length,
