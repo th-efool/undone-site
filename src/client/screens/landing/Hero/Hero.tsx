@@ -69,7 +69,7 @@ export function Hero() {
         <div
           className={styles.bottomEdgeParchmentLeft}
           data-editable-id="extraParchmentLeft1"
-          style={{ zIndex: 1, transform: 'translate(-2.02vw, -3.59vh) scale(1.35)' }}
+          style={{ zIndex: 3, transform: 'translate(-24px, -28px) scale(1.25)' }}
         >
           <Image
             src="/images/hero-collage/parchment-edge-corner-left.svg"
@@ -83,7 +83,7 @@ export function Hero() {
         <div
           className={styles.bottomEdgeParchmentLeft}
           data-editable-id="extraParchmentLeft2"
-          style={{ zIndex: 1, transform: 'translate(77.89vw, 9.46vh) scale(1.3)' }}
+          style={{ zIndex: 3, left: 'auto', right: '-180px', transform: 'translate(24px, 48px) scaleX(-1) scale(1.22)' }}
         >
           <Image
             src="/images/hero-collage/parchment-mid-fill-right.svg"

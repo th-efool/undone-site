@@ -281,3 +281,27 @@
     align-items: stretch;
   }
 }
+
+@media (max-height: 780px) and (min-width: 641px) {
+  .nav {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+  .main {
+    padding-top: 16px;
+    padding-bottom: 32px;
+  }
+  .card {
+    padding: 28px 36px;
+    gap: 18px;
+  }
+  .title {
+    font-size: 26px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .nav {
+    max-width: 1440px;
+  }
+}

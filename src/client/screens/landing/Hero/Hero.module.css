@@ -4,11 +4,12 @@
    ========================================================================== */
 
 .heroWrapper {
-  width: 100vw;
-  height: 100vh;
-  min-height: 520px;
+  width: 100%;
+  min-height: 100dvh;
+  height: auto;
   position: relative;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: hidden;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -54,7 +55,7 @@
    ========================================================================== */
 .header {
   width: 100%;
-  max-width: 1040px;
+  max-width: 1920px;
   margin: 20px auto 0 auto;
   display: flex;
   align-items: center;
@@ -215,18 +216,20 @@
 .mainHeroSection {
   flex: 1;
   width: 100%;
+  max-width: 1760px;
+  margin: 0 auto;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   position: relative;
-  z-index: 10;
-  padding: 0 0 clamp(20px, 3.2vh, 36px) 0;
+  z-index: 30;
+  padding: clamp(8px, 1.5vh, 24px) 0 clamp(16px, 2.6vh, 30px) 0;
   box-sizing: border-box;
 }
 
 .centralInterface {
   position: relative;
-  max-width: 1080px;
+  max-width: min(1080px, calc(100vw - 340px));
   width: 100%;
   margin: 0 auto;
   margin-top: 0;
@@ -236,6 +239,7 @@
   align-items: center;
   text-align: center;
   padding: 0 16px;
+  z-index: 32;
   box-sizing: border-box;
 }
 
@@ -378,13 +382,13 @@
    Featured Cohorts Auto Horizontally Scrolling Strip (via InfiniteScroller)
    ========================================================================== */
 .cohortsStripContainer {
-  width: min(100vw - 12px, 1440px);
-  margin-left: calc((100% - min(100vw - 12px, 1440px)) / 2 + 65px);
+  width: min(calc(100vw - 48px), 1360px);
+  margin-left: calc((100% - min(calc(100vw - 48px), 1360px)) / 2);
   margin-top: 8px;
   margin-bottom: 0;
   overflow: hidden;
   position: relative;
-  z-index: 10;
+  z-index: 35;
   mask-image: linear-gradient(
     to right,
     transparent 0%,
@@ -414,10 +418,10 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
+  left: max(0px, calc((100vw - 2160px) / 2));
   width: 320px;
   pointer-events: auto;
-  z-index: 25;
+  z-index: 6;
 }
 
 .collageLeft > * {
@@ -508,7 +512,7 @@
   width: clamp(260px, 22vw, 360px);
   height: clamp(140px, 18vh, 200px);
   transform: translate(3.87vw, 6.58vh) scale(1.65) rotate(-22deg);
-  z-index: 25;
+  z-index: 4;
   opacity: 0.98;
   pointer-events: auto;
 }
@@ -703,10 +707,10 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0;
+  right: max(0px, calc((100vw - 2160px) / 2));
   width: 340px;
   pointer-events: auto;
-  z-index: 25;
+  z-index: 6;
 }
 
 .collageRight > * {
@@ -783,7 +787,7 @@
   width: clamp(260px, 22vw, 360px);
   height: clamp(140px, 18vh, 200px);
   transform: translate(0vw, -6.06vh) scale(1.65) rotate(0deg);
-  z-index: 25;
+  z-index: 4;
   opacity: 0.98;
   pointer-events: auto;
 }
@@ -1064,27 +1068,87 @@
 }
 
 /* ==========================================================================
-   Responsive Viewport Scaling across Large Screens
+   Responsive Viewport Scaling across Large Screens, Zoom-In, and Ultrawide
    ========================================================================== */
-@media (min-width: 1300px) {
+@media (min-width: 1540px) and (max-width: 1879px) {
   .collageLeft {
-    transform: scale(1.28);
+    transform: scale(1.12);
     transform-origin: top left;
   }
   .collageRight {
-    transform: scale(1.28);
+    transform: scale(1.12);
     transform-origin: top right;
+  }
+  .centralInterface {
+    max-width: 1080px;
   }
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1880px) {
   .collageLeft {
-    transform: scale(1.48);
+    transform: scale(1.26);
     transform-origin: top left;
   }
   .collageRight {
-    transform: scale(1.48);
+    transform: scale(1.26);
     transform-origin: top right;
+  }
+  .centralInterface {
+    max-width: 1120px;
+  }
+  .cohortsStripContainer {
+    width: min(calc(100vw - 96px), 1440px);
+    margin-left: calc((100% - min(calc(100vw - 96px), 1440px)) / 2);
+  }
+}
+
+@media (max-width: 1539px) and (min-width: 1380px) {
+  .collageLeft {
+    transform: scale(0.92);
+    transform-origin: top left;
+    left: -28px;
+  }
+  .collageRight {
+    transform: scale(0.92);
+    transform-origin: top right;
+    right: -28px;
+  }
+  .centralInterface {
+    max-width: min(1020px, calc(100vw - 380px));
+  }
+}
+
+@media (max-width: 1379px) and (min-width: 1201px) {
+  .collageLeft {
+    transform: scale(0.82);
+    transform-origin: center left;
+    left: -48px;
+  }
+  .collageRight {
+    transform: scale(0.82);
+    transform-origin: center right;
+    right: -48px;
+  }
+  .centralInterface {
+    max-width: 780px;
+  }
+}
+
+@media (max-width: 1200px) and (min-width: 821px) {
+  .collageLeft {
+    transform: scale(0.72);
+    transform-origin: center left;
+    left: -68px;
+    opacity: 0.85;
+  }
+  .collageRight {
+    transform: scale(0.72);
+    transform-origin: center right;
+    right: -68px;
+    opacity: 0.85;
+  }
+  .centralInterface {
+    max-width: 700px;
   }
 }
 
@@ -1098,6 +1162,49 @@
     opacity: 0.25;
     transform: scale(0.65);
     transform-origin: top right;
+  }
+  .centralInterface {
+    max-width: min(680px, calc(100vw - 32px));
+  }
+}
+
+/* Compact vertical height adjustments for Browser Zoom-In (125% - 175%) and short screens */
+@media (max-height: 830px) and (min-width: 821px) {
+  .header {
+    margin-top: 8px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .mainHeroSection {
+    padding-top: 4px;
+    padding-bottom: 12px;
+  }
+  .eyebrow {
+    margin-bottom: 4px;
+    font-size: 0.68rem;
+  }
+  .headline {
+    font-size: clamp(2.15rem, 3.6vw, 3.1rem);
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 0.98rem;
+    margin-bottom: 10px;
+  }
+  .categoryPillsContainer {
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+  .categoryPill {
+    padding: 6px 14px;
+    font-size: 0.82rem;
+  }
+  .cohortCard {
+    height: 112px;
+  }
+  .collageLeft,
+  .collageRight {
+    top: 54px;
   }
 }
 

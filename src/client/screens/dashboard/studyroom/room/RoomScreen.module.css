@@ -25,7 +25,11 @@
   justify-content: space-between;
   align-items: flex-start;
   flex: 1;
-  padding: 14px 24px 0;
+  width: 100%;
+  max-width: 1760px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: clamp(12px, 2vh, 20px) clamp(16px, 2.2vw, 32px) 0;
   min-height: 0;
   pointer-events: none;
 }

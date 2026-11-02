@@ -8,15 +8,23 @@
   position: relative;
   z-index: 35;
   width: 100%;
-  max-width: 1060px;
+  max-width: 720px;
   margin: 18px auto 26px auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   box-sizing: border-box;
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1380px) {
+  .promptRow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: min(1040px, calc(100vw - 480px));
+    gap: 12px;
+  }
+}
+
+@media (min-width: 1680px) {
   .promptRow {
     max-width: 1080px;
     gap: 14px;
@@ -26,7 +34,7 @@
 /* Tablet: clean 2x2 layout */
 @media (max-width: 1023px) and (min-width: 641px) {
   .promptRow {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     max-width: 700px;
     gap: 12px;
     margin-top: 14px;

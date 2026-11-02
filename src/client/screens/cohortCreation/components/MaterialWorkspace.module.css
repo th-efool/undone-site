@@ -10,4 +10,4 @@
 .workspace button:disabled { cursor: wait; opacity: .5; }
 .workspace button:focus-visible, .workspace summary:focus-visible { outline: 2px solid var(--creation-blue); outline-offset: 3px; }
 .workspace > section:not(:first-of-type) { margin: 24px auto; max-width: 800px; }
-@media (max-width: 1300px) { .decorations { display: none; } .connections { width: 100%; } }
+@media (max-width: 1640px), (max-height: 820px) { .decorations { display: none; } .connections { width: 100%; } }

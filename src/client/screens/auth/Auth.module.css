@@ -10,9 +10,10 @@
   --auth-border-subtle: 1px solid #DFD8CD;
 
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 520px;
-  width: 100vw;
-  height: 100vh;
+  grid-template-columns: minmax(0, 1fr) clamp(440px, 34vw, 620px);
+  width: 100%;
+  min-height: 100dvh;
+  height: 100dvh;
   margin: 0;
   padding: 0;
   background: #FFFFFF;
@@ -34,8 +35,9 @@
   position: relative;
   display: flex;
   align-items: stretch;
+  justify-content: center;
   overflow-y: auto;
-  max-height: 100vh;
+  max-height: 100dvh;
   scrollbar-width: thin;
 }
 

@@ -3,8 +3,9 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: none;
-  margin: 0;
+  max-width: 1480px;
+  margin: 0 auto;
+  box-sizing: border-box;
   padding: 12px var(--cohort-page-gutter, var(--space-6)) 32px;
 }
 

@@ -87,13 +87,13 @@
   backdrop-filter: blur(12px);
 }
 .title {
-  max-width: 980px;
+  max-width: 920px;
   margin: 0;
   color: #fff;
-  font-size: clamp(3.4rem, 6vw, 6.5rem);
+  font-size: clamp(2.5rem, 4.2vw, 4.75rem);
   font-weight: 900;
-  line-height: 0.9;
-  letter-spacing: -0.07em;
+  line-height: 0.94;
+  letter-spacing: -0.06em;
   text-shadow: 0 18px 32px rgb(0 0 0 / 23%);
   overflow-wrap: break-word;
 }

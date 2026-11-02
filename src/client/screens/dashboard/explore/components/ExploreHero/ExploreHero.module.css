@@ -43,7 +43,7 @@
   position: absolute;
   top: -40px;
   right: 12px;
-  left: clamp(320px, 40vw, 560px);
+  left: clamp(300px, 38%, 540px);
   bottom: -260px;
   z-index: 0;
   pointer-events: none;
