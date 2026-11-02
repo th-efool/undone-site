@@ -2377,3 +2377,129 @@ fieldset.formField button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.25);
 }
+
+
+/* ==========================================================================
+   Interactive AI Chat Stepper Checklist & Right Panel Pop-Open Animation
+   ========================================================================== */
+
+.chatStepChecklist {
+  list-style: none !important;
+  margin: 4px 0 14px 0 !important;
+  padding: 12px 16px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--creation-surface, #fffcf7) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--creation-line, #e9e0d5) 85%, transparent);
+  box-shadow: 0 2px 8px rgba(8, 20, 61, 0.04);
+  max-width: 440px;
+}
+
+.chatStepItem {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 !important;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--creation-muted, #536788);
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.chatStepItem[data-step-state='pending'] {
+  opacity: 0.6;
+}
+
+.chatStepItem[data-step-state='running'] {
+  color: var(--creation-ink, #08143d);
+  font-weight: 650;
+}
+
+.chatStepItem[data-step-state='complete'] {
+  color: var(--creation-ink, #08143d);
+  font-weight: 600;
+}
+
+.stepMarker {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.chatStepItem[data-step-state='pending'] .stepMarker {
+  border: 1.5px solid color-mix(in srgb, var(--creation-muted, #536788) 45%, transparent);
+  background: transparent;
+}
+
+.chatStepItem[data-step-state='running'] .stepMarker {
+  border: 1.5px solid color-mix(in srgb, var(--creation-blue, #303cff) 35%, transparent);
+  background: color-mix(in srgb, var(--creation-blue, #303cff) 10%, transparent);
+  color: var(--creation-blue, #303cff);
+}
+
+.chatStepItem[data-step-state='complete'] .stepMarker {
+  background: var(--creation-blue, #303cff);
+  border: 1.5px solid var(--creation-blue, #303cff);
+  color: #ffffff;
+}
+
+.stepPendingDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--creation-muted, #536788) 45%, transparent);
+}
+
+.stepSpinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--creation-blue, #303cff) 25%, transparent);
+  border-top-color: var(--creation-blue, #303cff);
+  animation: chatStepSpin 0.8s linear infinite;
+}
+
+.stepSpinnerIcon {
+  animation: chatStepSpin 0.85s linear infinite;
+}
+
+.stepCheckIcon {
+  display: block;
+}
+
+.stepLabel {
+  margin: 0 !important;
+  font-size: 13.5px !important;
+  line-height: 1.35 !important;
+  color: inherit !important;
+}
+
+@keyframes chatStepSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes canvasPopOpen {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page[data-layout='split'] .canvas {
+    animation: canvasPopOpen 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}

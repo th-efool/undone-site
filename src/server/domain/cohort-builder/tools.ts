@@ -158,12 +158,12 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
         executeAction('start_search', { query }, { type: 'start_search', query }),
     }),
     create_own_cohort: tool({
-      description: 'Navigate from recommendations to starting point selection.',
+      description: 'Open the right-hand cohort creation studio (navigating from chat or recommendations into material input if sources exist, or starting point selection) when the user asks or implies they want to start, create, or build a cohort.',
       inputSchema: z.object({}),
       execute: async () => executeAction('create_own_cohort', {}, { type: 'create_own_cohort' }),
     }),
     choose_starting_point: tool({
-      description: 'Choose starting point branch: have_material, find_material, or have_goal.',
+      description: 'Open the cohort studio and choose a starting point branch: have_material, find_material, or have_goal.',
       inputSchema: z.object({ choice: z.enum(['have_material', 'find_material', 'have_goal']) }),
       execute: async ({ choice }: any) => executeAction('choose_starting_point', { choice }, { type: 'choose_starting_point', choice }),
     }),

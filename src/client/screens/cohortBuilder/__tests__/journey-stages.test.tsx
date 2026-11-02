@@ -192,10 +192,15 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
 
       expect(screen.getByText('A new path starts here.')).toBeDefined();
       expect(
-        screen.getByText('No matching public cohorts were found. You can start your own from this intent.')
+        screen.getByText(
+          'No matching public cohorts were found. Be the first to create a cohort for this intent and start learning with a community.'
+        )
       ).toBeDefined();
+      expect(screen.getByText('Bring like-minded learners')).toBeDefined();
+      expect(screen.getByText('Organize your learning')).toBeDefined();
+      expect(screen.getByText('Build in public (or keep it private)')).toBeDefined();
 
-      const createOwnBtn = screen.getByRole('button', { name: /Create my own cohort/i });
+      const createOwnBtn = screen.getByRole('button', { name: /Create your own cohort/i });
       fireEvent.click(createOwnBtn);
       expect(dispatchAction).toHaveBeenCalledWith({ type: 'create_own_cohort' });
     });
@@ -354,7 +359,7 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
   });
 
   describe('ChatPane suggestion chips', () => {
-    it('displays recommendations suggestions when in recommendations step', () => {
+    it('displays recommendations suggestions when in recommendations step and search is ready', () => {
       fake.state = createWorkspace({
         journey: {
           version: 1,
@@ -362,6 +367,13 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
           branch: null,
           processingStarted: false,
           intentVersion: 0,
+        },
+        recommendations: {
+          requestId: '11111111-1111-1111-1111-111111111111',
+          fingerprint: 'fp-1',
+          status: 'ready',
+          generation: 1,
+          items: [],
         },
       });
 

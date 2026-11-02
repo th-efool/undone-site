@@ -1,8 +1,8 @@
 'use client';
 import { useFailureToast } from '@/src/client/hooks/useFailureToast';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, BookOpen, Paperclip, Square, X } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { ArrowUp, BookOpen, Check, LoaderCircle, Paperclip, Square, X } from 'lucide-react';
 import { useWorkspaceMessages, useSendMessage, useInteractionState, useDispatchAction } from '@/src/client/interaction/hooks';
 import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useComposerAttachments, AttachmentTray } from '@/src/client/components/global/Composer';
@@ -33,6 +33,100 @@ interface ChatPaneProps {
   attachedEntity: AttachedEntity | null;
   onClearAttachedEntity: () => void;
   connection?: string;
+}
+
+export interface ChatProgressStep {
+  id: string;
+  label: string;
+  state: 'pending' | 'running' | 'complete';
+}
+
+/** Detects when a user message in chat explicitly or implicitly asks to start/create a cohort or pick a starting branch. */
+export function detectImplicitCohortStartAction(
+  text: string,
+  step: CohortWorkspace['journey'] extends { step: infer S } | undefined ? S | undefined : string | undefined
+): CohortAction | null {
+  if (step !== 'chat' && step !== 'recommendations') return null;
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.endsWith('?')) return null;
+
+  if (/\b(?:i\s+(?:already\s+)?have\s+(?:my\s+own\s+)?materials?|use\s+my\s+(?:own\s+)?(?:materials?|sources?|links?|files?))\b/i.test(trimmed)) {
+    return { type: 'choose_starting_point', choice: 'have_material' };
+  }
+
+  if (/\b(?:find\s+materials?\s+for\s+me|start\s+with\s+a\s+goal)\b/i.test(trimmed)) {
+    return { type: 'choose_starting_point', choice: 'find_material' };
+  }
+
+  if (
+    /\b(?:create|start|build|make|launch|open)\s+(?:a\s+|an\s+|my\s+|our\s+|the\s+|own\s+)*(?:new\s+|custom\s+|own\s+)*(?:cohort|course|curriculum|studio)\b/i.test(trimmed) ||
+    /\bcreate\s+my\s+own\b/i.test(trimmed) ||
+    /\blet'?s\s+(?:start|build|create|make)\s+(?:it|this|one|a\s+cohort)\b/i.test(trimmed)
+  ) {
+    return { type: 'create_own_cohort' };
+  }
+
+  return null;
+}
+
+function buildTurnProgressSteps(
+  latestUserText: string,
+  step: string | undefined,
+  hasLessons: boolean,
+  activePhaseIndex: number
+): ChatProgressStep[] {
+  const isCohortStart = /\b(?:start|create|build|make|launch)\b.*\b(?:cohort|course|curriculum|studio)\b|\bcreate\s+my\s+own\b/i.test(latestUserText);
+  const isCohortSearch = /\b(?:search|find|look\s+for|similar|browse)\b.*\bcohorts?\b/i.test(latestUserText);
+
+  const step2Label = isCohortStart
+    ? 'Preparing cohort creation studio'
+    : isCohortSearch
+    ? 'Understanding your learning goal'
+    : step === 'review' || step === 'ready' || hasLessons
+    ? 'Reviewing your curriculum structure'
+    : step === 'material_input' || step === 'discovery'
+    ? 'Analyzing your learning sources'
+    : 'Mapping your learning pathway';
+
+  const step3Label = isCohortStart
+    ? 'Opening cohort studio'
+    : isCohortSearch
+    ? 'Looking for similar cohorts'
+    : 'Drafting tailored response';
+
+  const labels = ['Processing your query', step2Label, step3Label];
+
+  return labels.map((label, idx) => ({
+    id: `turn-step-${idx}`,
+    label,
+    state: idx < activePhaseIndex ? 'complete' : idx === activePhaseIndex ? 'running' : 'pending',
+  }));
+}
+
+function ChatStepChecklist({ steps, ariaLabel = 'Assistant progress steps' }: { steps: ChatProgressStep[]; ariaLabel?: string }) {
+  return (
+    <ol className={styles.chatStepChecklist} aria-label={ariaLabel}>
+      {steps.map(item => (
+        <li
+          key={item.id}
+          className={styles.chatStepItem}
+          data-step-state={item.state}
+          aria-current={item.state === 'running' ? 'step' : undefined}
+        >
+          <span className={styles.stepMarker} aria-hidden="true">
+            {item.state === 'complete' ? (
+              <Check size={12} strokeWidth={2.8} className={styles.stepCheckIcon} />
+            ) : item.state === 'running' ? (
+              <LoaderCircle size={14} strokeWidth={2.4} className={styles.stepSpinnerIcon} />
+            ) : (
+              <span className={styles.stepPendingDot} />
+            )}
+          </span>
+          <span className={styles.stepLabel}>{item.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProps) {
@@ -71,6 +165,42 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
 
   const composerAttachments = useComposerAttachments({ maxFiles: 10, maxLinks: 20 });
 
+  const step = state.view?.journey?.step;
+  const recommendations = state.view?.recommendations;
+  const isRecommendationsSearching =
+    step === 'recommendations' &&
+    (!recommendations || recommendations.status === 'queued' || recommendations.status === 'running');
+
+  // Interactive phase progression for cohort search checklist
+  const [searchLeadPhase, setSearchLeadPhase] = useState<number>(() => (isRecommendationsSearching ? 1 : 2));
+  useEffect(() => {
+    if (!isRecommendationsSearching) {
+      setSearchLeadPhase(2);
+      return;
+    }
+    setSearchLeadPhase(1);
+    const timer = setTimeout(() => {
+      setSearchLeadPhase(2);
+    }, 550);
+    return () => clearTimeout(timer);
+  }, [isRecommendationsSearching, state.view?.journey?.intentVersion]);
+
+  // Interactive phase progression for general AI assistant turns
+  const [turnPhaseIndex, setTurnPhaseIndex] = useState(0);
+  useEffect(() => {
+    if (!activeTurn) {
+      setTurnPhaseIndex(0);
+      return;
+    }
+    setTurnPhaseIndex(0);
+    const t1 = setTimeout(() => setTurnPhaseIndex(1), 650);
+    const t2 = setTimeout(() => setTurnPhaseIndex(2), 1600);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [activeTurn?.runId, activeTurn?.status]);
+
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -89,7 +219,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
     if (scrollRef.current && nearBottom.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length, showsProcessing]);
+  }, [messages.length, showsProcessing, recommendations?.status]);
 
   const handleSend = async (customText?: string) => {
     if (sending || staleSelection || composerAttachments.isExtracting) return;
@@ -114,6 +244,11 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
         const ok = await dispatchAction(sourceAttachmentAction(source));
         if (!ok) throw new Error('Could not save an attachment. Your message and attachments are kept; retry.');
         committedSourceIds.current.add(source.id);
+      }
+
+      const implicitStageAction = detectImplicitCohortStartAction(textToSend, step);
+      if (implicitStageAction) {
+        void dispatchAction(implicitStageAction);
       }
 
       const sourceRefs: Array<{ entity: EntityRef; label: string }> = readySources.map(s => ({
@@ -160,26 +295,88 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
     }
   };
 
-  const step = state.view?.journey?.step;
-
   const goal = state.view?.intent?.trim();
   const lessons = state.view?.lessons ?? [];
+  const hasAssistantMessage = messages.some(message => message.role === 'assistant');
   const latestAssistantText = messages.filter(message => message.role === 'assistant').at(-1)?.parts
     .filter(part => part.type === 'text').map(part => part.text).join(' ') ?? '';
   const asksAboutBackground = /\b(background|experience|familiar|prerequisites)\b/i.test(latestAssistantText);
 
   const latestMessage = messages.at(-1);
-  const isLatestUser = latestMessage?.role === 'user';
+  const latestUserText = useMemo(() => {
+    const lastUser = [...messages].reverse().find(m => m.role === 'user');
+    return lastUser?.parts.filter(p => p.type === 'text').map(p => p.text).join(' ') ?? goal ?? '';
+  }, [messages, goal]);
+
+  const showSearchActivityBubble =
+    step === 'recommendations' ||
+    (!!state.view?.journey &&
+      step !== 'chat' &&
+      step !== 'processing' &&
+      step !== 'ready' &&
+      !hasAssistantMessage &&
+      (messages.length > 0 || !!recommendations));
+
+  const searchChecklistSteps: ChatProgressStep[] = useMemo(() => {
+    if (isRecommendationsSearching) {
+      return [
+        { id: 'search-query', label: 'Processing your query', state: 'complete' },
+        {
+          id: 'search-goal',
+          label: 'Understanding your learning goal',
+          state: searchLeadPhase >= 2 ? 'complete' : 'running',
+        },
+        {
+          id: 'search-cohorts',
+          label: 'Searching cohorts for you',
+          state: searchLeadPhase >= 2 ? 'running' : 'pending',
+        },
+      ];
+    }
+    return [
+      { id: 'search-query', label: 'Processing your query', state: 'complete' },
+      { id: 'search-goal', label: 'Understanding your learning goal', state: 'complete' },
+      { id: 'search-cohorts', label: 'Searching cohorts for you', state: 'complete' },
+    ];
+  }, [isRecommendationsSearching, searchLeadPhase]);
+
+  const searchSummaryMarkdown = useMemo(() => {
+    if (isRecommendationsSearching) return null;
+    const topicLabel = goal || 'your learning goal';
+    if (step === 'recommendations') {
+      if (recommendations?.status === 'failed') {
+        return `I couldn’t finish searching public cohorts for **${topicLabel}** right now. I’ve opened the studio panel on the right where you can retry the search or create your own cohort directly.`;
+      }
+      const matchCount = recommendations?.items?.length ?? 0;
+      if (matchCount > 0) {
+        return `I found **${matchCount}** matching community ${matchCount === 1 ? 'cohort' : 'cohorts'} for **${topicLabel}** and opened them on the right. You can join one directly, or click **Create your own cohort** to build a custom curriculum.`;
+      }
+      return `I searched our public cohorts for **${topicLabel}**, and no matching community cohorts exist yet. I’ve opened the studio on the right — click **Create your own cohort** (or tell me here how you’d like to start) to launch the first one!`;
+    }
+    return `I’ve opened the cohort studio on the right for **${topicLabel}**. Choose your starting point on the canvas or tell me what materials and goals you have in mind!`;
+  }, [isRecommendationsSearching, goal, step, recommendations?.status, recommendations?.items?.length]);
+
+  const isLatestUser = latestMessage?.role === 'user' && !showSearchActivityBubble;
   const hasActiveTurn =
     activity.turns.some(t => t.status === 'pending' || t.status === 'queued' || t.status === 'running') ||
     !!activeTurn;
-  const showSuggestions = !sending && !hasActiveTurn && !composerAttachments.isExtracting && !isLatestUser;
+  const showSuggestions =
+    !sending &&
+    !hasActiveTurn &&
+    !isRecommendationsSearching &&
+    !composerAttachments.isExtracting &&
+    !isLatestUser;
 
   const suggestions = stageSuggestions(step, {
     goal,
     firstLessonTitle: lessons[0]?.title,
     asksAboutBackground,
   });
+
+  const turnChecklistSteps = useMemo(
+    () => buildTurnProgressSteps(latestUserText, step, lessons.length > 0, turnPhaseIndex),
+    [latestUserText, step, lessons.length, turnPhaseIndex]
+  );
 
   const placeholder = step === 'chat'
     ? 'What do you want to learn? Ask a question, explore topics, or paste links...'
@@ -325,12 +522,8 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
             );
           })}
 
-        {(step === 'processing' || step === 'ready') && state.view && (
-          <ProcessingChecklist workspace={state.view} />
-        )}
-
-        {activeTurn && (
-          <div className={`${styles.messageRow} ${styles.messageAssistant}`} role="status">
+        {showSearchActivityBubble && (
+          <div className={`${styles.messageRow} ${styles.messageAssistant}`} role="status" aria-live="polite">
             <div className={styles.assistantSparkleWrapper} aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -343,6 +536,31 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
               />
             </div>
             <div className={styles.assistantBubble}>
+              <ChatStepChecklist steps={searchChecklistSteps} ariaLabel="Cohort search progress" />
+              {searchSummaryMarkdown && <ChatMarkdown content={searchSummaryMarkdown} />}
+            </div>
+          </div>
+        )}
+
+        {(step === 'processing' || step === 'ready') && state.view && (
+          <ProcessingChecklist workspace={state.view} />
+        )}
+
+        {activeTurn && (
+          <div className={`${styles.messageRow} ${styles.messageAssistant}`} role="status" aria-live="polite">
+            <div className={styles.assistantSparkleWrapper} aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/undone-logo.svg"
+                alt=""
+                aria-hidden="true"
+                width={20}
+                height={20}
+                className={styles.assistantMark}
+              />
+            </div>
+            <div className={styles.assistantBubble}>
+              <ChatStepChecklist steps={turnChecklistSteps} ariaLabel="Assistant turn progress" />
               <div className={styles.thinkingContainer}>
                 <div className={styles.thinkingDots} aria-label="Thinking">
                   <span className={styles.dot} />

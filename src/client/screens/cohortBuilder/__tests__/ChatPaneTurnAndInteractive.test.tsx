@@ -7,6 +7,7 @@ import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 
 const fakeState = vi.hoisted(() => ({
   send: vi.fn(),
+  dispatchAction: vi.fn().mockResolvedValue(true),
   view: null as CohortWorkspace | null,
   messages: [] as Array<{
     id: string;
@@ -23,7 +24,7 @@ vi.mock('@/src/client/interaction/hooks', () => ({
   useWorkspaceMessages: () => fakeState.messages,
   useSendMessage: () => fakeState.send,
   useInteractionState: () => ({ workspaceId: 'ws-test', view: fakeState.view, pending: {} }),
-  useDispatchAction: () => vi.fn().mockResolvedValue(true),
+  useDispatchAction: () => fakeState.dispatchAction,
 }));
 
 vi.mock('../useAssistantActivity', () => ({
@@ -78,6 +79,8 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
     fakeState.view = null;
     fakeState.messages = [];
     fakeState.turns = [];
+    fakeState.dispatchAction.mockClear();
+    fakeState.send.mockClear();
     vi.restoreAllMocks();
   });
 
@@ -315,5 +318,62 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
     const row = screen.getByRole('group', { name: /Attached references/i });
     expect(row).toBeTruthy();
     expect(row.textContent).toContain('Distributed Systems Spec.pdf');
+  });
+
+  it('renders live multi-step checklist during search and completes checklist with AI summary on ready', () => {
+    fakeState.view = {
+      ...baseWorkspace,
+      journey: { version: 1, step: 'recommendations', branch: null, processingStarted: false, intentVersion: 0 },
+      recommendations: {
+        requestId: 'req-1',
+        fingerprint: 'fp-1',
+        status: 'running',
+        generation: 1,
+        items: [],
+      },
+    };
+
+    const { rerender } = render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+
+    // In-flight search checklist
+    expect(screen.getByRole('list', { name: 'Cohort search progress' })).toBeTruthy();
+    expect(screen.getByText('Processing your query')).toBeTruthy();
+    expect(screen.getByText('Understanding your learning goal')).toBeTruthy();
+    expect(screen.getByText('Searching cohorts for you')).toBeTruthy();
+
+    // When search is ready with 0 matches
+    fakeState.view = {
+      ...fakeState.view,
+      recommendations: {
+        requestId: 'req-1',
+        fingerprint: 'fp-1',
+        status: 'ready',
+        generation: 1,
+        items: [],
+      },
+    };
+    rerender(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+
+    const steps = screen.getAllByRole('listitem');
+    expect(steps.every(s => s.getAttribute('data-step-state') === 'complete')).toBe(true);
+    expect(screen.getByText(/no matching community cohorts exist yet/i)).toBeTruthy();
+  });
+
+  it('immediately dispatches create_own_cohort when user sends an implicit cohort start message', async () => {
+    fakeState.view = {
+      ...baseWorkspace,
+      journey: { version: 1, step: 'chat', branch: null, processingStarted: false, intentVersion: 0 },
+    };
+
+    render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+
+    const textarea = screen.getByRole('textbox', { name: 'Message the cohort assistant' });
+    fireEvent.change(textarea, { target: { value: 'I want to start a cohort for robotics' } });
+    fireEvent.submit(textarea.closest('form')!);
+
+    await waitFor(() => {
+      expect(fakeState.dispatchAction).toHaveBeenCalledWith({ type: 'create_own_cohort' });
+      expect(fakeState.send).toHaveBeenCalledWith('I want to start a cohort for robotics', expect.anything());
+    });
   });
 });
