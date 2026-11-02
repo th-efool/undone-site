@@ -100,10 +100,14 @@ describe('owned creation workspace', () => {
     const running = applyCommand(saved, { type: 'request_recommendations', query: result.intent.rawQuery, requestId: result.requestId });
     saved = applyEvent(running, { type: 'recommendations_received', result: { ...result, items: [] } });
     render(<CreationExperience draftId={draftId} resume />);
-    expect(await screen.findByText('No matching public cohorts were found. You can start your own from this intent.')).toBeTruthy();
+    expect(
+      await screen.findByText(
+        'No matching public cohorts were found. Be the first to create a cohort for this intent and start learning with a community.'
+      )
+    ).toBeTruthy();
     expect(screen.queryByText('Finding your people…')).toBeNull();
     expect(screen.queryByText('I found a few ways you could jump in.')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /create my own cohort/i }));
+    fireEvent.click(screen.getByRole('button', { name: /create (my|your) own cohort/i }));
     await screen.findByRole('button', { name: /i already have material/i });
     expect(saved.stage).toBe('starting_point');
   });
