@@ -9,6 +9,11 @@ import { useComposerAttachments, AttachmentTray } from '@/src/client/components/
 import { useAssistantActivity } from './useAssistantActivity';
 import { sourceAttachmentAction } from './source-attachment-action';
 import { stageSuggestions } from './chat-suggestions';
+import {
+  buildVariedSearchSteps,
+  buildVariedSearchSummary,
+  buildVariedTurnSteps,
+} from './chat-progress-variations';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 import { ProcessingChecklist } from './stages/ProcessingChecklist';
@@ -69,40 +74,6 @@ export function detectImplicitCohortStartAction(
   return null;
 }
 
-function buildTurnProgressSteps(
-  latestUserText: string,
-  step: string | undefined,
-  hasLessons: boolean,
-  activePhaseIndex: number
-): ChatProgressStep[] {
-  const isCohortStart = /\b(?:start|create|build|make|launch)\b.*\b(?:cohort|course|curriculum|studio)\b|\bcreate\s+my\s+own\b/i.test(latestUserText);
-  const isCohortSearch = /\b(?:search|find|look\s+for|similar|browse)\b.*\bcohorts?\b/i.test(latestUserText);
-
-  const step2Label = isCohortStart
-    ? 'Preparing cohort creation studio'
-    : isCohortSearch
-    ? 'Understanding your learning goal'
-    : step === 'review' || step === 'ready' || hasLessons
-    ? 'Reviewing your curriculum structure'
-    : step === 'material_input' || step === 'discovery'
-    ? 'Analyzing your learning sources'
-    : 'Mapping your learning pathway';
-
-  const step3Label = isCohortStart
-    ? 'Opening cohort studio'
-    : isCohortSearch
-    ? 'Looking for similar cohorts'
-    : 'Drafting tailored response';
-
-  const labels = ['Processing your query', step2Label, step3Label];
-
-  return labels.map((label, idx) => ({
-    id: `turn-step-${idx}`,
-    label,
-    state: idx < activePhaseIndex ? 'complete' : idx === activePhaseIndex ? 'running' : 'pending',
-  }));
-}
-
 export function ChatStepChecklist({ steps, ariaLabel = 'Assistant progress steps' }: { steps: ChatProgressStep[]; ariaLabel?: string }) {
   return (
     <ol className={styles.chatStepChecklist} aria-label={ariaLabel}>
@@ -115,9 +86,9 @@ export function ChatStepChecklist({ steps, ariaLabel = 'Assistant progress steps
         >
           <span className={styles.stepMarker} aria-hidden="true">
             {item.state === 'complete' ? (
-              <Check size={12} strokeWidth={2.8} className={styles.stepCheckIcon} />
+              <Check size={10} strokeWidth={3} className={styles.stepCheckIcon} />
             ) : item.state === 'running' ? (
-              <LoaderCircle size={14} strokeWidth={2.4} className={styles.stepSpinnerIcon} />
+              <LoaderCircle size={12} strokeWidth={2.5} className={styles.stepSpinnerIcon} />
             ) : (
               <span className={styles.stepPendingDot} />
             )}
@@ -171,21 +142,25 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
     step === 'recommendations' &&
     (!recommendations || recommendations.status === 'queued' || recommendations.status === 'running');
 
-  // Interactive phase progression for cohort search checklist
-  const [searchLeadPhase, setSearchLeadPhase] = useState<number>(() => (isRecommendationsSearching ? 1 : 2));
+  // Interactive phase progression for cohort search checklist (supports 2 to 5 steps)
+  const [searchLeadPhase, setSearchLeadPhase] = useState<number>(() => (isRecommendationsSearching ? 1 : 5));
   useEffect(() => {
     if (!isRecommendationsSearching) {
-      setSearchLeadPhase(2);
+      setSearchLeadPhase(5);
       return;
     }
     setSearchLeadPhase(1);
-    const timer = setTimeout(() => {
-      setSearchLeadPhase(2);
-    }, 550);
-    return () => clearTimeout(timer);
+    const t1 = setTimeout(() => setSearchLeadPhase(2), 450);
+    const t2 = setTimeout(() => setSearchLeadPhase(3), 1050);
+    const t3 = setTimeout(() => setSearchLeadPhase(4), 1750);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [isRecommendationsSearching, state.view?.journey?.intentVersion]);
 
-  // Interactive phase progression for general AI assistant turns
+  // Interactive phase progression for general AI assistant turns (supports 2 to 5 steps)
   const [turnPhaseIndex, setTurnPhaseIndex] = useState(0);
   useEffect(() => {
     if (!activeTurn) {
@@ -193,11 +168,15 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
       return;
     }
     setTurnPhaseIndex(0);
-    const t1 = setTimeout(() => setTurnPhaseIndex(1), 650);
-    const t2 = setTimeout(() => setTurnPhaseIndex(2), 1600);
+    const t1 = setTimeout(() => setTurnPhaseIndex(1), 500);
+    const t2 = setTimeout(() => setTurnPhaseIndex(2), 1150);
+    const t3 = setTimeout(() => setTurnPhaseIndex(3), 1850);
+    const t4 = setTimeout(() => setTurnPhaseIndex(4), 2600);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [activeTurn?.runId, activeTurn?.status]);
 
@@ -303,10 +282,21 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
   const asksAboutBackground = /\b(background|experience|familiar|prerequisites)\b/i.test(latestAssistantText);
 
   const latestMessage = messages.at(-1);
+  const initialUserText = useMemo(() => {
+    const firstUser = messages.find(m => m.role === 'user');
+    return firstUser?.parts.filter(p => p.type === 'text').map(p => p.text).join(' ') ?? goal ?? '';
+  }, [messages, goal]);
+
   const latestUserText = useMemo(() => {
     const lastUser = [...messages].reverse().find(m => m.role === 'user');
     return lastUser?.parts.filter(p => p.type === 'text').map(p => p.text).join(' ') ?? goal ?? '';
   }, [messages, goal]);
+
+  // When intake enters in search mode, messages[0] is a user message with no persisted assistant reply at messages[1].
+  const hasUnansweredInitialUserMessage =
+    messages.length > 0 &&
+    messages[0]?.role === 'user' &&
+    (!messages[1] || messages[1].role === 'user');
 
   const showSearchActivityBubble =
     step === 'recommendations' ||
@@ -314,49 +304,50 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
       step !== 'chat' &&
       step !== 'processing' &&
       step !== 'ready' &&
-      !hasAssistantMessage &&
-      (messages.length > 0 || !!recommendations));
+      (hasUnansweredInitialUserMessage || (!hasAssistantMessage && (messages.length > 0 || !!recommendations))));
 
-  const searchChecklistSteps: ChatProgressStep[] = useMemo(() => {
-    if (isRecommendationsSearching) {
-      return [
-        { id: 'search-query', label: 'Processing your query', state: 'complete' },
-        {
-          id: 'search-goal',
-          label: 'Understanding your learning goal',
-          state: searchLeadPhase >= 2 ? 'complete' : 'running',
-        },
-        {
-          id: 'search-cohorts',
-          label: 'Searching cohorts for you',
-          state: searchLeadPhase >= 2 ? 'running' : 'pending',
-        },
-      ];
+  // Anchor the search activity bubble immediately after the user message that triggered the search
+  // so subsequent user questions and assistant replies appear below it in true chronological order.
+  const searchAnchorMessageId = useMemo(() => {
+    if (!showSearchActivityBubble || messages.length === 0) return null;
+    if (hasUnansweredInitialUserMessage) {
+      return messages[0].id;
     }
-    return [
-      { id: 'search-query', label: 'Processing your query', state: 'complete' },
-      { id: 'search-goal', label: 'Understanding your learning goal', state: 'complete' },
-      { id: 'search-cohorts', label: 'Searching cohorts for you', state: 'complete' },
-    ];
-  }, [isRecommendationsSearching, searchLeadPhase]);
+    const lastUser = [...messages].reverse().find(m => m.role === 'user');
+    return lastUser?.id ?? messages[messages.length - 1].id;
+  }, [showSearchActivityBubble, messages, hasUnansweredInitialUserMessage]);
 
-  const searchSummaryMarkdown = useMemo(() => {
-    if (isRecommendationsSearching) return null;
-    const topicLabel = goal || 'your learning goal';
-    if (step === 'recommendations') {
-      if (recommendations?.status === 'failed') {
-        return `I couldn’t finish searching public cohorts for **${topicLabel}** right now. I’ve opened the studio panel on the right where you can retry the search or create your own cohort directly.`;
-      }
-      const matchCount = recommendations?.items?.length ?? 0;
-      if (matchCount > 0) {
-        return `I found **${matchCount}** matching community ${matchCount === 1 ? 'cohort' : 'cohorts'} for **${topicLabel}** and opened them on the right. You can join one directly, or click **Create your own cohort** to build a custom curriculum.`;
-      }
-      return `I searched our public cohorts for **${topicLabel}**, and no matching community cohorts exist yet. I’ve opened the studio on the right — click **Create your own cohort** (or tell me here how you’d like to start) to launch the first one!`;
-    }
-    return `I’ve opened the cohort studio on the right for **${topicLabel}**. Choose your starting point on the canvas or tell me what materials and goals you have in mind!`;
-  }, [isRecommendationsSearching, goal, step, recommendations?.status, recommendations?.items?.length]);
+  const intentVersion = state.view?.journey?.intentVersion ?? 0;
 
-  const isLatestUser = latestMessage?.role === 'user' && !showSearchActivityBubble;
+  const searchChecklistSteps: ChatProgressStep[] = useMemo(
+    () =>
+      buildVariedSearchSteps({
+        goal,
+        query: initialUserText,
+        intentVersion,
+        isSearching: isRecommendationsSearching,
+        activePhaseIndex: searchLeadPhase,
+      }),
+    [goal, initialUserText, intentVersion, isRecommendationsSearching, searchLeadPhase]
+  );
+
+  const searchSummaryMarkdown = useMemo(
+    () =>
+      buildVariedSearchSummary({
+        goal: goal || initialUserText,
+        step,
+        status: recommendations?.status,
+        matchCount: recommendations?.items?.length ?? 0,
+        intentVersion,
+        isSearching: isRecommendationsSearching,
+      }),
+    [goal, initialUserText, step, recommendations?.status, recommendations?.items?.length, intentVersion, isRecommendationsSearching]
+  );
+
+  const isSearchBubbleAtEnd =
+    showSearchActivityBubble &&
+    (!searchAnchorMessageId || latestMessage?.id === searchAnchorMessageId);
+  const isLatestUser = latestMessage?.role === 'user' && !isSearchBubbleAtEnd;
   const hasActiveTurn =
     activity.turns.some(t => t.status === 'pending' || t.status === 'queued' || t.status === 'running') ||
     !!activeTurn;
@@ -374,8 +365,41 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
   });
 
   const turnChecklistSteps = useMemo(
-    () => buildTurnProgressSteps(latestUserText, step, lessons.length > 0, turnPhaseIndex),
-    [latestUserText, step, lessons.length, turnPhaseIndex]
+    () =>
+      buildVariedTurnSteps({
+        latestUserText,
+        goal,
+        step,
+        hasLessons: lessons.length > 0,
+        runId: activeTurn?.runId,
+        activePhaseIndex: turnPhaseIndex,
+      }),
+    [latestUserText, goal, step, lessons.length, activeTurn?.runId, turnPhaseIndex]
+  );
+
+  const renderSearchActivityBubble = () => (
+    <div
+      key="cohort-search-activity-bubble"
+      className={`${styles.messageRow} ${styles.messageAssistant}`}
+      role="status"
+      aria-live="polite"
+    >
+      <div className={styles.assistantSparkleWrapper} aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/undone-logo.svg"
+          alt=""
+          aria-hidden="true"
+          width={20}
+          height={20}
+          className={styles.assistantMark}
+        />
+      </div>
+      <div className={styles.assistantBubble}>
+        <ChatStepChecklist steps={searchChecklistSteps} ariaLabel="Cohort search progress" />
+        {searchSummaryMarkdown && <ChatMarkdown content={searchSummaryMarkdown} />}
+      </div>
+    </div>
   );
 
   const placeholder = step === 'chat'
@@ -405,142 +429,126 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
         {messages.map(m => {
             const isUser = m.role === 'user';
             return (
-              <div
-                key={m.id}
-                className={`${styles.messageRow} ${isUser ? styles.messageUser : styles.messageAssistant}`}
-              >
-                {!isUser && (
-                  <div className={styles.assistantSparkleWrapper} aria-hidden="true">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/undone-logo.svg"
-                      alt=""
-                      aria-hidden="true"
-                      width={20}
-                      height={20}
-                      className={styles.assistantMark}
-                    />
-                  </div>
-                )}
-                {isUser && (
-                  (() => {
-                    const entityParts = m.parts.filter(
-                      (p): p is Extract<typeof p, { type: 'entity_ref' }> => p.type === 'entity_ref' && !!p.entity
-                    );
-                    if (entityParts.length === 0) return null;
-                    return (
-                      <div className={styles.userAttachmentsRow} role="group" aria-label="Attached references">
-                        {entityParts.map((p, idx) => {
-                          const isSource = p.entity.kind === 'source';
-                          const fullTitle = p.label ?? p.entity.id;
-                          return (
+              <React.Fragment key={m.id}>
+                <div
+                  className={`${styles.messageRow} ${isUser ? styles.messageUser : styles.messageAssistant}`}
+                >
+                  {!isUser && (
+                    <div className={styles.assistantSparkleWrapper} aria-hidden="true">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/undone-logo.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width={20}
+                        height={20}
+                        className={styles.assistantMark}
+                      />
+                    </div>
+                  )}
+                  {isUser && (
+                    (() => {
+                      const entityParts = m.parts.filter(
+                        (p): p is Extract<typeof p, { type: 'entity_ref' }> => p.type === 'entity_ref' && !!p.entity
+                      );
+                      if (entityParts.length === 0) return null;
+                      return (
+                        <div className={styles.userAttachmentsRow} role="group" aria-label="Attached references">
+                          {entityParts.map((p, idx) => {
+                            const isSource = p.entity.kind === 'source';
+                            const fullTitle = p.label ?? p.entity.id;
+                            return (
+                              <button
+                                type="button"
+                                key={idx}
+                                className={isSource ? styles.sourceAttachmentChip : styles.entityChip}
+                                data-entity-id={p.entity.id}
+                                data-entity-version={p.entity.version}
+                                title={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
+                                aria-label={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
+                                onClick={() => {
+                                  if (isSource) return;
+                                  const targetId = p.entity.id.startsWith('lesson-') ? p.entity.id : `lesson-${p.entity.id}`;
+                                  document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                              >
+                                {isSource ? (
+                                  <Paperclip size={11} className={styles.entityChipIcon} aria-hidden="true" />
+                                ) : (
+                                  <BookOpen size={11} className={styles.entityChipIcon} aria-hidden="true" />
+                                )}
+                                <span className={styles.entityChipText}>{fullTitle}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()
+                  )}
+                  <div className={isUser ? styles.userBubble : styles.assistantBubble}>
+                    {isUser && !m.parts.some(p => p.type === 'text' && p.text.trim()) && (
+                      <p className={styles.userText}>Shared reference materials</p>
+                    )}
+                    {m.parts.map((p, idx) => {
+                      if (p.type === 'text') {
+                        return isUser ? (
+                          <p key={idx} className={styles.userText}>{p.text}</p>
+                        ) : (
+                          <ChatMarkdown key={idx} content={p.text} />
+                        );
+                      }
+                      if (p.type === 'entity_ref' && p.entity && !isUser) {
+                        const isSource = p.entity.kind === 'source';
+                        const fullTitle = p.label ?? p.entity.id;
+                        const entityId = p.entity.id;
+                        const entityVersion = p.entity.version;
+                        return (
+                          <div key={idx} className={styles.chipsContainer}>
                             <button
                               type="button"
-                              key={idx}
                               className={isSource ? styles.sourceAttachmentChip : styles.entityChip}
-                              data-entity-id={p.entity.id}
-                              data-entity-version={p.entity.version}
+                              data-entity-id={entityId}
+                              data-entity-version={entityVersion}
                               title={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
                               aria-label={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
                               onClick={() => {
                                 if (isSource) return;
-                                const targetId = p.entity.id.startsWith('lesson-') ? p.entity.id : `lesson-${p.entity.id}`;
-                                document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+                                const targetId = entityId.startsWith('lesson-') ? entityId : `lesson-${entityId}`;
+                                if (typeof window !== 'undefined') {
+                                  window.dispatchEvent(
+                                    new CustomEvent('cohort:highlight-entity', {
+                                      detail: { entityId, targetId, kind: p.entity?.kind ?? 'lesson' },
+                                    })
+                                  );
+                                }
+                                const target = document.getElementById(targetId) || document.getElementById(entityId);
+                                if (target) {
+                                  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  target.focus?.();
+                                }
                               }}
                             >
                               {isSource ? (
-                                <Paperclip size={11} className={styles.entityChipIcon} aria-hidden="true" />
+                                <Paperclip size={12} className={styles.entityChipIcon} aria-hidden="true" />
                               ) : (
-                                <BookOpen size={11} className={styles.entityChipIcon} aria-hidden="true" />
+                                <BookOpen size={12} className={styles.entityChipIcon} aria-hidden="true" />
                               )}
+                              <span className={styles.entityChipPrefix}>{isSource ? 'Source:' : 'Lesson:'}</span>
                               <span className={styles.entityChipText}>{fullTitle}</span>
                             </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()
-                )}
-                <div className={isUser ? styles.userBubble : styles.assistantBubble}>
-                  {isUser && !m.parts.some(p => p.type === 'text' && p.text.trim()) && (
-                    <p className={styles.userText}>Shared reference materials</p>
-                  )}
-                  {m.parts.map((p, idx) => {
-                    if (p.type === 'text') {
-                      return isUser ? (
-                        <p key={idx} className={styles.userText}>{p.text}</p>
-                      ) : (
-                        <ChatMarkdown key={idx} content={p.text} />
-                      );
-                    }
-                    if (p.type === 'entity_ref' && p.entity && !isUser) {
-                      const isSource = p.entity.kind === 'source';
-                      const fullTitle = p.label ?? p.entity.id;
-                      const entityId = p.entity.id;
-                      const entityVersion = p.entity.version;
-                      return (
-                        <div key={idx} className={styles.chipsContainer}>
-                          <button
-                            type="button"
-                            className={isSource ? styles.sourceAttachmentChip : styles.entityChip}
-                            data-entity-id={entityId}
-                            data-entity-version={entityVersion}
-                            title={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
-                            aria-label={isSource ? `Source: ${fullTitle}` : `Lesson: ${fullTitle}`}
-                            onClick={() => {
-                              if (isSource) return;
-                              const targetId = entityId.startsWith('lesson-') ? entityId : `lesson-${entityId}`;
-                              if (typeof window !== 'undefined') {
-                                window.dispatchEvent(
-                                  new CustomEvent('cohort:highlight-entity', {
-                                    detail: { entityId, targetId, kind: p.entity?.kind ?? 'lesson' },
-                                  })
-                                );
-                              }
-                              const target = document.getElementById(targetId) || document.getElementById(entityId);
-                              if (target) {
-                                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                target.focus?.();
-                              }
-                            }}
-                          >
-                            {isSource ? (
-                              <Paperclip size={12} className={styles.entityChipIcon} aria-hidden="true" />
-                            ) : (
-                              <BookOpen size={12} className={styles.entityChipIcon} aria-hidden="true" />
-                            )}
-                            <span className={styles.entityChipPrefix}>{isSource ? 'Source:' : 'Lesson:'}</span>
-                            <span className={styles.entityChipText}>{fullTitle}</span>
-                          </button>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
                 </div>
-              </div>
+                {showSearchActivityBubble && searchAnchorMessageId === m.id && renderSearchActivityBubble()}
+              </React.Fragment>
             );
           })}
 
-        {showSearchActivityBubble && (
-          <div className={`${styles.messageRow} ${styles.messageAssistant}`} role="status" aria-live="polite">
-            <div className={styles.assistantSparkleWrapper} aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/undone-logo.svg"
-                alt=""
-                aria-hidden="true"
-                width={20}
-                height={20}
-                className={styles.assistantMark}
-              />
-            </div>
-            <div className={styles.assistantBubble}>
-              <ChatStepChecklist steps={searchChecklistSteps} ariaLabel="Cohort search progress" />
-              {searchSummaryMarkdown && <ChatMarkdown content={searchSummaryMarkdown} />}
-            </div>
-          </div>
-        )}
+        {showSearchActivityBubble && !searchAnchorMessageId && renderSearchActivityBubble()}
 
         {(step === 'processing' || step === 'ready') && state.view && (
           <ProcessingChecklist workspace={state.view} />

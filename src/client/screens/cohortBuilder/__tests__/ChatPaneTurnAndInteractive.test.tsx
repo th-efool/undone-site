@@ -38,6 +38,11 @@ vi.mock('@/src/client/hooks/useTheme', () => ({
 import { ChatPane } from '../ChatPane';
 import { CurriculumStageView } from '../stages/CurriculumStageView';
 import { planningSuggestions, stageSuggestions } from '../chat-suggestions';
+import {
+  buildVariedSearchSteps,
+  buildVariedSearchSummary,
+  buildVariedTurnSteps,
+} from '../chat-progress-variations';
 
 describe('planningSuggestions pure helper', () => {
   it('handles empty goal with choose goal and assess background', () => {
@@ -335,11 +340,14 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
 
     const { rerender } = render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
 
-    // In-flight search checklist
-    expect(screen.getByRole('list', { name: 'Cohort search progress' })).toBeTruthy();
-    expect(screen.getByText('Processing your query')).toBeTruthy();
-    expect(screen.getByText('Understanding your learning goal')).toBeTruthy();
-    expect(screen.getByText('Searching cohorts for you')).toBeTruthy();
+    // In-flight search checklist with dynamic step count (2..5)
+    const checklist = screen.getByRole('list', { name: 'Cohort search progress' });
+    expect(checklist).toBeTruthy();
+    const initialItems = screen.getAllByRole('listitem');
+    expect(initialItems.length).toBeGreaterThanOrEqual(2);
+    expect(initialItems.length).toBeLessThanOrEqual(5);
+    expect(initialItems[0].getAttribute('data-step-state')).toBe('complete');
+    expect(initialItems.some(s => s.getAttribute('data-step-state') === 'running')).toBe(true);
 
     // When search is ready with 0 matches
     fakeState.view = {
@@ -356,7 +364,114 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
 
     const steps = screen.getAllByRole('listitem');
     expect(steps.every(s => s.getAttribute('data-step-state') === 'complete')).toBe(true);
-    expect(screen.getByText(/no matching community cohorts exist yet/i)).toBeTruthy();
+    expect(screen.getByText(/Create your own cohort/i)).toBeTruthy();
+  });
+
+  it('keeps initial search checklist and summary anchored right after initial user query when follow-up messages are sent', () => {
+    fakeState.view = {
+      ...baseWorkspace,
+      intent: 'robotics engineering',
+      journey: { version: 1, step: 'recommendations', branch: null, processingStarted: false, intentVersion: 0 },
+      recommendations: {
+        requestId: 'req-robotics',
+        fingerprint: 'fp-robotics',
+        status: 'ready',
+        generation: 1,
+        items: [],
+      },
+    };
+    fakeState.messages = [
+      { id: 'msg-user-1', role: 'user', parts: [{ type: 'text', text: 'robotics engineering' }] },
+      { id: 'msg-user-2', role: 'user', parts: [{ type: 'text', text: 'what should i do now' }] },
+      {
+        id: 'msg-asst-2',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Welcome to robotics engineering! Here is a 4-week introductory plan.' }],
+      },
+    ];
+
+    render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+
+    const firstQueryEl = screen.getAllByText('robotics engineering').find(el => el.tagName === 'P')!;
+    const searchSummaryBoldEl = screen.getAllByText('robotics engineering').find(el => el.tagName === 'STRONG')!;
+    const searchChecklistEl = screen.getByRole('list', { name: 'Cohort search progress' });
+    const secondQueryEl = screen.getByText('what should i do now');
+    const secondReplyEl = screen.getByText(/Welcome to robotics engineering! Here is a 4-week introductory plan\./i);
+
+    // Verify chronological DOM order:
+    // 1. firstQueryEl -> 2. searchChecklistEl -> 3. searchSummaryBoldEl -> 4. secondQueryEl -> 5. secondReplyEl
+    expect(firstQueryEl.compareDocumentPosition(searchChecklistEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(searchChecklistEl.compareDocumentPosition(searchSummaryBoldEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(searchSummaryBoldEl.compareDocumentPosition(secondQueryEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(secondQueryEl.compareDocumentPosition(secondReplyEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('varies step counts (2 to 5 steps) and step/summary phrasing across topics and queries', () => {
+    const sampleTopics = [
+      'robotics engineering',
+      'quantum computing fundamentals',
+      'rust systems programming',
+      'macroeconomics & monetary policy',
+      'creative shaders with webgl',
+      'biochemistry & protein folding',
+      'distributed consensus protocols',
+      'music theory for electronic producers',
+      'applied linear algebra',
+      'Zero-knowledge cryptography',
+      'compiler design in OCaml',
+      'urban sketching & perspective',
+    ];
+
+    const searchStepCounts = new Set<number>();
+    const firstStepLabels = new Set<string>();
+    const zeroMatchSummaries = new Set<string>();
+
+    for (const topic of sampleTopics) {
+      const steps = buildVariedSearchSteps({
+        goal: topic,
+        query: topic,
+        intentVersion: 0,
+        isSearching: true,
+        activePhaseIndex: 1,
+      });
+      expect(steps.length).toBeGreaterThanOrEqual(2);
+      expect(steps.length).toBeLessThanOrEqual(5);
+      searchStepCounts.add(steps.length);
+      firstStepLabels.add(steps[0].label);
+
+      const summary = buildVariedSearchSummary({
+        goal: topic,
+        step: 'recommendations',
+        status: 'ready',
+        matchCount: 0,
+        intentVersion: 0,
+        isSearching: false,
+      });
+      expect(summary).toBeTruthy();
+      zeroMatchSummaries.add(summary!);
+    }
+
+    // Should produce multiple distinct step counts (at least 3 different counts across 2..5)
+    expect(searchStepCounts.size).toBeGreaterThanOrEqual(3);
+    expect(firstStepLabels.size).toBeGreaterThanOrEqual(4);
+    expect(zeroMatchSummaries.size).toBeGreaterThanOrEqual(4);
+
+    // Also verify turn steps vary count across different user prompts
+    const turnCounts = new Set<number>();
+    for (const prompt of sampleTopics) {
+      const turnSteps = buildVariedTurnSteps({
+        latestUserText: prompt,
+        goal: prompt,
+        step: 'recommendations',
+        hasLessons: false,
+        runId: `run-${prompt}`,
+        activePhaseIndex: 1,
+      });
+      expect(turnSteps.length).toBeGreaterThanOrEqual(2);
+      expect(turnSteps.length).toBeLessThanOrEqual(5);
+      turnCounts.add(turnSteps.length);
+    }
+    expect(turnCounts.size).toBeGreaterThanOrEqual(3);
   });
 
   it('immediately dispatches create_own_cohort when user sends an implicit cohort start message', async () => {

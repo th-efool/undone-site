@@ -13,6 +13,7 @@ import { RecommendationPending } from '@/src/client/screens/cohortCreation/compo
 import type { useCreation } from '@/src/client/screens/cohortCreation/hooks/useCreation';
 import { clearIntakeDraft, readIntakeDraft, saveIntakeDraft } from './intake-draft';
 import { ChatStepChecklist } from './ChatPane';
+import { buildVariedSearchSteps } from './chat-progress-variations';
 import builderStyles from './CohortBuilder.module.css';
 import styles from './CohortIntakeScreen.module.css';
 
@@ -160,11 +161,14 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
                 <p>Let’s make a learning journey that fits you.</p>
                 {busy && !isPlanMode && (
                   <ChatStepChecklist
-                    steps={[
-                      { id: 'handoff-query', label: 'Processing your query', state: 'running' },
-                      { id: 'handoff-goal', label: 'Understanding your learning goal', state: 'pending' },
-                      { id: 'handoff-search', label: 'Searching cohorts for you', state: 'pending' },
-                    ]}
+                    steps={buildVariedSearchSteps({
+                      query: draft?.prompt,
+                      isSearching: true,
+                      activePhaseIndex: 1,
+                    }).map((s, idx) => ({
+                      ...s,
+                      state: idx === 0 ? 'running' : 'pending',
+                    }))}
                   />
                 )}
               </div>
