@@ -38,9 +38,11 @@ export function deriveStageProgress(workspace: CohortWorkspace): StageProgressDe
       count = done ? total : 0;
     }
     if (stage === 'assembly') done = complete;
-    const failed = priorComplete && (failedCount > 0 || (!jobs.length && workspace.processing.status === 'failed' && i === index));
-    const stopped = priorComplete && ((canceled && (!jobs.length || stageJobs.length > 0)) || stageJobs.some(j => j.status === 'canceled'));
-    const active = priorComplete && (stageJobs.some(j => j.status === 'running' || j.status === 'queued') || (!jobs.length && ['queued', 'processing'].includes(workspace.processing.status) && i === index));
+    const isRunningJob = stageJobs.some(j => j.status === 'running');
+    const isQueuedJob = stageJobs.some(j => j.status === 'queued');
+    const failed = (failedCount > 0 && (priorComplete || i <= index)) || (!jobs.length && workspace.processing.status === 'failed' && i === index);
+    const stopped = (canceled && (!jobs.length || stageJobs.length > 0)) || (stageJobs.some(j => j.status === 'canceled') && (priorComplete || i <= index));
+    const active = isRunningJob || ((priorComplete || i <= index) && isQueuedJob) || (!jobs.length && ['queued', 'processing'].includes(workspace.processing.status) && i === index);
     const status: StageStatus['status'] = done ? 'complete' : failed ? 'failed' : stopped ? 'canceled' : active ? 'running' : 'pending';
     priorComplete = done;
     return [stage, {
