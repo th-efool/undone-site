@@ -381,6 +381,11 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'create_own_cohort') {
     const current = journey();
     if (current.step === 'chat' || current.step === 'recommendations') {
+      if (next.sources.length > 0) {
+        current.branch = 'have_material';
+        current.step = 'material_input';
+        return navigationResult('Material stage opened with existing sources.');
+      }
       current.step = 'starting_point';
       return navigationResult('Starting point opened.');
     }

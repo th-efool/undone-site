@@ -158,4 +158,27 @@ describe('conversational co-design transitions', () => {
   it('starts resource discovery directly from chat', () => {
     expect(planCohortAction(chat(), { type: 'start_discovery' }, context).nextState).toMatchObject({ journey: { step: 'discovery', branch: 'find_material' }, discovery: { status: 'queued' } });
   });
+
+  it('transitions create_own_cohort directly to material_input when sources exist', () => {
+    const wsWithSources: CohortWorkspace = {
+      ...chat(),
+      sources: [
+        { id: 's1', version: 0, label: 'Docs', text: 'Important concepts', checksum: null, state: 'ready' },
+      ],
+    };
+
+    const result = planCohortAction(wsWithSources, { type: 'create_own_cohort' }, context);
+    expect(result.nextState.journey?.step).toBe('material_input');
+    expect(result.nextState.journey?.branch).toBe('have_material');
+  });
+
+  it('transitions create_own_cohort to starting_point when sources are empty', () => {
+    const wsEmptySources: CohortWorkspace = {
+      ...chat(),
+      sources: [],
+    };
+
+    const result = planCohortAction(wsEmptySources, { type: 'create_own_cohort' }, context);
+    expect(result.nextState.journey?.step).toBe('starting_point');
+  });
 });
