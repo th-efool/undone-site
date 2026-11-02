@@ -59,7 +59,13 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
     };
   }, []);
 
-  const isChatStep = state.view?.journey?.step === 'chat';
+  const isRecommendationsSearching =
+    state.view?.journey?.step === 'recommendations' &&
+    (!state.view.recommendations ||
+      state.view.recommendations.status === 'queued' ||
+      state.view.recommendations.status === 'running');
+
+  const isChatStep = state.view?.journey?.step === 'chat' || isRecommendationsSearching;
 
   const [layoutAnnouncement, setLayoutAnnouncement] = useState('');
   const prevIsChatStepRef = useRef(isChatStep);

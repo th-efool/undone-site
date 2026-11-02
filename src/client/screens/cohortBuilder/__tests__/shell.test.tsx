@@ -287,6 +287,22 @@ it('renders centered single-column chat layout when journey.step is chat (PLAN-0
   };
   result.rerender(<CohortInteractionScreen {...props} />);
 
+  // While recommendations are still searching, layout stays centered
+  expect(main.getAttribute('data-layout')).toBe('centered');
+
+  // Once recommendations finish searching (status: 'ready'), right panel pops open ('split')
+  fake.view = {
+    ...fake.view,
+    recommendations: {
+      requestId: '00000000-0000-0000-0000-000000000001',
+      fingerprint: 'fp-ready',
+      status: 'ready',
+      generation: 0,
+      items: [],
+    },
+  };
+  result.rerender(<CohortInteractionScreen {...props} />);
+
   expect(main.getAttribute('data-layout')).toBe('split');
   expect((composer as HTMLTextAreaElement).value).toBe('My persistent planning draft');
   expect(screen.getByLabelText('Message the cohort assistant')).toBe(composer);
@@ -306,6 +322,13 @@ it('renders close panel button and opens confirmation modal (PLAN-024)', async (
       branch: null,
       processingStarted: false,
       intentVersion: 0,
+    },
+    recommendations: {
+      requestId: '00000000-0000-0000-0000-000000000001',
+      fingerprint: 'fp-ready',
+      status: 'ready',
+      generation: 0,
+      items: [],
     },
   });
 

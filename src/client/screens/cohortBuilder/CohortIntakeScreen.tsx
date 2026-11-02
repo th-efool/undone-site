@@ -33,6 +33,7 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
   const [pane, setPane] = useState<'chat' | 'workspace'>('workspace');
   const { theme, isDark } = useTheme();
   const isPlanMode = draft?.mode === 'plan';
+  const isCenteredHandoff = isPlanMode || (enabled && !!draft && busy && !error);
   const logoSrc = isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg';
 
   const submitDraft = async (intake: CohortIntake) => {
@@ -91,12 +92,12 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
       id="main-content"
       className={builderStyles.page}
       data-theme={theme}
-      data-layout={isPlanMode ? 'centered' : 'split'}
+      data-layout={isCenteredHandoff ? 'centered' : 'split'}
       data-variant="material"
-      data-rail-collapsed={!isPlanMode && collapsed}
+      data-rail-collapsed={!isCenteredHandoff && collapsed}
       data-pane={pane}
     >
-      {!isPlanMode && (
+      {!isCenteredHandoff && (
         <nav className={builderStyles.paneNavigation} aria-label="Builder views">
         <button
           type="button"
@@ -156,6 +157,28 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
               </div>
               <div className={builderStyles.assistantBubble}>
                 <p>Let’s make a learning journey that fits you.</p>
+                {busy && !isPlanMode && (
+                  <ol className={builderStyles.chatStepChecklist} aria-label="Assistant progress steps">
+                    <li className={builderStyles.chatStepItem} data-step-state="running">
+                      <span className={builderStyles.stepMarker} aria-hidden="true">
+                        <span className={builderStyles.stepSpinner} />
+                      </span>
+                      <span className={builderStyles.stepLabel}>Processing your query</span>
+                    </li>
+                    <li className={builderStyles.chatStepItem} data-step-state="pending">
+                      <span className={builderStyles.stepMarker} aria-hidden="true">
+                        <span className={builderStyles.stepPendingDot} />
+                      </span>
+                      <span className={builderStyles.stepLabel}>Understanding your learning goal</span>
+                    </li>
+                    <li className={builderStyles.chatStepItem} data-step-state="pending">
+                      <span className={builderStyles.stepMarker} aria-hidden="true">
+                        <span className={builderStyles.stepPendingDot} />
+                      </span>
+                      <span className={builderStyles.stepLabel}>Searching cohorts for you</span>
+                    </li>
+                  </ol>
+                )}
               </div>
             </div>
 
@@ -171,7 +194,7 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
       </aside>
 
       {/* Right Workspace Canvas matching AI Builder Workspace */}
-      {!isPlanMode && (
+      {!isCenteredHandoff && (
         <div className={builderStyles.canvas}>
         <header className={builderStyles.canvasHeader} aria-label="Workspace toolbar">
           <div className={builderStyles.tools}>
