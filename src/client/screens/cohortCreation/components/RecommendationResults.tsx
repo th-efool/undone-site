@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, BookOpen, Clock3, Compass, Plus, Rocket, Star, Users } from 'lucide-react';
 import type { RecommendationResult } from '@/src/shared/cohort-creation/contracts';
 import styles from './RecommendationResults.module.css';
@@ -41,13 +42,13 @@ export function RecommendationResults({ result, onCreateOwn }: { result: Recomme
       {!hasItems ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIllustrationWrap}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src="/images/no-cohort-found-illustration.png"
               alt="Stack of books, glowing lantern, treasure map, and compass"
               className={styles.emptyIllustration}
               width={420}
               height={164}
+              priority
             />
           </div>
 

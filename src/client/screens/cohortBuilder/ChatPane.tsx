@@ -103,7 +103,7 @@ function buildTurnProgressSteps(
   }));
 }
 
-function ChatStepChecklist({ steps, ariaLabel = 'Assistant progress steps' }: { steps: ChatProgressStep[]; ariaLabel?: string }) {
+export function ChatStepChecklist({ steps, ariaLabel = 'Assistant progress steps' }: { steps: ChatProgressStep[]; ariaLabel?: string }) {
   return (
     <ol className={styles.chatStepChecklist} aria-label={ariaLabel}>
       {steps.map(item => (

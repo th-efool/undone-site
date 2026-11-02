@@ -12,6 +12,7 @@ import { ThemeToggle } from '@/src/client/screens/landing/Hero/components/ThemeT
 import { RecommendationPending } from '@/src/client/screens/cohortCreation/components/RecommendationPending';
 import type { useCreation } from '@/src/client/screens/cohortCreation/hooks/useCreation';
 import { clearIntakeDraft, readIntakeDraft, saveIntakeDraft } from './intake-draft';
+import { ChatStepChecklist } from './ChatPane';
 import builderStyles from './CohortBuilder.module.css';
 import styles from './CohortIntakeScreen.module.css';
 
@@ -158,26 +159,13 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
               <div className={builderStyles.assistantBubble}>
                 <p>Let’s make a learning journey that fits you.</p>
                 {busy && !isPlanMode && (
-                  <ol className={builderStyles.chatStepChecklist} aria-label="Assistant progress steps">
-                    <li className={builderStyles.chatStepItem} data-step-state="running">
-                      <span className={builderStyles.stepMarker} aria-hidden="true">
-                        <span className={builderStyles.stepSpinner} />
-                      </span>
-                      <span className={builderStyles.stepLabel}>Processing your query</span>
-                    </li>
-                    <li className={builderStyles.chatStepItem} data-step-state="pending">
-                      <span className={builderStyles.stepMarker} aria-hidden="true">
-                        <span className={builderStyles.stepPendingDot} />
-                      </span>
-                      <span className={builderStyles.stepLabel}>Understanding your learning goal</span>
-                    </li>
-                    <li className={builderStyles.chatStepItem} data-step-state="pending">
-                      <span className={builderStyles.stepMarker} aria-hidden="true">
-                        <span className={builderStyles.stepPendingDot} />
-                      </span>
-                      <span className={builderStyles.stepLabel}>Searching cohorts for you</span>
-                    </li>
-                  </ol>
+                  <ChatStepChecklist
+                    steps={[
+                      { id: 'handoff-query', label: 'Processing your query', state: 'running' },
+                      { id: 'handoff-goal', label: 'Understanding your learning goal', state: 'pending' },
+                      { id: 'handoff-search', label: 'Searching cohorts for you', state: 'pending' },
+                    ]}
+                  />
                 )}
               </div>
             </div>
