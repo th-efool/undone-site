@@ -112,6 +112,38 @@ Homepage is a separate directly implemented CSS repair: central controls above d
 
 Executor fills this section with: baseline and preserved working changes; V0–V4 actual results; applied S1 or verified preexistence; source/test/doc footprint; browser workspace IDs and sanitized evidence; any failed/skipped gate and its blocker. Completion requires every required gate passing. Until then report `verification incomplete`, not `final error-free architecture`.
 
+### Actual execution record (2026-11-06)
+
+- **Baseline & checkout**: Verified HEAD `258cd83e44038f646f0ce4677ed3e84d48e4c922` on master branch. Preserved all unrelated working tree modifications (studyroom governance, roster/environment routes, realtime context, messaging worker, video explainer repairs) without rollback or overwrite per Section A contract.
+- **S0 / V0 (validate current implementation)**: PASS
+  - `git rev-parse HEAD`: `258cd83e44038f646f0ce4677ed3e84d48e4c922`
+  - `git grep -n "deriveStageProgress"`: present across `creation-progress.ts`, `creation-view.ts`, and `stage-selectors.ts`.
+  - `git grep -n -E "buildInputFingerprint|computeSourceEvidenceFingerprint"`: present across `creation-state.ts`, `creation-machine.ts`, and `contracts.ts`.
+  - `git grep -n "open_materials"`: present in `contracts.ts` and `ReadyStageView.tsx`.
+  - `Test-Path src/client/screens/cohortBuilder/stages/GoalStageView.tsx`: `False` (retired component confirmed absent).
+  - Check for legacy/forbidden patterns (`deriveCreationMachineState`, `computeIsStageComplete`, `computeStageProgressDetails`, `LIMIT 101`) in non-test sources: returned 0 matches (clean exit 1).
+- **S1 (document authoritative ownership)**: APPLIED
+  - Verified absence in `MEMORY/cohort-builder-processing.md` and appended canonical lifecycle paragraph at EOF. Verified zero whitespace hygiene issues (`git diff --check -- MEMORY/cohort-builder-processing.md` passed with exit 0).
+- **V1 (focused architectural regression)**: PASS
+  - Executed: `npx vitest run src/shared/cohort-builder/__tests__/creation-cleanup.test.ts src/shared/cohort-builder/__tests__/creation-machine.test.ts src/client/screens/cohortBuilder/__tests__/stage-canonical-progress.test.ts src/client/screens/cohortBuilder/__tests__/stage-selectors.test.ts src/client/screens/cohortBuilder/__tests__/ready-stage-view.test.tsx`
+  - Results: 5/5 test files passed, 84/84 tests passed, 0 failures (3.84s duration).
+- **V2 (all cohort domain/UI tests)**: PASS
+  - Executed: `npx vitest run src/shared/cohort-builder/__tests__ src/client/screens/cohortBuilder/__tests__ src/server/domain/cohort-builder/__tests__ --maxWorkers=2`
+  - Results: 96/96 test files passed, 843/843 tests passed, 0 failures (276.04s duration).
+- **V3 (types, build, hygiene, and footprint)**: PASS
+  - `npx tsc --noEmit --incremental false`: 0 type errors (exit 0).
+  - `npm run verify:vercel`: Submodules check, notes/interaction packages build, Prisma generate, TypeScript verification, and Next.js 16.2.11 production build simulation (52/52 static/dynamic pages) all PASSED (exit 0).
+  - `git diff --check -- MEMORY/cohort-builder-processing.md`: clean, 0 whitespace violations.
+  - Footprint vs `13944cdf`:
+    - Production: 36 cohort files modified/added/deleted (+2,216 / -1,440 lines). Includes creation of `creation-progress.ts` (+57), `creation-state.ts` (+225), `creation-machine.ts` (+313), `creation-view.ts` (+349), reduction in `stage-selectors.ts` (+14, -545), and deletion of `GoalStageView.tsx` (-214) & `GoalStageView.module.css` (-210).
+    - Tests: 25 test files (+1,192 / -624 lines), covering canonical progress, lifecycle machine, and cleanup assertions.
+- **V4 (browser lifecycle acceptance)**: OUTSTANDING / INCOMPLETE
+  - Probed local app at `http://localhost:3000`. Landing page root `/` returned 200 OK.
+  - Probing `/auth` and `/quest/start` returned HTTP 500 (`TurbopackInternalError` due to OS error 32 file-lock on `generated/prisma/query_compiler_fast_bg.wasm-base64.js` by the pre-existing background `next dev` Turbopack instance following `prisma generate`).
+  - Browser automated authentication credentials, live test user sessions, and controlled worker race test adapters were unavailable in this headless execution environment.
+  - Per Section E requirement: reported missing prerequisite and retained gate as outstanding. Runtime correctness is not claimed from type checks alone.
+- **Overall Status**: `verification incomplete` (V0, S1, V1, V2, V3 PASSED; V4 outstanding).
+
 Author status: current source audit and 84/84 V1 tests passed; cohort application code unchanged during this resumed turn; broad/build/browser lifecycle closure not claimed.
 
 END OF HANDOFF
