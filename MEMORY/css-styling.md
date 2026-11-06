@@ -67,3 +67,5 @@ Tailwind CSS v4 replaces old Tailwind v3 plugins. Phantom classes that emit 0 CS
 - UI Primitives & Components Suite: `npx vitest run src/client/components/ui/__tests__/` (16 tests).
 - Route & Shell Integration Suites: `npx vitest run src/app/styles/ src/client/components/ui/ src/client/components/global/ src/client/personal-workspace/ui/ src/client/screens/dashboard/` (81 files, 625 tests passing).
 - Production Build: `npm run build` (Prisma code generation, webpack compile, static page generation).
+
+- `src/client/screens/landing/Hero/Hero.module.css`: hero creates an isolated clipped stacking context; central wrapper must not create a higher stacking context around the carousel. Interactive content layers at 10, collages at 6 and featured strip at 2. This lets edge cards pass behind collage papers while the composer stays usable. Keep banner within the outer collage column to avoid suggestion-card overlap.
