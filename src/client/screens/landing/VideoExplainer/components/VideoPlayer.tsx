@@ -21,7 +21,8 @@ export function VideoPlayer({
   videoRef,
   hlsSupported,
   fallbackSrc = process.env.NEXT_PUBLIC_EXPLAINER_VIDEO_MP4_URL || '/videos/undone-investor-film.mp4',
-  poster = '/images/hero-poster.webp',
+  // poster prop is optional; if not provided, no poster attribute will be set
+  poster,
   onWaiting,
   onCanPlay,
   onPlaying,
@@ -34,7 +35,7 @@ export function VideoPlayer({
     <video
       ref={videoRef}
       src={!hlsSupported ? fallbackSrc : undefined}
-      poster={poster}
+      {...(poster ? { poster } : {})}
       preload="auto"
       muted
       playsInline
