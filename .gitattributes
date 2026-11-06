@@ -2,4 +2,6 @@
 *.psd filter=lfs diff=lfs merge=lfs -text
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.webm filter=lfs diff=lfs merge=lfs -text
-public/videos/hls/*.ts filter=lfs diff=lfs merge=lfs -text
+# Landing investor film ships as ordinary Git binary blobs, not LFS pointers.
+public/videos/undone-investor-film.mp4 -filter -diff -merge -text
+public/videos/hls/*.ts -filter -diff -merge -text

@@ -1,5 +1,7 @@
 # Repository operational index
 
+- [landing-investor-film.md](landing-investor-film.md): normal-Git film storage, asset integrity, and pending deployment hardening.
+
 - [home-dashboard.md](home-dashboard.md): cohort card controls, pause dates, learning settings, subscription removal, cache boundaries, and focused checks.
 
 - [cohort-builder-processing.md](cohort-builder-processing.md): durable processing acceptance, generated metadata, timed chunk projection, UI inspection and focused checks.
