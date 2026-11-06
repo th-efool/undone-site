@@ -61,6 +61,7 @@ export function usePomodoro(
   const { data: session } = useSafeSession();
   const userId = session?.user?.id;
   const realtime = useSafeRealtime();
+  const subscribe = realtime?.status === 'connected' ? realtime.subscribe : undefined;
 
   const [state, dispatch] = useReducer(
     pomodoroReducer,
@@ -154,10 +155,10 @@ export function usePomodoro(
 
   // 2. Realtime subscription to user channel for cross-device sync
   useEffect(() => {
-    if (!userId || typeof realtime?.subscribe !== 'function') return;
+    if (!userId || typeof subscribe !== 'function') return;
 
     const userChannel = `user:${userId}:g1`;
-    const unsubscribe = realtime.subscribe(userChannel, (data: unknown) => {
+    const unsubscribe = subscribe(userChannel, (data: unknown) => {
       const envelope = data as {
         type?: string;
         payload?: StudySessionDTO;
@@ -172,7 +173,7 @@ export function usePomodoro(
     return () => {
       unsubscribe();
     };
-  }, [userId, realtime, syncFromServer]);
+  }, [userId, subscribe, syncFromServer]);
 
   // 3. Sleeping tab / tab wake-up handling (visibilitychange & focus)
   useEffect(() => {

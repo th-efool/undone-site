@@ -15,6 +15,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
       findMany: vi.fn(),
     },
     studyRoom: {
+      fields:{capacity:{_ref:'capacity'}},
       findMany: vi.fn(),
     },
     roomParticipant: {
@@ -168,7 +169,6 @@ describe('roomDiscoveryService', () => {
         expect.objectContaining({
           where: {
             AND: [
-              { status: { not: 'ARCHIVED' } },
               {
                 OR: [
                   { ownerId: 'user-me' },

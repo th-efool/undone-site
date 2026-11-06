@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(),
+}));
 vi.mock('server-only', () => ({}));
 
 // In-memory relational database state for multi-user integration testing
@@ -81,6 +86,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
         findFirst: vi.fn(async () => null),
       },
       studyRoom: {
+      findUniqueOrThrow: async ({where}:any)=>prisma.studyRoom.findUnique({where}),
         create: vi.fn(async ({ data }: any) => {
           const newRoom = {
             id: `room-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -147,6 +153,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
               id: `part-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
               studyRoomId: create.studyRoomId,
               userId: create.userId,
+              publicGoal:create.publicGoal,
               role: create.role || 'STUDENT',
               joinedAt: new Date(),
               user: users.find((u) => u.id === create.userId),

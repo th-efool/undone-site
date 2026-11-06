@@ -1,4 +1,5 @@
 import 'server-only';
+import { studyRoomService } from './domain/studyroom/studyroom.service';
 import { randomUUID } from 'node:crypto';
 import { prisma } from './infrastructure/db/postgres/client';
 import { MessagingOutboxDispatcher } from './infrastructure/realtime/dispatcher';
@@ -31,6 +32,7 @@ export async function runMessagingWorkerLoop(
     leaseDurationMs,
   });
 
+  let nextRoomCleanup = Date.now() + 30_000;
   let lastHeartbeat = Date.now();
   console.log(`[messaging-worker] Started worker ${workerId}`);
 
@@ -43,6 +45,10 @@ export async function runMessagingWorkerLoop(
         lastHeartbeat = now;
       }
 
+      if (now >= nextRoomCleanup) {
+        nextRoomCleanup = now + 30_000;
+        await studyRoomService.reconcileExpiredLeases({batchSize:50});
+      }
       const result = await dispatcher.dispatchBatch(transport, { batchSize });
 
       if (result.claimedCount > 0) {

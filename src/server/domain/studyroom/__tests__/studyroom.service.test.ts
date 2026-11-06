@@ -3,6 +3,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { studyRoomService } from '../studyroom.service';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(),
+}));
 vi.mock('server-only', () => ({}));
 
 vi.mock('@/src/server/domain/studyroom/studyroom.policy', () => ({
@@ -14,6 +19,13 @@ vi.mock('@/src/server/domain/studyroom/studyroom.policy', () => ({
 
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   const mockStudyRoom = {
+    updateMany:vi.fn(async()=>({count:1})),
+    findUniqueOrThrow: vi.fn(async () => {
+      const model = prisma.studyRoom;
+      const recent = [model.findUnique,model.findFirst].flatMap(fn => vi.isMockFunction(fn) ? fn.mock.results.slice(-1) : []);
+      for (const call of recent) { const room = await call.value; if (room) return room; }
+      throw Error('Missing room fixture');
+    }),
     count: vi.fn(),
     findMany: vi.fn(),
     findUnique: vi.fn(),
@@ -26,10 +38,12 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 
   const mockRealtimeStream = {
+    upsert:vi.fn(async()=>({id:'s',eventCounter:1,generation:1})),
     create: vi.fn(),
   };
 
   const mockRoomParticipant = {
+    updateMany:vi.fn(async()=>({count:1})),
     findMany: vi.fn(),
     findUnique: vi.fn(),
     create: vi.fn(),
@@ -39,6 +53,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 
   const mockRoomLease = {
+    updateMany:vi.fn(async()=>({count:1})),
     findMany: vi.fn(),
     findFirst: vi.fn(),
     findUnique: vi.fn(),
@@ -63,6 +78,8 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
         studyRoom: mockStudyRoom,
         channel: mockChannel,
         realtimeStream: mockRealtimeStream,
+        realtimeEvent: { create: vi.fn() },
+        realtimeDelivery: { create: vi.fn() },
         roomParticipant: mockRoomParticipant,
         roomLease: mockRoomLease,
         roomRestriction: mockRoomRestriction,
@@ -77,6 +94,8 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
       studyRoom: mockStudyRoom,
       channel: mockChannel,
       realtimeStream: mockRealtimeStream,
+        realtimeEvent: { create: vi.fn() },
+        realtimeDelivery: { create: vi.fn() },
       roomParticipant: mockRoomParticipant,
       roomLease: mockRoomLease,
       roomRestriction: mockRoomRestriction,
@@ -289,6 +308,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
 
   describe('renewLease & Stale Generation Rejection', () => {
     it('renews lease when generation matches', async () => {
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValue({id:'room-1'} as any);
       vi.mocked(prisma.roomParticipant.findUnique).mockResolvedValueOnce({
         userId: 'user-1',
         studyRoomId: 'room-1',
@@ -308,7 +328,8 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.expiresAt).toBe(newExpiry.toISOString());
+      expect(Date.parse(result.expiresAt!)).toBeGreaterThan(Date.now()+85000);
+      expect(prisma.roomLease.updateMany).toHaveBeenCalledWith(expect.objectContaining({where:expect.objectContaining({expiresAt:{gt:expect.any(Date)}})}));
     });
 
     it('rejects stale generation without modifying room membership', async () => {
@@ -364,6 +385,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
 
     it('closing one tab does not evict user when other tabs remain', async () => {
       vi.mocked(prisma.roomParticipant.findUnique).mockResolvedValueOnce({
+        generation: 1,
         userId: 'user-1',
         studyRoomId: 'room-1',
       } as any);
@@ -373,6 +395,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
       vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{ userId: 'user-1' } as any]);
 
       const result = await studyRoomService.leaveRoom({
+        generation:1,
         userId: 'user-1',
         roomId: 'room-1',
         tabId: 'tab-closed',
@@ -384,7 +407,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
       expect(result.remainingLeases).toBe(1);
       // Only that tab's lease was deleted
       expect(prisma.roomLease.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1', tabId: 'tab-closed' },
+        where: { userId: 'user-1', tabId: 'tab-closed',studyRoomId:'room-1',generation:1 },
       });
       // Participant row was NOT deleted
       expect(prisma.roomParticipant.delete).not.toHaveBeenCalled();
@@ -393,33 +416,19 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
 
   describe('reconcileExpiredLeases', () => {
     it('evicts expired leases and ghost participants without active leases', async () => {
-      vi.mocked(prisma.roomLease.deleteMany).mockResolvedValueOnce({ count: 5 } as any);
-      vi.mocked(prisma.roomParticipant.findMany).mockResolvedValueOnce([
-        { id: 'p-ghost', userId: 'user-dead', studyRoomId: 'room-1' },
-        { id: 'p-alive', userId: 'user-active', studyRoomId: 'room-1' },
-      ] as any);
-
-      // Only user-active has an unexpired lease
-      vi.mocked(prisma.roomLease.findMany).mockResolvedValueOnce([
-        { userId: 'user-active', studyRoomId: 'room-1' },
-      ] as any);
-
-      vi.mocked(prisma.studyRoom.findMany).mockResolvedValueOnce([{ id: 'room-1' }] as any);
-      vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{ userId: 'user-active' } as any]);
-
-      const result = await studyRoomService.reconcileExpiredLeases();
-
-      expect(result.evictedLeasesCount).toBe(5);
-      expect(result.evictedParticipantsCount).toBe(1); // p-ghost removed
-      expect(prisma.roomParticipant.deleteMany).toHaveBeenCalledWith({
-        where: { id: { in: ['p-ghost'] } },
-      });
-      expect(prisma.studyRoom.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'room-1' },
-          data: { onlineCount: 1 },
-        })
-      );
+      const candidate = {id:'expired',userId:'ghost',studyRoomId:'room-1',generation:3};
+      vi.mocked(prisma.roomLease.findMany).mockResolvedValueOnce([candidate] as any);
+      vi.mocked(prisma.roomLease.deleteMany).mockResolvedValueOnce({count:1});
+      vi.mocked(prisma.roomLease.count).mockResolvedValueOnce(0);
+      vi.mocked(prisma.roomParticipant.deleteMany).mockResolvedValueOnce({count:1});
+      vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{userId:'alive'}] as any);
+      const result = await studyRoomService.reconcileExpiredLeases({batchSize:10,gracePeriodMs:5000});
+      expect(result).toMatchObject({evictedLeasesCount:1,evictedParticipantsCount:1,updatedRoomsCount:1});
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
+      expect(prisma.roomLease.findMany).toHaveBeenCalledWith(expect.objectContaining({take:10,where:{expiresAt:{lte:expect.any(Date)}}}));
+      expect(prisma.roomLease.deleteMany).toHaveBeenCalledWith({where:{id:'expired',expiresAt:{lte:expect.any(Date)}}});
+      expect(prisma.roomParticipant.deleteMany).toHaveBeenCalledWith({where:{userId:'ghost',studyRoomId:'room-1',generation:3}});
+      expect(prisma.studyRoom.updateMany).toHaveBeenCalledWith({where:{id:'room-1',onlineCount:{not:1}},data:{onlineCount:1}});
     });
   });
 
@@ -431,7 +440,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
         ownerId: 'owner-1',
       } as any);
 
-      vi.mocked(prisma.roomLease.findFirst).mockResolvedValueOnce({
+      vi.mocked(prisma.roomLease.findFirst).mockResolvedValue({
         id: 'lease-1',
         userId: 'user-1',
         studyRoomId: 'room-1',
@@ -463,7 +472,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
 
       vi.mocked(prisma.roomParticipant.findMany).mockResolvedValueOnce([
         {
-          id: 'p-1',
+          id: 'p-1',publicGoal:'Finish LeetCode Problem 42',
           userId: 'user-1',
           joinedAt: new Date(),
           user: { id: 'user-1', name: 'User 1', username: 'u1', image: null },
@@ -482,7 +491,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
         ownerId: 'owner-1',
       } as any);
 
-      vi.mocked(prisma.roomLease.findFirst).mockResolvedValueOnce({
+      vi.mocked(prisma.roomLease.findFirst).mockResolvedValue({
         id: 'lease-1',
         userId: 'user-1',
         studyRoomId: 'room-1',
@@ -509,7 +518,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
       } as any);
 
       // No lease found
-      vi.mocked(prisma.roomLease.findFirst).mockResolvedValueOnce(null);
+      vi.mocked(prisma.roomLease.findFirst).mockResolvedValue(null);
 
       await expect(
         studyRoomService.updateParticipantGoal({

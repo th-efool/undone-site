@@ -97,6 +97,7 @@ describe('Phase 5: Roles, Governance & Sharing UI', () => {
           targetUserId="owner-1"
           targetName="Owner Bob"
           targetRole="OWNER"
+          canManageRoles={true}
           canManageParticipants={true}
         />
       );
@@ -118,6 +119,7 @@ describe('Phase 5: Roles, Governance & Sharing UI', () => {
           targetUserId="peer-1"
           targetName="Alice"
           targetRole="PARTICIPANT"
+          canManageRoles={true}
           canManageParticipants={true}
           onActionSuccess={onSuccess}
         />
@@ -156,6 +158,7 @@ describe('Phase 5: Roles, Governance & Sharing UI', () => {
           targetUserId="peer-2"
           targetName="Charlie"
           targetRole="PARTICIPANT"
+          canManageRoles={true}
           canManageParticipants={true}
           onActionSuccess={onSuccess}
         />
@@ -292,7 +295,7 @@ describe('Phase 5: Roles, Governance & Sharing UI', () => {
             json: async () => ({
               room: { id: 'room-fp', slug: 'fireplace', title: 'Fireplace Room', capacity: 20 },
               capabilities: { canJoin: true, canEditRoom: false, canManageParticipants: false },
-              userRole: 'PARTICIPANT',
+              viewer:{userId:'user-viewer',role:'PARTICIPANT',isJoined:true},
               pendingTransfer: {
                 id: 'transfer-99',
                 recipientId: 'user-viewer',

@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
+vi.mock('@/src/server/domain/studyroom/room-access',()=>({hasRoomAccess:vi.fn(async()=>true)}));
 vi.mock('server-only', () => ({}));
 
 vi.mock('@/src/server/domain/messaging/rate-limiter.service', () => ({

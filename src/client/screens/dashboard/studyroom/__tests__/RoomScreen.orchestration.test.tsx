@@ -57,7 +57,7 @@ describe('RoomScreen orchestration stages (Phase 5)', () => {
   it('renders switched_elsewhere stage when lease renewal reports stale_generation', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
 
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: {
         id: 'room-1',
         slug: 'fireplace',

@@ -1,3 +1,4 @@
+import type { Prisma } from '@/generated/prisma/client';
 import 'server-only';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
@@ -63,9 +64,10 @@ export const studyroomPolicy = {
   async resolveUserRoomRole(
     room: RoomEntity,
     userId: string | null,
-    platformRole?: string | null
+    platformRole?: string | null,
+    client: Prisma.TransactionClient = prisma
   ): Promise<ResolvedRoomRole> {
-    const isPlatformAdmin = platformRole === 'ADMIN';
+    let isPlatformAdmin = platformRole === 'ADMIN';
 
     if (!userId) {
       return {
@@ -76,11 +78,12 @@ export const studyroomPolicy = {
       };
     }
 
-    if (prisma.user?.findUnique) {
-      const userRecord = await prisma.user.findUnique({
+    if (client.user?.findUnique) {
+      const userRecord = await client.user.findUnique({
         where: { id: userId },
-        select: { email: true, username: true },
+        select: { email: true, username: true, role: true },
       });
+      isPlatformAdmin = isPlatformAdmin || userRecord?.role === 'ADMIN';
       if (isSharedGuestAccount(userRecord)) {
         return {
           role: 'VIEWER',
@@ -104,7 +107,7 @@ export const studyroomPolicy = {
     // 2. Cohort Governance Check (if room is attached to a cohort)
     let isCohortGovernor = false;
     if (room.cohortId) {
-      const cohort = await prisma.cohort.findUnique({
+      const cohort = await client.cohort.findUnique({
         where: { id: room.cohortId },
         select: { creatorId: true },
       });
@@ -112,7 +115,7 @@ export const studyroomPolicy = {
       if (cohort?.creatorId === userId) {
         isCohortGovernor = true;
       } else {
-        const membership = await prisma.cohortMember.findUnique({
+        const membership = await client.cohortMember.findUnique({
           where: {
             cohortId_userId: {
               cohortId: room.cohortId,
@@ -129,7 +132,7 @@ export const studyroomPolicy = {
     }
 
     // 3. Delegated RoomController Check
-    const controller = await prisma.roomController.findUnique({
+    const controller = await client.roomController.findUnique({
       where: {
         studyRoomId_userId: {
           studyRoomId: room.id,
@@ -168,7 +171,7 @@ export const studyroomPolicy = {
     }
 
     // 4. Participant vs Viewer check
-    const activeLease = await prisma.roomLease.findFirst({
+    const activeLease = await client.roomLease.findFirst({
       where: {
         studyRoomId: room.id,
         userId,
@@ -190,7 +193,8 @@ export const studyroomPolicy = {
   async resolveRoomEligibility(
     room: RoomEntity,
     userId: string | null,
-    hasActiveLease = false
+    hasActiveLease = false,
+    client: Prisma.TransactionClient = prisma
   ): Promise<{
     eligible: boolean;
     reason: RoomEligibilityReason;
@@ -201,8 +205,8 @@ export const studyroomPolicy = {
     }
 
     // Deny shared guest accounts
-    if (prisma.user?.findUnique) {
-      const userRecord = await prisma.user.findUnique({
+    if (client.user?.findUnique) {
+      const userRecord = await client.user.findUnique({
         where: { id: userId },
         select: { email: true, username: true },
       });
@@ -237,7 +241,7 @@ export const studyroomPolicy = {
         }) => Promise<{ cohort: { title: string } } | null>;
       };
     };
-    const db = prisma as unknown as PolicyPrismaClient;
+    const db = client as unknown as PolicyPrismaClient;
 
     const restriction = db.roomRestriction?.findUnique
       ? await db.roomRestriction.findUnique({
@@ -295,7 +299,7 @@ export const studyroomPolicy = {
 
     // 4. Capacity Check (if not already inside)
     if (!hasActiveLease) {
-      const activeDistinctUsers = await prisma.roomLease.groupBy({
+      const activeDistinctUsers = await client.roomLease.groupBy({
         by: ['userId'],
         where: {
           studyRoomId: room.id,
@@ -323,10 +327,11 @@ export const studyroomPolicy = {
     room: RoomEntity,
     userId: string | null,
     platformRole?: string | null,
-    hasActiveLease = false
+    hasActiveLease = false,
+    client: Prisma.TransactionClient = prisma
   ): Promise<RoomCapabilities> {
-    const roleResolution = await this.resolveUserRoomRole(room, userId, platformRole);
-    const eligibility = await this.resolveRoomEligibility(room, userId, hasActiveLease);
+    const roleResolution = await this.resolveUserRoomRole(room, userId, platformRole,client);
+    const eligibility = await this.resolveRoomEligibility(room, userId, hasActiveLease,client);
 
     const isOwner = roleResolution.isOwner || roleResolution.isPlatformAdmin;
     const isManager = isOwner || roleResolution.role === 'MODERATOR';
@@ -424,9 +429,9 @@ export const studyroomPolicy = {
   /**
    * Enforces room creation quotas.
    */
-  async assertCreationQuota(userId: string): Promise<void> {
-    if (prisma.user?.findUnique) {
-      const userRecord = await prisma.user.findUnique({
+  async assertCreationQuota(userId: string, opening = true, db: Pick<typeof prisma, 'user' | 'studyRoom'> = prisma): Promise<void> {
+    if (db.user?.findUnique) {
+      const userRecord = await db.user.findUnique({
         where: { id: userId },
         select: { email: true, username: true },
       });
@@ -436,7 +441,7 @@ export const studyroomPolicy = {
     }
 
     // 1. Max open standalone rooms limit
-    const openStandaloneCount = await prisma.studyRoom.count({
+    const openStandaloneCount = await db.studyRoom.count({
       where: {
         ownerId: userId,
         cohortId: null,
@@ -444,7 +449,7 @@ export const studyroomPolicy = {
       },
     });
 
-    if (openStandaloneCount >= STUDY_ROOM_LIMITS.MAX_OPEN_STANDALONE_PER_USER) {
+    if (opening && openStandaloneCount >= STUDY_ROOM_LIMITS.MAX_OPEN_STANDALONE_PER_USER) {
       throw new RoomQuotaExceededError(
         `You have reached the limit of ${STUDY_ROOM_LIMITS.MAX_OPEN_STANDALONE_PER_USER} open standalone study rooms`
       );
@@ -452,7 +457,7 @@ export const studyroomPolicy = {
 
     // 2. Daily creation limit (past 24 hours)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentCreationsCount = await prisma.studyRoom.count({
+    const recentCreationsCount = await db.studyRoom.count({
       where: {
         ownerId: userId,
         createdAt: { gte: oneDayAgo },

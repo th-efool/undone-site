@@ -1,3 +1,4 @@
+import { hasRoomAccess } from '@/src/server/domain/studyroom/room-access';
 import 'server-only';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { MessagingForbiddenError, MessagingNotFoundError } from './contracts';
@@ -100,10 +101,7 @@ export const searchService = {
         }
         minSequence = participant.historyVisibleFromSequence;
       } else if (channel.studyRoom) {
-        const participant = await prisma.roomParticipant.findFirst({
-          where: { studyRoomId: channel.studyRoom.id, userId },
-        });
-        if (!participant) {
+        if (!(await hasRoomAccess(channel.studyRoom.id,userId))) {
           throw new MessagingForbiddenError('Not an active participant in this study room');
         }
       } else {
@@ -209,10 +207,10 @@ export const searchService = {
     // C. Current Study Room
     const currentStudyRoom = await prisma.roomParticipant.findFirst({
       where: { userId },
-      select: { room: { select: { channel: { select: { id: true } } } } },
+      select: { studyRoomId: true, room: { select: { channel: { select: { id: true } } } } },
     });
 
-    if (currentStudyRoom?.room?.channel) {
+    if (currentStudyRoom?.room?.channel && await hasRoomAccess(currentStudyRoom.studyRoomId,userId)) {
       authorizedFilters.push({
         channelId: currentStudyRoom.room.channel.id,
         minSequence: 0,

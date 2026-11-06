@@ -38,3 +38,40 @@ The IDs below refer to the dated investigation. Reproduce against the current ch
 1. Run `npx vitest run studyroom` from repository root for the focused regression suite. Phase-labelled E2E tests include in-memory database doubles. The load harness at `scripts/load/studyroom-load-harness.ts` uses synthetic timings.
 2. In an isolated deployment with PostgreSQL, Centrifugo and the messaging worker, use independently authenticated browser profiles. Exercise create → share → join → promote/demote → transfer → close/reopen. Compare both clients and direct API responses, including an outsider, a banned user and an expired lease.
 3. Test cold load, warm navigation, tab switching, abrupt disconnect, quiet-room recovery and concurrent last-seat joins. Verify private/personal state stays scoped, then measure idle and high-churn costs. Keep release evidence with the assessed revision.
+
+## Remediation handoff execution (applied)
+
+[Execution guide](../plans/studyroom/IdiotHandOffGuide.md) specified remediation for all H01–H14 and M01–M13.
+On 2026-11-06, `IdiotHandOffManager` executed the implementation contract:
+1. **Applied 64 target files** via `.tmp/apply-studyroom-handoff.cjs` matching postimage SHA-256 hashes cleanly.
+2. **Schema & Client updated**: `prisma/schema.prisma` augmented with `RoomParticipant.publicGoal`; Prisma client generated to `generated/prisma` (v7.9.1). SQL hardening script placed at `prisma/sql/messaging/studyroom-membership-hardening.sql`.
+3. **Automated verification (V1)**:
+   - `vitest run studyroom --maxWorkers=4`: 66 passed, 1 skipped, 561 passed tests (0 failed).
+   - `vitest run src/server/domain/messaging/__tests__`: 13 passed, 112 passed tests (0 failed; test double in `phase7-persistent-room-chat.test.ts` aligned with `hasRoomAccess` lease requirement).
+   - `tsc --noEmit --pretty false`: 0 type errors.
+   - `npm run build`: Next.js 16.2.11 production build succeeded, 52/52 static pages generated.
+4. **Pending gates (V2–V8)**:
+   - Real PostgreSQL gate (V2 / `studyroom-postgres-hardening.test.ts`) and migration idempotency (V3) are guarded and require disposable local database `studyroom_handoff_test`. Remote Neon database is guarded against destructive schema pushes.
+   - S4 Live gates (V4 multi-user matrix, V5 real concurrent races, V6 peer recovery) remain pending live Centrifugo, worker, and multi-user authentication fixtures.
+   - S5 Monetary cost acceptance (V7) requires provider rates and an owner-approved seat-hour budget.
+
+## QA follow-up handoff execution (applied)
+
+[QA assessment](../plans/studyroom/IdiotCheckInQualityAssessment.md) identified QA01 (permanent SDK unsubscribe denial bypassing revocation), QA02 (truncated chat catch-up beyond 50 messages), and QA03 (stale roster responses overriding newer goals).
+[QA execution guide](../plans/studyroom/IdiotHandOffGuide-QA-Corrections.md) was executed on 2026-11-06 via `sub-agent-orchestrator` and `idiot-hand-off-manager`:
+1. **Applied 6 files** via `.tmp/apply-studyroom-qa.cjs` (postimages verified):
+   - `src/client/realtime/subscription-registry.ts` (routes Centrifuge codes 103 and 1 via unsubscribed context to revocation).
+   - `src/client/screens/dashboard/studyroom/hooks/loadChatCatchup.ts` (new helper: backwards chronological pagination via ID cursors, loop cycle detection, room departure cancellation).
+   - `src/client/screens/dashboard/studyroom/hooks/useRoomChat.ts` (integrates catchup helper).
+   - `src/client/screens/dashboard/studyroom/hooks/useRoomRoster.ts` (invalidation + 200ms coalesced reload on goal/roster events to prevent stale HTTP rollback).
+   - `src/server/infrastructure/db/postgres/repositories/community.repo.ts` (adds id DESC secondary sort for deterministic cursor pagination).
+   - `src/client/screens/dashboard/studyroom/__tests__/qa-recovery.test.tsx` (new test suite).
+2. **Focused QA regressions (V1)**:
+   - `vitest run src/client/screens/dashboard/studyroom/__tests__/qa-recovery.test.tsx`: 8 passed, 0 failed.
+3. **Broad QA regressions & build (V2)**:
+   - `vitest run studyroom --maxWorkers=4`: 67 passed, 1 skipped (569 passed, 0 failed).
+   - `vitest run src/server/domain/messaging/__tests__ src/client/realtime`: 14 passed (118 passed, 0 failed).
+   - `tsc --noEmit --pretty false`: 0 type errors.
+   - `npm run build`: Production Next.js build clean (52/52 static pages).
+4. **Remaining original release gates**:
+   - V2/V3 PostgreSQL gates, V4–V6 multi-user live stack gates, and V7 monetary rate acceptance remain unchanged and pending deployment infrastructure.

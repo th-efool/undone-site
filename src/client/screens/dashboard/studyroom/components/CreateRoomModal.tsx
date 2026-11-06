@@ -16,6 +16,7 @@ export interface CreateRoomModalProps {
 
 export function CreateRoomModal({ isOpen, onClose, onRoomCreated }: CreateRoomModalProps) {
   const router = useRouter();
+  const request = React.useRef<{intent:string; id:string} | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -68,10 +69,9 @@ export function CreateRoomModal({ isOpen, onClose, onRoomCreated }: CreateRoomMo
       .filter(Boolean)
       .slice(0, STUDY_ROOM_LIMITS.TAGS_MAX_COUNT);
 
-    const requestId =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : 'req-' + Math.random().toString(36).slice(2);
+    const intent = JSON.stringify([cleanTitle,description,scopeKind,cohortId,listing,capacity,tags,language,visualPresetId,publishImmediately]);
+    if (request.current?.intent !== intent) request.current = {intent,id:crypto.randomUUID()};
+    const requestId = request.current.id;
 
     setIsSubmitting(true);
 
@@ -102,6 +102,8 @@ export function CreateRoomModal({ isOpen, onClose, onRoomCreated }: CreateRoomMo
         return;
       }
 
+      request.current = null;
+      setIsSubmitting(false);
       onClose();
       if (onRoomCreated) {
         onRoomCreated(data);

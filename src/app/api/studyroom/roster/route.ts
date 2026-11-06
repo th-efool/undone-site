@@ -1,3 +1,4 @@
+import { StudyRoomError } from '@/src/shared/studyroom/contracts';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest) {
       headers: { 'Cache-Control': 'private, no-store' },
     });
   } catch (error) {
+    if (error instanceof StudyRoomError) return NextResponse.json(error.toJSON(),{status:error.status});
     console.error('Failed to get room roster:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

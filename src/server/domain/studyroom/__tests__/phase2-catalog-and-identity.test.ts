@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(), hasRoomAccess: vi.fn(async()=>true),
+}));
 vi.mock('server-only', () => ({}));
 
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
@@ -13,6 +18,12 @@ import { RoomNotFoundError } from '@/src/shared/studyroom/contracts';
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
   prisma: {
     studyRoom: {
+      findUniqueOrThrow: vi.fn(async () => {
+      const model = prisma.studyRoom;
+      const recent = [model.findUnique,model.findFirst].flatMap(fn => vi.isMockFunction(fn) ? fn.mock.results.slice(-1) : []);
+      for (const call of recent) { const room = await call.value; if (room) return room; }
+      throw Error('Missing room fixture');
+    }),
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),

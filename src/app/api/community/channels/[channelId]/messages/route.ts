@@ -1,3 +1,4 @@
+import { hasRoomAccess } from '@/src/server/domain/studyroom/room-access';
 import { NextResponse } from 'next/server';
 import { communityRepo } from '@/src/server/infrastructure/db/postgres/repositories/community.repo';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
@@ -205,27 +206,8 @@ export async function GET(
         }
       }
 
-      const activeLease = await prisma.roomLease.findFirst({
-        where: {
-          studyRoomId: channel.studyRoom.id,
-          userId: user.id,
-          expiresAt: { gt: new Date() },
-        },
-      });
-
-      if (!activeLease) {
-        const participant = await prisma.roomParticipant.findFirst({
-          where: {
-            studyRoomId: channel.studyRoom.id,
-            userId: user.id,
-          },
-        });
-        if (!participant) {
-          return NextResponse.json(
-            { error: 'Not an active participant in this study room' },
-            { status: 403 }
-          );
-        }
+      if (!(await hasRoomAccess(channel.studyRoom.id,user.id))) {
+        return NextResponse.json({ error: 'Active room lease required' }, { status: 403 });
       }
     } else {
       return NextResponse.json({ error: 'Channel not found' }, { status: 404 });

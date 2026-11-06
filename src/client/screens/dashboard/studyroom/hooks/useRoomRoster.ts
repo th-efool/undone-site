@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { RoomRosterMemberDTO } from '@/src/shared/studyroom/contracts';
 import { STUDY_ROOM_LIMITS } from '@/src/shared/studyroom/contracts';
+import { useRoomRefresh } from './useRoomRefresh';
 import { useRealtime } from '@/src/client/realtime';
 
 export interface UseRoomRosterOptions {
@@ -37,17 +38,20 @@ export function useRoomRoster({
 
   const isMountedRef = useRef(true);
   const realtime = useSafeRealtime();
+  const subscribe = realtime?.status === 'connected' ? realtime.subscribe : undefined;
 
+  const requestVersion = useRef(0);
   const fetchRoster = useCallback(async () => {
     if (!roomId || !enabled) return;
 
     try {
+      const version = ++requestVersion.current;
       const res = await fetch(`/api/studyroom/roster?roomId=${encodeURIComponent(roomId)}`);
       if (!res.ok) {
         throw new Error(`Failed to load roster (${res.status})`);
       }
       const data: unknown = await res.json();
-      if (isMountedRef.current) {
+      if (isMountedRef.current && requestVersion.current === version) {
         let members: RoomRosterMemberDTO[] = [];
         if (Array.isArray(data)) {
           members = data;
@@ -83,7 +87,7 @@ export function useRoomRoster({
 
     const interval = setInterval(() => {
       void fetchRoster();
-    }, STUDY_ROOM_LIMITS.ROSTER_POLL_INTERVAL_MS);
+    }, subscribe ? 120_000 : STUDY_ROOM_LIMITS.ROSTER_POLL_INTERVAL_MS);
 
     const onFocus = () => {
       void fetchRoster();
@@ -92,42 +96,44 @@ export function useRoomRoster({
 
     return () => {
       ignore = true;
+      requestVersion.current++;
       isMountedRef.current = false;
       clearInterval(interval);
       window.removeEventListener('focus', onFocus);
     };
-  }, [enabled, roomId, fetchRoster]);
+  }, [enabled, roomId, fetchRoster, subscribe]);
+
+  useRoomRefresh(enabled ? `room:${roomId}:g${streamGeneration}` : undefined, fetchRoster);
 
   // Realtime subscription for immediate roster changes
   useEffect(() => {
-    if (!enabled || !roomId || typeof realtime?.subscribe !== 'function') return;
+    if (!enabled || !roomId || typeof subscribe !== 'function') return;
 
     const roomChannel = `room:${roomId}:g${streamGeneration}`;
-    const unsubscribe = realtime.subscribe(roomChannel, (data: unknown) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribe = subscribe(roomChannel, (data: unknown) => {
       const envelope = data as {
         type?: string;
         payload?: { userId?: string; publicGoal?: string | null };
       };
       if (
+        envelope?.type === 'room.participant.updated' ||
+        envelope?.type === 'room.governance.changed' ||
         envelope?.type === 'room.roster.changed' ||
         envelope?.type === 'room.participant.joined' ||
         envelope?.type === 'room.participant.left'
       ) {
-        void fetchRoster();
-      } else if (envelope?.type === 'room.participant.updated' && envelope.payload?.userId) {
-        const { userId, publicGoal } = envelope.payload;
-        setRoster((prev) =>
-          prev.map((m) =>
-            m.userId === userId ? { ...m, publicGoal: publicGoal ?? null } : m
-          )
-        );
+        requestVersion.current++;
+        if (!timer) timer = setTimeout(() => { timer = undefined; void fetchRoster(); },200);
+
       }
     });
 
     return () => {
+      clearTimeout(timer);
       unsubscribe();
     };
-  }, [enabled, roomId, streamGeneration, realtime, fetchRoster]);
+  }, [enabled, roomId, streamGeneration, subscribe, fetchRoster]);
 
   return {
     roster,

@@ -1,3 +1,4 @@
+import { hasRoomAccess } from '@/src/server/domain/studyroom/room-access';
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
@@ -95,10 +96,7 @@ export const interactionService = {
         throw new MessagingForbiddenError('Not an active participant in this conversation');
       }
     } else if (channel.studyRoom) {
-      const participant = await prisma.roomParticipant.findUnique({
-        where: { userId },
-      });
-      if (!participant || participant.studyRoomId !== channel.studyRoom.id) {
+      if (!(await hasRoomAccess(channel.studyRoom.id,userId))) {
         throw new MessagingForbiddenError('Not an active participant in this study room');
       }
     }

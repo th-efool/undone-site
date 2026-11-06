@@ -1,4 +1,6 @@
 import 'server-only';
+import { lockRooms, lockUser } from './room-access';
+import { emitRoomChange } from './room-change';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { studyroomPolicy, type RoomEntity } from './studyroom.policy';
@@ -105,6 +107,10 @@ export const roomGovernanceService = {
     }
 
     await prisma.$transaction(async (tx) => {
+      await lockRooms(tx,[roomId]);
+      const locked = await tx.studyRoom.findUniqueOrThrow({where:{id:roomId}});
+      if (locked.ownerId !== room.ownerId) throw new RoomConflictError();
+      await emitRoomChange(tx,roomId,'room.governance.changed',{roomId});
       await tx.roomController.upsert({
         where: {
           studyRoomId_userId: {
@@ -155,6 +161,10 @@ export const roomGovernanceService = {
     }
 
     await prisma.$transaction(async (tx) => {
+      await lockRooms(tx,[roomId]);
+      const locked = await tx.studyRoom.findUniqueOrThrow({where:{id:roomId}});
+      if (locked.ownerId !== room.ownerId) throw new RoomConflictError();
+      await emitRoomChange(tx,roomId,'room.governance.changed',{roomId});
       await tx.roomController.deleteMany({
         where: {
           studyRoomId: roomId,
@@ -193,12 +203,18 @@ export const roomGovernanceService = {
     const actorRoleRes = await studyroomPolicy.resolveUserRoomRole(room as unknown as RoomEntity, actorUserId);
     const targetRoleRes = await studyroomPolicy.resolveUserRoomRole(room as unknown as RoomEntity, targetUserId);
 
-    studyroomPolicy.assertTargetHierarchy(actorRoleRes.role, targetRoleRes.role);
+    studyroomPolicy.assertTargetHierarchy(actorRoleRes.isPlatformAdmin ? 'OWNER' : actorRoleRes.role, targetRoleRes.role);
 
     const now = new Date();
     const cooldownExpiresAt = new Date(now.getTime() + STUDY_ROOM_LIMITS.KICK_COOLDOWN_MS);
 
     await prisma.$transaction(async (tx) => {
+      await lockUser(tx,targetUserId);
+      await lockRooms(tx,[roomId]);
+      const currentRoom = await tx.studyRoom.findUniqueOrThrow({where:{id:roomId}});
+      const currentActor = await studyroomPolicy.resolveUserRoomRole(currentRoom,actorUserId,undefined,tx);
+      const currentTarget = await studyroomPolicy.resolveUserRoomRole(currentRoom,targetUserId,undefined,tx);
+      studyroomPolicy.assertTargetHierarchy(currentActor.isPlatformAdmin ? 'OWNER' : currentActor.role,currentTarget.role);
       // 1. Invalidate active leases and participant presence
       await tx.roomLease.deleteMany({
         where: { studyRoomId: roomId, userId: targetUserId },
@@ -320,12 +336,18 @@ export const roomGovernanceService = {
     const actorRoleRes = await studyroomPolicy.resolveUserRoomRole(room as unknown as RoomEntity, actorUserId);
     const targetRoleRes = await studyroomPolicy.resolveUserRoomRole(room as unknown as RoomEntity, targetUserId);
 
-    studyroomPolicy.assertTargetHierarchy(actorRoleRes.role, targetRoleRes.role);
+    studyroomPolicy.assertTargetHierarchy(actorRoleRes.isPlatformAdmin ? 'OWNER' : actorRoleRes.role, targetRoleRes.role);
 
     const now = new Date();
     const expiresAt = durationMinutes ? new Date(now.getTime() + durationMinutes * 60 * 1000) : null;
 
     await prisma.$transaction(async (tx) => {
+      await lockUser(tx,targetUserId);
+      await lockRooms(tx,[roomId]);
+      const currentRoom = await tx.studyRoom.findUniqueOrThrow({where:{id:roomId}});
+      const currentActor = await studyroomPolicy.resolveUserRoomRole(currentRoom,actorUserId,undefined,tx);
+      const currentTarget = await studyroomPolicy.resolveUserRoomRole(currentRoom,targetUserId,undefined,tx);
+      studyroomPolicy.assertTargetHierarchy(currentActor.isPlatformAdmin ? 'OWNER' : currentActor.role,currentTarget.role);
       // 1. Invalidate leases and presence
       await tx.roomLease.deleteMany({
         where: { studyRoomId: roomId, userId: targetUserId },
@@ -552,6 +574,10 @@ export const roomGovernanceService = {
     const expiresAt = new Date(now.getTime() + STUDY_ROOM_LIMITS.TRANSFER_EXPIRY_MS);
 
     const transfer = await prisma.$transaction(async (tx) => {
+      await lockRooms(tx,[roomId]);
+      const locked = await tx.studyRoom.findUniqueOrThrow({where:{id:roomId}});
+      if (locked.ownerId !== actorUserId || locked.revision !== expectedRevision) throw new RoomConflictError();
+      await emitRoomChange(tx,roomId,'room.governance.changed',{roomId});
       // Cancel any prior pending transfer for this room
       await tx.roomOwnershipTransfer.updateMany({
         where: {
@@ -634,8 +660,8 @@ export const roomGovernanceService = {
 
     const now = new Date();
     if (transfer.expiresAt <= now) {
-      await prisma.roomOwnershipTransfer.update({
-        where: { id: transferId },
+      await prisma.roomOwnershipTransfer.updateMany({
+        where: { id: transferId, status: 'PENDING' },
         data: { status: 'EXPIRED' },
       });
       throw new RoomConflictError('Transfer proposal has expired');
@@ -656,6 +682,11 @@ export const roomGovernanceService = {
     }
 
     await prisma.$transaction(async (tx) => {
+      await lockRooms(tx,[roomId]);
+      const locked = await tx.studyRoom.findUniqueOrThrow({where:{id:roomId}});
+      const pending = await tx.roomOwnershipTransfer.findUnique({where:{id:transferId}});
+      if (locked.ownerId !== transfer.senderId || locked.revision !== transfer.expectedRevision || pending?.status !== 'PENDING' || pending.expiresAt <= new Date()) throw new RoomConflictError();
+      await emitRoomChange(tx,roomId,'room.governance.changed',{roomId});
       // 1. Swap owner and increment revision
       await tx.studyRoom.update({
         where: { id: roomId },
@@ -717,6 +748,11 @@ export const roomGovernanceService = {
     }
 
     await prisma.$transaction(async (tx) => {
+      await lockRooms(tx,[roomId]);
+      const locked = await tx.studyRoom.findUniqueOrThrow({where:{id:roomId}});
+      const pending = await tx.roomOwnershipTransfer.findUnique({where:{id:transferId}});
+      if (pending?.status !== 'PENDING' || ![pending.senderId,pending.recipientId,locked.ownerId].includes(actorUserId)) throw new RoomConflictError();
+      await emitRoomChange(tx,roomId,'room.governance.changed',{roomId});
       await tx.roomOwnershipTransfer.update({
         where: { id: transferId },
         data: { status: 'CANCELLED' },

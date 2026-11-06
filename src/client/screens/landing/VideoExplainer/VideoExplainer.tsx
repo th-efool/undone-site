@@ -40,6 +40,7 @@ export function VideoExplainer({
     hlsSupported,
     handleEnded,
     handleReplay,
+    handleError,
   } = useHlsVideo({
     videoRef,
     hlsSrc,
@@ -93,15 +94,15 @@ export function VideoExplainer({
     offset: ['start start', 'end end'],
   });
 
-  // Autoplay when video zooms in beyond threshold (0.15) and auto-pause when zooming out (< 0.15 or > 0.82)
+  // Autoplay when video section is in view, auto-pause only when scrolled out of view
   useMotionValueEvent(scrollYProgress, 'change', (progress) => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Zoom-in threshold: between 0.15 and 0.82 the video is zoomed in towards full screen
-    const isZoomedIn = progress >= 0.15 && progress <= 0.82;
+    const isInView = progress > 0.05 && progress < 0.95;
+    const isOutOfView = progress <= 0 || progress >= 1;
 
-    if (isZoomedIn) {
+    if (isInView) {
       if (video.paused && !userPausedManually.current) {
         video.play().catch(() => {
           // If unmuted autoplay blocked by browser policy, fallback to muted autoplay
@@ -110,7 +111,7 @@ export function VideoExplainer({
           video.play().catch(() => setIsPlaying(false));
         });
       }
-    } else {
+    } else if (isOutOfView) {
       // Zoomed out (scrolled back up to Hero or down to Ikigai): auto pause
       if (!video.paused) {
         video.pause();
@@ -158,8 +159,12 @@ export function VideoExplainer({
               setIsPlaying(true);
               setIsLoading(false);
             }}
-            onPause={() => setIsPlaying(false)}
+            onPause={() => {
+              setIsPlaying(false);
+              setIsLoading(false);
+            }}
             onEnded={handleEnded}
+            onError={handleError}
             togglePlay={handleTogglePlay}
           />
 

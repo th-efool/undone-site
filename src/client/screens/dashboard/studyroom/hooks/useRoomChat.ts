@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { loadChatCatchup } from './loadChatCatchup';
+import { useRoomRefresh } from './useRoomRefresh';
 import { useRealtime } from '@/src/client/realtime';
 import {
   studyRoomRepository,
@@ -43,10 +45,16 @@ export function useRoomChat({
 }: UseRoomChatOptions): UseRoomChatResult {
   const { data: session } = useSession();
   const realtime = useSafeRealtime();
+  const subscribe = realtime?.status === 'connected' ? realtime.subscribe : undefined;
   const [messages, setMessages] = useState<OptimisticChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const messagesRef = useRef(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  const historyRun = useRef(0);
+  const channelRef = useRef(channelId);
+  useEffect(() => { channelRef.current=channelId; setMessages([]); }, [channelId]);
   const isMountedRef = useRef(true);
 
   const currentUserId = session?.user?.id;
@@ -62,15 +70,26 @@ export function useRoomChat({
 
     setIsLoading(true);
     try {
-      const history = await studyRoomRepository.getChannelMessages(channelId, 50);
-      if (isMountedRef.current) {
+      const run = ++historyRun.current;
+      const cached = messagesRef.current.filter(m => m.channelId === channelId && m.deliveryStatus === 'sent');
+      const oldest = [...cached].sort((a,b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))[0]?.id;
+      const history = await loadChatCatchup(
+        before => studyRoomRepository.getChannelMessages(channelId, 50, before),
+        oldest,
+        () => isMountedRef.current && channelRef.current === channelId && historyRun.current === run,
+      );
+      if (!history) return;
+      if (isMountedRef.current && channelRef.current === channelId) {
         setMessages((prev) => {
-          const pending = prev.filter((m) => m.deliveryStatus === 'pending');
-          const canonical = history.map((m) => ({
-            ...m,
-            deliveryStatus: 'sent' as const,
-          }));
-          return [...canonical, ...pending];
+          const merged = new Map<string, OptimisticChatMessage>();
+          for (const message of history) merged.set(message.id,{...message, deliveryStatus:'sent'});
+          const intents = new Set(history.map(m=>m.clientRequestId).filter(Boolean));
+          for (const m of prev) {
+            if (m.channelId !== channelId || (m.deliveryStatus !== 'sent' && m.clientRequestId && intents.has(m.clientRequestId))) continue;
+            const stored = merged.get(m.id);
+            if (!stored || m.revision > stored.revision) merged.set(m.id,m);
+          }
+          return [...merged.values()].sort((a,b)=>(a.messageSequence < 0 ? Infinity : a.messageSequence) - (b.messageSequence < 0 ? Infinity : b.messageSequence));
         });
         setError(null);
       }
@@ -95,22 +114,31 @@ export function useRoomChat({
 
     return () => {
       ignore = true;
+      historyRun.current++;
       isMountedRef.current = false;
     };
   }, [fetchHistory]);
 
+  useRoomRefresh(enabled ? `roomchat:${channelId}:g${streamGeneration}` : undefined, fetchHistory);
+
   // 2. Realtime subscription to roomchat stream
   useEffect(() => {
-    if (!channelId || !enabled || typeof realtime?.subscribe !== 'function') return;
+    if (!channelId || !enabled || typeof subscribe !== 'function') return;
 
     const channelName = `roomchat:${channelId}:g${streamGeneration}`;
-    const unsubscribe = realtime.subscribe(channelName, (data: unknown) => {
+    const unsubscribe = subscribe(channelName, (data: unknown) => {
       const envelope = data as {
         type?: string;
         payload?: RoomChatMessageDTO;
         message?: RoomChatMessageDTO;
       };
 
+      if (envelope.type === 'message.reaction_updated') {
+        const reaction = (data as {payload:{messageId:string;revision:number;reactions: {emoji:string;count:number}[]}}).payload;
+        if (reaction) setMessages(prev=>prev.map(m=>m.id===reaction.messageId && reaction.revision>=m.revision ?
+          {...m,revision:reaction.revision,reactions:reaction.reactions} : m));
+        return;
+      }
       const incoming = envelope?.payload || envelope?.message;
       if (!incoming || !incoming.id) return;
 
@@ -121,6 +149,7 @@ export function useRoomChat({
             (m) => m.clientRequestId === incoming.clientRequestId
           );
           if (optIdx !== -1) {
+            if (prev[optIdx].revision > incoming.revision) return prev;
             const next = [...prev];
             next[optIdx] = { ...incoming, deliveryStatus: 'sent' };
             return next;
@@ -131,6 +160,7 @@ export function useRoomChat({
         const existingIdx = prev.findIndex((m) => m.id === incoming.id);
         if (existingIdx !== -1) {
           const next = [...prev];
+          if (next[existingIdx].revision > incoming.revision) return prev;
           next[existingIdx] = { ...incoming, deliveryStatus: 'sent' };
           return next;
         }
@@ -143,7 +173,7 @@ export function useRoomChat({
     return () => {
       unsubscribe();
     };
-  }, [channelId, streamGeneration, enabled, realtime]);
+  }, [channelId, streamGeneration, enabled, subscribe]);
 
   // 3. Optimistic Send
   const sendMessage = useCallback(

@@ -12,6 +12,7 @@ export interface ParticipantRowProps {
   participant: RoomParticipantView;
   now: number;
   roomSlug?: string;
+  canManageRoles?: boolean;
   canManageParticipants?: boolean;
   onNotify?: (text: string) => void;
   onRosterMutated?: () => void;
@@ -21,6 +22,7 @@ export function ParticipantRow({
   participant,
   now,
   roomSlug,
+  canManageRoles = false,
   canManageParticipants = false,
   onNotify,
   onRosterMutated,
@@ -86,6 +88,7 @@ export function ParticipantRow({
             targetUserId={participant.userId}
             targetName={displayName}
             targetRole={participant.role}
+            canManageRoles={canManageRoles}
             canManageParticipants={canManageParticipants}
             onActionSuccess={(msg) => onNotify?.(msg)}
             onActionError={(err) => onNotify?.(`Error: ${err}`)}

@@ -111,7 +111,7 @@ export const communityRepo = {
       where: { channelId },
       take,
       ...(beforeCursor ? { skip: 1, cursor: { id: beforeCursor } } : {}),
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         author: {
           select: { id: true, name: true, image: true, username: true },

@@ -258,6 +258,7 @@ export interface RoomBootstrapResponse {
     generation: number | null;
   };
   capabilities: RoomCapabilities;
+  chatGeneration?: number;
   pendingTransfer?: OwnershipTransferDTO | null;
   channelId?: string | null;
   environment?: RoomEnvironmentBootstrapDTO | null;

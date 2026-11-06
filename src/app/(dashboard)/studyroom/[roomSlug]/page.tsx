@@ -4,23 +4,10 @@ import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import RoomScreen from '@/src/client/screens/dashboard/studyroom/room/RoomScreen';
 import { getRoomBySlug } from '@/src/client/screens/dashboard/studyroom/data/roomCatalog';
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ roomSlug: string }>;
-}): Promise<Metadata> {
-  const { roomSlug } = await params;
-  const dbRoom = await prisma.studyRoom.findFirst({
-    where: { OR: [{ slug: roomSlug }, { id: roomSlug }] },
-    select: { title: true },
-  });
-  const catalogRoom = getRoomBySlug(roomSlug);
-  const title = dbRoom?.title || catalogRoom?.title || 'Study Room';
-  return {
-    title: `${title} | Study Room`,
-    description: 'A shared focus room on Undone.',
-  };
-}
+export const metadata: Metadata = {
+  title: 'Study Room | Undone',
+  description: 'A shared focus room on Undone.',
+};
 
 export default async function StudyRoomPage({
   params,
@@ -33,7 +20,6 @@ export default async function StudyRoomPage({
   const dbRoom = await prisma.studyRoom.findFirst({
     where: {
       OR: [{ slug: roomSlug }, { id: roomSlug }],
-      status: { not: 'ARCHIVED' },
     },
     select: { id: true, slug: true, title: true, status: true },
   });

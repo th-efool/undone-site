@@ -855,6 +855,7 @@ model StudyRoom {
 }
 
 model RoomParticipant {
+  publicGoal  String?
   id          String    @id @default(cuid())
   userId      String    @unique
   studyRoomId String
@@ -1334,6 +1335,3 @@ model RateLimitBucket {
   @@index([expiresAt])
   @@map("rate_limit_buckets")
 }
-
-
-

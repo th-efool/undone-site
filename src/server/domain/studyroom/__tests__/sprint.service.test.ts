@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(), hasRoomAccess: vi.fn(async()=>true),
+}));
 vi.mock('server-only', () => ({}));
 
+import { hasRoomAccess } from '../room-access';
 import { sprintService } from '../sprint.service';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { MessagingConflictError, MessagingForbiddenError, MessagingNotFoundError } from '../../messaging/contracts';
@@ -9,10 +15,17 @@ import { MessagingConflictError, MessagingForbiddenError, MessagingNotFoundError
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
   prisma: {
     studyRoom: {
+      findUniqueOrThrow: vi.fn(async () => {
+      const model = prisma.studyRoom;
+      const recent = [model.findUnique,model.findFirst].flatMap(fn => vi.isMockFunction(fn) ? fn.mock.results.slice(-1) : []);
+      for (const call of recent) { const room = await call.value; if (room) return room; }
+      throw Error('Missing room fixture');
+    }),
       findUnique: vi.fn(),
       findMany: vi.fn(),
     },
     roomSprint: {
+      findUniqueOrThrow: vi.fn(async()=>await vi.mocked(prisma.roomSprint.findUnique).mock.results.at(-1)?.value),
       create: vi.fn(),
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -131,6 +144,7 @@ describe('sprintService', () => {
     });
 
     it('rejects startSprint if user is not room controller and controllers exist', async () => {
+      vi.mocked(hasRoomAccess).mockResolvedValueOnce(false);
       vi.mocked(prisma.roomController.findUnique).mockResolvedValueOnce(null);
       vi.mocked(prisma.channel.findFirst).mockResolvedValueOnce(null);
       vi.mocked(prisma.roomController.count).mockResolvedValueOnce(2);
@@ -331,6 +345,7 @@ describe('sprintService', () => {
         status: 'ACTIVE',
       } as any);
 
+      vi.mocked(hasRoomAccess).mockResolvedValueOnce(false);
       vi.mocked(prisma.roomParticipant.findFirst).mockResolvedValueOnce(null);
 
       await expect(sprintService.joinSprint('outsider', 'sprint-1')).rejects.toThrow(

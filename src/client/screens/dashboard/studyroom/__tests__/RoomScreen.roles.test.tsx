@@ -2,6 +2,7 @@
 import React from 'react';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { studyRoomRepository } from '@/src/client/repositories/studyRoomRepository';
 import { RoomScreen } from '../room/RoomScreen';
 
 vi.mock('next/navigation', () => ({
@@ -22,6 +23,13 @@ vi.mock('next-auth/react', () => ({
   }),
 }));
 
+function fixtureRoom(slug:string, role:'admin'|'member') {
+  vi.mocked(studyRoomRepository.getBootstrap).mockResolvedValue({
+    room:{id:'r',slug,title:'Library'},viewer:{isJoined:true,userId:'test-viewer',role:role==='admin'?'OWNER':'PARTICIPANT'},
+    capabilities:{canJoin:true,canManageParticipants:role==='admin',canControlEnvironment:role==='admin',canEditRoom:role==='admin'}
+  } as Awaited<ReturnType<typeof studyRoomRepository.getBootstrap>>);
+  return <RoomScreen roomSlug={slug} />;
+}
 class MockAudioContext {
   currentTime = 0;
   sampleRate = 44100;
@@ -101,6 +109,10 @@ describe('RoomScreen role-dependent environment controls and dock persistence', 
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(studyRoomRepository,'getBootstrap').mockResolvedValue({
+      room:{id:'r',slug:'library',title:'Library'},viewer:{isJoined:true,userId:'test-viewer'}
+    } as Awaited<ReturnType<typeof studyRoomRepository.getBootstrap>>);
+    vi.spyOn(studyRoomRepository,'joinRoom').mockResolvedValue({success:true,generation:1} as Awaited<ReturnType<typeof studyRoomRepository.joinRoom>>);
     window.AudioContext = MockAudioContext as unknown as typeof AudioContext;
   });
 
@@ -115,7 +127,7 @@ describe('RoomScreen role-dependent environment controls and dock persistence', 
 
   it('renders read-only Room Info for member without customization options', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" viewAsOverride="member" />);
+      render(fixtureRoom('library','member'));
     });
 
     // 1. Top bar button shows "Room info", not "Customize room"
@@ -138,7 +150,7 @@ describe('RoomScreen role-dependent environment controls and dock persistence', 
 
   it('toggles bottom background customization dock when admin clicks Customize room', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" viewAsOverride="admin" />);
+      render(fixtureRoom('library','admin'));
     });
 
     // 1. Initially bottom dock is closed
@@ -162,7 +174,7 @@ describe('RoomScreen role-dependent environment controls and dock persistence', 
 
   it('persists the music player dock iframe across panel open/close transitions', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" viewAsOverride="admin" />);
+      render(fixtureRoom('library','admin'));
     });
 
     // 1. Open Music modal from the timer widget and set a music source

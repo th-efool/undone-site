@@ -25,21 +25,24 @@ export interface UseHlsVideoReturn {
   togglePlay: () => void;
   handleEnded: () => void;
   handleReplay: () => void;
+  handleError: () => void;
 }
 
 export function useHlsVideo({
   videoRef,
   hlsSrc = process.env.NEXT_PUBLIC_EXPLAINER_VIDEO_HLS_URL || '/videos/hls/explainer.m3u8',
+  fallbackSrc = process.env.NEXT_PUBLIC_EXPLAINER_VIDEO_MP4_URL || '/videos/undone-investor-film.mp4',
   defaultPlaybackRate = 1.2,
 }: UseHlsVideoOptions): UseHlsVideoReturn {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoadingState] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isLoading, setIsLoadingState] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [isEnded, setIsEnded] = useState(false);
   const [hlsSupported, setHlsSupported] = useState(true);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hlsInstanceRef = useRef<Hls | null>(null);
 
-  // Debounced loading state: prevents micro-buffering (< 400ms) from flashing loading spinner
+  // Debounced loading state: prevents micro-buffering (< 300ms) from flashing loading spinner
   const setIsLoading = useCallback((loading: boolean) => {
     if (!loading) {
       if (loadingTimerRef.current) {
@@ -52,10 +55,35 @@ export function useHlsVideo({
         loadingTimerRef.current = setTimeout(() => {
           setIsLoadingState(true);
           loadingTimerRef.current = null;
-        }, 400);
+        }, 300);
       }
     }
   }, []);
+
+  const switchToFallback = useCallback(() => {
+    const video = videoRef.current;
+    if (hlsInstanceRef.current) {
+      try {
+        hlsInstanceRef.current.destroy();
+      } catch {
+        // Ignored
+      }
+      hlsInstanceRef.current = null;
+    }
+    setHlsSupported(false);
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+      loadingTimerRef.current = null;
+    }
+    setIsLoadingState(false);
+
+    if (video) {
+      if (video.src !== fallbackSrc && !video.src.endsWith(fallbackSrc)) {
+        video.src = fallbackSrc;
+        video.load();
+      }
+    }
+  }, [videoRef, fallbackSrc]);
 
   // Listen to timeupdate to detect when playback reaches the end
   useEffect(() => {
@@ -81,9 +109,9 @@ export function useHlsVideo({
 
     video.playbackRate = defaultPlaybackRate;
     video.defaultPlaybackRate = defaultPlaybackRate;
-    setIsMuted(video.muted);
+    video.muted = true;
+    setIsMuted(true);
 
-    let hlsInstance: Hls | null = null;
     let isCancelled = false;
 
     const initHls = async () => {
@@ -97,45 +125,50 @@ export function useHlsVideo({
             autoStartLoad: true,
             startPosition: -1,
             capLevelToPlayerSize: true,
-            // Aggressive pre-buffering to eliminate mid-playback loading pauses
-            maxBufferLength: 30, // Buffer 30 seconds ahead
-            maxMaxBufferLength: 60, // Allow up to 60s buffer
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
             maxBufferSize: 60 * 1000 * 1000,
             enableWorker: true,
             lowLatencyMode: false,
           });
-          hlsInstance = hls;
+          hlsInstanceRef.current = hls;
 
           hls.loadSource(hlsSrc);
           hls.attachMedia(currentVideo);
 
           hls.on(HlsModule.Events.MANIFEST_PARSED, () => {
-            if (!isCancelled) setHlsSupported(true);
+            if (!isCancelled) {
+              setHlsSupported(true);
+              setIsLoading(false);
+            }
           });
 
           hls.on(HlsModule.Events.ERROR, (_event, data) => {
             if (data.fatal) {
-              console.error('HLS fatal error:', data);
-              if (!isCancelled) {
-                setHlsSupported(false);
-                setIsLoading(false);
-              }
+              console.warn('HLS fatal error encountered, switching to direct MP4 fallback:', data);
+              switchToFallback();
             }
           });
         } else if (currentVideo.canPlayType('application/vnd.apple.mpegurl')) {
           // Native Apple HLS (Safari / iOS)
           currentVideo.src = hlsSrc;
-          if (!isCancelled) setHlsSupported(true);
+          if (!isCancelled) {
+            setHlsSupported(true);
+            setIsLoading(false);
+          }
+
+          const onNativeError = () => {
+            console.warn('Native Apple HLS playback error, falling back to MP4');
+            switchToFallback();
+          };
+          currentVideo.addEventListener('error', onNativeError, { once: true });
         } else {
           // Fallback for browsers without HLS
-          if (!isCancelled) setHlsSupported(false);
+          switchToFallback();
         }
       } catch (err) {
-        console.error('Failed to load Hls:', err);
-        if (!isCancelled && videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
-          videoRef.current.src = hlsSrc;
-          setHlsSupported(true);
-        }
+        console.warn('Failed to load Hls library, falling back to MP4:', err);
+        switchToFallback();
       }
     };
 
@@ -145,12 +178,18 @@ export function useHlsVideo({
       isCancelled = true;
       if (loadingTimerRef.current) {
         clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
       }
-      if (hlsInstance) {
-        hlsInstance.destroy();
+      if (hlsInstanceRef.current) {
+        try {
+          hlsInstanceRef.current.destroy();
+        } catch {
+          // Ignored
+        }
+        hlsInstanceRef.current = null;
       }
     };
-  }, [videoRef, hlsSrc, defaultPlaybackRate, setIsLoading]);
+  }, [videoRef, hlsSrc, fallbackSrc, defaultPlaybackRate, setIsLoading, switchToFallback]);
 
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
@@ -201,11 +240,14 @@ export function useHlsVideo({
     }
 
     if (video.paused) {
-      // Unmute on explicit user play interaction if currently muted
       if (video.muted) {
         unmute();
       }
-      video.play().catch(() => setIsPlaying(false));
+      video.play().catch(() => {
+        video.muted = true;
+        setIsMuted(true);
+        video.play().catch(() => setIsPlaying(false));
+      });
     } else {
       video.pause();
     }
@@ -233,5 +275,6 @@ export function useHlsVideo({
     togglePlay,
     handleEnded,
     handleReplay,
+    handleError: switchToFallback,
   };
 }

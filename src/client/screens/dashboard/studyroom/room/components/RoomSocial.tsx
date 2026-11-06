@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Crown, MoreHorizontal, Send, Smile, UserPlus } from 'lucide-react';
 import type { RoomParticipantView, Viewer } from '../../types';
 import { ParticipantAvatar } from '../../components/ParticipantAvatar';
+import { RoomBans } from './RoomBans';
 import ParticipantActionsMenu from './ParticipantActionsMenu';
 import { useRoomChat } from '../../hooks/useRoomChat';
 import styles from './RoomSocial.module.css';
@@ -99,6 +100,7 @@ export default function RoomSocial({
             </button>
           </header>
 
+          {canManageParticipants && roomSlug && <RoomBans slug={roomSlug} />}
           <ul className={styles.roster}>
             {sortedParticipants.slice(0, 3).map((person) => {
               const isOwner = person.role === 'OWNER';
@@ -143,6 +145,7 @@ export default function RoomSocial({
                       targetUserId={person.userId}
                       targetName={person.displayName}
                       targetRole={person.role}
+                      canManageRoles={viewer.capabilities?.canManageRoles}
                       canManageParticipants={canManageParticipants}
                       onActionSuccess={(msg) => onNotify(msg)}
                       onActionError={(err) => onNotify(`Error: ${err}`)}
@@ -218,6 +221,7 @@ export default function RoomSocial({
                       )}
                     </div>
                     <p className={styles.messageBody}>{msg.content}</p>
+                    {msg.reactions?.map(r => <span key={r.emoji}>{r.emoji} {r.count} </span>)}
                     {msg.deliveryStatus === 'failed' && (
                       <div className={styles.statusFailed}>
                         <span>Failed to send</span>

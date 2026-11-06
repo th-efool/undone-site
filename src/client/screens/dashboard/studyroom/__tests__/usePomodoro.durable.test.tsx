@@ -9,6 +9,7 @@ let mockRealtimeCallback: ((data: unknown) => void) | null = null;
 
 vi.mock('@/src/client/realtime', () => ({
   useRealtime: () => ({
+    status: 'connected',
     subscribe: vi.fn((_channel: string, cb: (data: unknown) => void) => {
       mockRealtimeCallback = cb;
       return () => {

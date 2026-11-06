@@ -11,6 +11,7 @@ export interface ParticipantActionsMenuProps {
   targetName: string;
   targetRole?: RoomRole;
   viewerRole?: RoomRole;
+  canManageRoles?: boolean;
   canManageParticipants: boolean;
   onActionSuccess?: (message: string) => void;
   onActionError?: (error: string) => void;
@@ -22,6 +23,7 @@ export function ParticipantActionsMenu({
   targetUserId,
   targetName,
   targetRole,
+  canManageRoles = false,
   canManageParticipants,
   onActionSuccess,
   onActionError,
@@ -128,7 +130,7 @@ export function ParticipantActionsMenu({
     }
   }, [roomSlug, targetUserId, targetName, onActionSuccess, onActionError, onRosterMutated]);
 
-  if (!canManageParticipants || targetRole === 'OWNER') {
+  if (!canManageParticipants || targetRole === 'OWNER' || (!canManageRoles && targetRole === 'MODERATOR')) {
     return null;
   }
 
@@ -147,7 +149,7 @@ export function ParticipantActionsMenu({
 
       {isOpen && (
         <div className={styles.dropdown} role="menu">
-          <button
+          {canManageRoles && <button
             type="button"
             role="menuitem"
             className={styles.menuItem}
@@ -165,7 +167,7 @@ export function ParticipantActionsMenu({
                 <span>Make Host</span>
               </>
             )}
-          </button>
+          </button>}
 
           <button
             type="button"

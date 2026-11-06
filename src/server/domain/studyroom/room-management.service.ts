@@ -1,4 +1,5 @@
 import 'server-only';
+import { lockRooms, lockUser } from './room-access';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { studyroomPolicy, type RoomEntity } from './studyroom.policy';
@@ -52,217 +53,223 @@ export const roomManagementService = {
       publishImmediately = false,
     } = input;
 
-    // 1. Idempotency Check: if requestId was already processed, return existing room
-    if (requestId) {
-      const existingAudit = await prisma.roomAuditLog.findFirst({
-        where: {
-          clientRequestId: requestId,
-          actorId: userId,
-          action: 'ROOM_CREATED',
-        },
-        include: {
-          room: {
-            select: {
-              id: true,
-              slug: true,
-              title: true,
-              status: true,
-              revision: true,
+    return prisma.$transaction(async tx => {
+      await lockUser(tx, userId);
+      // 1. Idempotency Check: if requestId was already processed, return existing room
+      if (requestId) {
+        const existingAudit = await tx.roomAuditLog.findFirst({
+          where: {
+            clientRequestId: requestId,
+            actorId: userId,
+            action: 'ROOM_CREATED',
+          },
+          include: {
+            room: {
+              select: {
+                id: true,
+                slug: true,
+                title: true,
+                status: true,
+                revision: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      if (existingAudit?.room) {
-        return {
-          id: existingAudit.room.id,
-          slug: existingAudit.room.slug || existingAudit.room.id,
-          title: existingAudit.room.title,
-          status: existingAudit.room.status as RoomStatus,
-          revision: existingAudit.room.revision,
-          isIdempotentReplay: true,
-        };
+        if (existingAudit?.room) {
+          return {
+            id: existingAudit.room.id,
+            slug: existingAudit.room.slug || existingAudit.room.id,
+            title: existingAudit.room.title,
+            status: existingAudit.room.status as RoomStatus,
+            revision: existingAudit.room.revision,
+            isIdempotentReplay: true,
+          };
+        }
       }
-    }
 
-    // 2. Validate Inputs
-    const cleanTitle = (title || '').trim();
-    if (
-      cleanTitle.length < STUDY_ROOM_LIMITS.TITLE_MIN_LENGTH ||
-      cleanTitle.length > STUDY_ROOM_LIMITS.TITLE_MAX_LENGTH
-    ) {
-      throw new RoomValidationError(
-        `Title must be between ${STUDY_ROOM_LIMITS.TITLE_MIN_LENGTH} and ${STUDY_ROOM_LIMITS.TITLE_MAX_LENGTH} characters`
-      );
-    }
-
-    if (description && description.length > STUDY_ROOM_LIMITS.DESCRIPTION_MAX_LENGTH) {
-      throw new RoomValidationError(
-        `Description cannot exceed ${STUDY_ROOM_LIMITS.DESCRIPTION_MAX_LENGTH} characters`
-      );
-    }
-
-    if (rules && rules.length > STUDY_ROOM_LIMITS.RULES_MAX_LENGTH) {
-      throw new RoomValidationError(
-        `Rules cannot exceed ${STUDY_ROOM_LIMITS.RULES_MAX_LENGTH} characters`
-      );
-    }
-
-    if (tags.length > STUDY_ROOM_LIMITS.TAGS_MAX_COUNT) {
-      throw new RoomValidationError(
-        `Maximum ${STUDY_ROOM_LIMITS.TAGS_MAX_COUNT} tags allowed`
-      );
-    }
-
-    for (const tag of tags) {
-      if (tag.length > STUDY_ROOM_LIMITS.TAG_MAX_LENGTH) {
+      // 2. Validate Inputs
+      const cleanTitle = (title || '').trim();
+      if (
+        cleanTitle.length < STUDY_ROOM_LIMITS.TITLE_MIN_LENGTH ||
+        cleanTitle.length > STUDY_ROOM_LIMITS.TITLE_MAX_LENGTH
+      ) {
         throw new RoomValidationError(
-          `Tag length cannot exceed ${STUDY_ROOM_LIMITS.TAG_MAX_LENGTH} characters`
+          `Title must be between ${STUDY_ROOM_LIMITS.TITLE_MIN_LENGTH} and ${STUDY_ROOM_LIMITS.TITLE_MAX_LENGTH} characters`
         );
       }
-    }
 
-    if (capacity < STUDY_ROOM_LIMITS.CAPACITY_MIN || capacity > STUDY_ROOM_LIMITS.CAPACITY_MAX) {
-      throw new RoomValidationError(
-        `Capacity must be between ${STUDY_ROOM_LIMITS.CAPACITY_MIN} and ${STUDY_ROOM_LIMITS.CAPACITY_MAX}`
-      );
-    }
-
-    // 3. Quota and Scope Checks
-    const effectiveScopeKind = scopeKind || (cohortId ? 'COHORT' : 'STANDALONE');
-    if (effectiveScopeKind === 'STANDALONE') {
-      await studyroomPolicy.assertCreationQuota(userId);
-    } else if (effectiveScopeKind === 'COHORT') {
-      if (!cohortId) {
-        throw new RoomValidationError('Cohort ID is required for cohort-scoped room');
+      if (description && description.length > STUDY_ROOM_LIMITS.DESCRIPTION_MAX_LENGTH) {
+        throw new RoomValidationError(
+          `Description cannot exceed ${STUDY_ROOM_LIMITS.DESCRIPTION_MAX_LENGTH} characters`
+        );
       }
 
-      const cohort = await prisma.cohort.findUnique({
-        where: { id: cohortId },
-        select: { creatorId: true },
-      });
-
-      if (!cohort) {
-        throw new RoomValidationError('Cohort not found');
+      if (rules && rules.length > STUDY_ROOM_LIMITS.RULES_MAX_LENGTH) {
+        throw new RoomValidationError(
+          `Rules cannot exceed ${STUDY_ROOM_LIMITS.RULES_MAX_LENGTH} characters`
+        );
       }
 
-      const membership = await prisma.cohortMember.findUnique({
-        where: { cohortId_userId: { cohortId, userId } },
-        select: { role: true },
-      });
-
-      const isAuthorized =
-        cohort.creatorId === userId ||
-        (membership && (membership.role === 'CREATOR' || membership.role === 'MODERATOR'));
-
-      if (!isAuthorized) {
-        throw new RoomForbiddenError('Only cohort creator or moderator can create cohort rooms');
+      if (tags.length > STUDY_ROOM_LIMITS.TAGS_MAX_COUNT) {
+        throw new RoomValidationError(
+          `Maximum ${STUDY_ROOM_LIMITS.TAGS_MAX_COUNT} tags allowed`
+        );
       }
-    }
 
-    // 4. Generate Slug with Collision Handling
-    const baseSlug = sanitizeSlug(cleanTitle) || 'study-room';
-    studyroomPolicy.validateRoomSlug(baseSlug);
+      for (const tag of tags) {
+        if (tag.length > STUDY_ROOM_LIMITS.TAG_MAX_LENGTH) {
+          throw new RoomValidationError(
+            `Tag length cannot exceed ${STUDY_ROOM_LIMITS.TAG_MAX_LENGTH} characters`
+          );
+        }
+      }
 
-    let targetSlug = baseSlug;
-    let collisionCount = 0;
-    while (collisionCount < 10) {
-      const existing = await prisma.studyRoom.findUnique({
-        where: { slug: targetSlug },
-        select: { id: true },
-      });
-      if (!existing) break;
-      collisionCount++;
-      targetSlug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
-    }
+      if (capacity < STUDY_ROOM_LIMITS.CAPACITY_MIN || capacity > STUDY_ROOM_LIMITS.CAPACITY_MAX) {
+        throw new RoomValidationError(
+          `Capacity must be between ${STUDY_ROOM_LIMITS.CAPACITY_MIN} and ${STUDY_ROOM_LIMITS.CAPACITY_MAX}`
+        );
+      }
 
-    if (collisionCount >= 10) {
-      throw new RoomConflictError('Could not allocate unique room slug; please try a different title');
-    }
+      // 3. Quota and Scope Checks
+      const effectiveScopeKind = scopeKind || (cohortId ? 'COHORT' : 'STANDALONE');
+      if (!['STANDALONE','COHORT'].includes(effectiveScopeKind) ||
+          (effectiveScopeKind === 'STANDALONE' && cohortId)) {
+        throw new RoomValidationError('Invalid room scope');
+      }
+      await studyroomPolicy.assertCreationQuota(userId, effectiveScopeKind === 'STANDALONE' && publishImmediately, tx);
+      if (effectiveScopeKind === 'COHORT') {
+        if (!cohortId) {
+          throw new RoomValidationError('Cohort ID is required for cohort-scoped room');
+        }
 
-    const initialStatus = publishImmediately ? 'OPEN' : 'DRAFT';
-    const now = new Date();
+        const cohort = await tx.cohort.findUnique({
+          where: { id: cohortId },
+          select: { creatorId: true },
+        });
 
-    // 5. Atomic Transaction: Room, Channel, RealtimeStream, RoomEnvironment, AuditLog
-    const room = await prisma.$transaction(async (tx) => {
-      const createdRoom = await tx.studyRoom.create({
-        data: {
-          title: cleanTitle,
-          slug: targetSlug,
-          description: description?.trim() || null,
-          thumbnail: visualPresetId ? `/images/studyrooms/scenes/${visualPresetId}.webp` : '/images/studyrooms/scenes/library.webp',
-          ownerId: userId,
-          cohortId: scopeKind === 'COHORT' ? cohortId : null,
-          listing,
-          capacity,
-          rules: rules?.trim() || null,
-          tags,
-          language,
-          visualPresetId: visualPresetId || null,
-          status: initialStatus,
-          revision: 1,
-          publishedAt: publishImmediately ? now : null,
-          onlineCount: 0,
-        },
-      });
+        if (!cohort) {
+          throw new RoomValidationError('Cohort not found');
+        }
 
-      // Chat Channel
-      await tx.channel.create({
-        data: {
-          name: createdRoom.title,
-          studyRoomId: createdRoom.id,
-          messageCounter: 0,
-        },
-      });
+        const membership = await tx.cohortMember.findUnique({
+          where: { cohortId_userId: { cohortId, userId } },
+          select: { role: true },
+        });
 
-      // Event Stream
-      await tx.realtimeStream.create({
-        data: {
-          studyRoomId: createdRoom.id,
-          generation: 1,
-          eventCounter: 0,
-        },
-      });
+        const isAuthorized =
+          cohort.creatorId === userId ||
+          (membership && (membership.role === 'CREATOR' || membership.role === 'MODERATOR'));
 
-      // Shared Environment
-      await tx.roomEnvironment.create({
-        data: {
-          studyRoomId: createdRoom.id,
-          sceneId: initialSceneId,
-          soundscapeId: initialAmbiencePresetId,
-          revision: 1,
-          updatedByUserId: userId,
-        },
-      });
+        if (!isAuthorized) {
+          throw new RoomForbiddenError('Only cohort creator or moderator can create cohort rooms');
+        }
+      }
 
-      // Durable Audit Log
-      await tx.roomAuditLog.create({
-        data: {
-          studyRoomId: createdRoom.id,
-          actorId: userId,
-          action: 'ROOM_CREATED',
-          clientRequestId: requestId || null,
-          details: {
+      // 4. Generate Slug with Collision Handling
+      const baseSlug = sanitizeSlug(cleanTitle) || 'study-room';
+      studyroomPolicy.validateRoomSlug(baseSlug);
+
+      let targetSlug = baseSlug;
+      let collisionCount = 0;
+      while (collisionCount < 10) {
+        const existing = await tx.studyRoom.findUnique({
+          where: { slug: targetSlug },
+          select: { id: true },
+        });
+        if (!existing) break;
+        collisionCount++;
+        targetSlug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+
+      if (collisionCount >= 10) {
+        throw new RoomConflictError('Could not allocate unique room slug; please try a different title');
+      }
+
+      const initialStatus = publishImmediately ? 'OPEN' : 'DRAFT';
+      const now = new Date();
+
+      // 5. Atomic Transaction: Room, Channel, RealtimeStream, RoomEnvironment, AuditLog
+      const room = await (async () => {
+        const createdRoom = await tx.studyRoom.create({
+          data: {
             title: cleanTitle,
             slug: targetSlug,
-            scopeKind,
-            cohortId: scopeKind === 'COHORT' ? cohortId : null,
-            status: initialStatus,
+            description: description?.trim() || null,
+            thumbnail: visualPresetId ? `/images/studyrooms/scenes/${visualPresetId}.webp` : '/images/studyrooms/scenes/library.webp',
+            ownerId: userId,
+            cohortId: effectiveScopeKind === 'COHORT' ? cohortId : null,
+            listing,
             capacity,
+            rules: rules?.trim() || null,
+            tags,
+            language,
+            visualPresetId: visualPresetId || null,
+            status: initialStatus,
+            revision: 1,
+            publishedAt: publishImmediately ? now : null,
+            onlineCount: 0,
           },
-        },
-      });
+        });
 
-      return createdRoom;
+        // Chat Channel
+        await tx.channel.create({
+          data: {
+            name: createdRoom.title,
+            studyRoomId: createdRoom.id,
+            messageCounter: 0,
+          },
+        });
+
+        // Event Stream
+        await tx.realtimeStream.create({
+          data: {
+            studyRoomId: createdRoom.id,
+            generation: 1,
+            eventCounter: 0,
+          },
+        });
+
+        // Shared Environment
+        await tx.roomEnvironment.create({
+          data: {
+            studyRoomId: createdRoom.id,
+            sceneId: initialSceneId,
+            soundscapeId: initialAmbiencePresetId,
+            revision: 1,
+            updatedByUserId: userId,
+          },
+        });
+
+        // Durable Audit Log
+        await tx.roomAuditLog.create({
+          data: {
+            studyRoomId: createdRoom.id,
+            actorId: userId,
+            action: 'ROOM_CREATED',
+            clientRequestId: requestId || null,
+            details: {
+              title: cleanTitle,
+              slug: targetSlug,
+              scopeKind,
+              cohortId: effectiveScopeKind === 'COHORT' ? cohortId : null,
+              status: initialStatus,
+              capacity,
+            },
+          },
+        });
+
+        return createdRoom;
+      })();
+
+      return {
+        id: room.id,
+        slug: room.slug || room.id,
+        title: room.title,
+        status: room.status as RoomStatus,
+        revision: room.revision,
+      };
     });
-
-    return {
-      id: room.id,
-      slug: room.slug || room.id,
-      title: room.title,
-      status: room.status as RoomStatus,
-      revision: room.revision,
-    };
   },
 
   /**
@@ -311,6 +318,9 @@ export const roomManagementService = {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
+      await lockRooms(tx, [room.id]);
+      const current = await tx.studyRoom.findUniqueOrThrow({ where: { id: room.id } });
+      if (current.revision !== expectedRevision || current.ownerId !== room.ownerId) throw new RoomConflictError();
       const res = await tx.studyRoom.update({
         where: { id: room.id },
         data: {
@@ -430,6 +440,14 @@ export const roomManagementService = {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      if (room.ownerId) await lockUser(tx, room.ownerId);
+      await lockRooms(tx, [room.id]);
+      const current = await tx.studyRoom.findUniqueOrThrow({ where: { id: room.id } });
+      if (current.revision !== expectedRevision || current.ownerId !== room.ownerId) throw new RoomConflictError();
+      if (nextStatus === 'OPEN' && !room.cohortId && room.ownerId) {
+        const count = await tx.studyRoom.count({ where: { ownerId: room.ownerId, cohortId: null, status: 'OPEN' } });
+        if (count >= STUDY_ROOM_LIMITS.MAX_OPEN_STANDALONE_PER_USER) throw new RoomConflictError('Open room limit reached');
+      }
       // If closing room, evict all active leases and participant presence records
       if (action === 'CLOSE') {
         await tx.roomLease.deleteMany({
@@ -540,17 +558,12 @@ export const roomManagementService = {
           select: { id: true, title: true, visibility: true },
         },
         channel: {
-          select: { id: true },
+          select: { id: true, realtimeStream:{select:{generation:true}} },
         },
         realtimeStream: {
           select: { generation: true },
         },
-        environment: true,
-        sprints: {
-          where: { status: { in: ['ACTIVE', 'PAUSED'] } },
-          orderBy: { startedAt: 'desc' },
-          take: 1,
-        },
+
       },
     });
 
@@ -579,12 +592,11 @@ export const roomManagementService = {
       Boolean(activeLease)
     );
 
-    // Unlisted room isolation check: if unlisted and user is not owner/controller/active participant, throw 404
-    if (room.listing === 'UNLISTED') {
-      const isManager = roleRes.isOwner || roleRes.isPlatformAdmin || roleRes.role === 'MODERATOR';
-      if (!isManager && !activeLease) {
-        throw new RoomNotFoundError();
-      }
+    const admitted = Boolean(activeLease) && capabilities.canJoin;
+    const managing = capabilities.canEditRoom;
+    if (!managing && !capabilities.canJoin &&
+        (room.listing === 'UNLISTED' || room.cohortId || room.status !== 'OPEN')) {
+      throw new RoomNotFoundError();
     }
 
     // Pending ownership transfer check for recipient
@@ -635,7 +647,10 @@ export const roomManagementService = {
         deadline?: Date | string | null;
       }>;
     }
-    const related = room as unknown as BootstrapRelations;
+    const shared = admitted ? await prisma.studyRoom.findUnique({where:{id:room.id},select:{
+      environment:true,sprints:{where:{status:{in:['ACTIVE','PAUSED']}},orderBy:{startedAt:'desc'},take:1}
+    }}) : null;
+    const related: BootstrapRelations = {channel:room.channel,environment:shared?.environment,sprints:shared?.sprints};
 
     return {
       room: {
@@ -652,7 +667,7 @@ export const roomManagementService = {
         cohortTitle: room.cohort?.title || null,
         capacity: room.capacity,
         onlineCount: room.onlineCount,
-        rules: room.rules,
+        rules: admitted || managing ? room.rules : null,
         tags: room.tags,
         language: room.language,
         revision: room.revision,
@@ -665,14 +680,15 @@ export const roomManagementService = {
       viewer: {
         userId,
         role: roleRes.role,
-        isJoined: Boolean(activeLease),
+        isJoined: admitted,
         leaseExpiresAt: activeLease?.expiresAt.toISOString() || null,
         generation: activeLease?.generation || null,
       },
       capabilities,
       pendingTransfer,
-      channelId: capabilities.canJoin ? related.channel?.id ?? null : null,
-      environment: related.environment
+      chatGeneration: room.channel?.realtimeStream?.generation ?? room.realtimeStream?.generation ?? 1,
+      channelId: admitted ? related.channel?.id ?? null : null,
+      environment: !admitted ? null : related.environment
         ? {
             sceneId: related.environment.sceneId || 'lofi-cafe',
             soundscapeId: related.environment.soundscapeId || null,
@@ -691,7 +707,7 @@ export const roomManagementService = {
             revision: 1,
             updatedAt: room.createdAt ? new Date(room.createdAt).toISOString() : new Date().toISOString(),
           },
-      sprint: related.sprints?.[0]
+      sprint: admitted && related.sprints?.[0]
         ? {
             id: related.sprints[0].id,
             status: related.sprints[0].status,

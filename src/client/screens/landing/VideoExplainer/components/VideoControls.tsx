@@ -29,9 +29,8 @@ export function VideoControls({
   closeOpacity,
 }: VideoControlsProps) {
   const showReplayButton = isEnded;
-  const showPlayButton = !isPlaying && !isLoading && !isEnded;
-  const showCenterLoader = !isPlaying && isLoading && !isEnded;
-  const showCornerLoader = isPlaying && isLoading;
+  const showPlayButton = !isPlaying && !isEnded;
+  const showCornerLoader = isLoading;
 
   return (
     <>
@@ -40,10 +39,14 @@ export function VideoControls({
         className={`${styles.overlayCenter} ${
           showReplayButton ? styles.overlayVisible : styles.overlayHidden
         }`}
+        onClick={onReplay}
       >
         <button
           type="button"
-          onClick={onReplay}
+          onClick={(e) => {
+            e.stopPropagation();
+            onReplay();
+          }}
           className={styles.playButton}
           aria-label="Replay video"
           title="Replay video"
@@ -52,32 +55,28 @@ export function VideoControls({
         </button>
       </div>
 
-      {/* Big Play Button Overlay (Visible only when paused and not loading and not ended) */}
+      {/* Big Play Button Overlay (Visible whenever paused and not ended) */}
       <div
         className={`${styles.overlayCenter} ${
           showPlayButton ? styles.overlayVisible : styles.overlayHidden
         }`}
+        onClick={togglePlay}
       >
         <button
           type="button"
-          onClick={togglePlay}
+          onClick={(e) => {
+            e.stopPropagation();
+            togglePlay();
+          }}
           className={styles.playButton}
           aria-label="Play video"
+          title="Play video"
         >
           <Play className={styles.playIcon} fill="currentColor" />
         </button>
       </div>
 
-      {/* Initial Cold Load Center Spinner (Only before video starts playing) */}
-      <div
-        className={`${styles.overlayCenter} ${
-          showCenterLoader ? styles.overlayVisible : styles.overlayHidden
-        }`}
-      >
-        <Loader2 className={styles.loaderIcon} />
-      </div>
-
-      {/* Unobtrusive Corner Spinner while playing (NEVER blocks the video with a dark screen overlay) */}
+      {/* Unobtrusive Corner Spinner while loading/buffering (Never blocks the video with a dark screen overlay) */}
       {showCornerLoader && (
         <div className={styles.cornerLoader} aria-label="Buffering">
           <Loader2 className={styles.cornerLoaderIcon} />

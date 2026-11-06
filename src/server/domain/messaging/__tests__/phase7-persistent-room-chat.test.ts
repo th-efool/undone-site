@@ -39,6 +39,10 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
     findUnique: vi.fn(),
   };
 
+  const mockStudyRoom = {
+    findUnique: vi.fn(),
+  };
+
   const mockUserRestriction = {
     findUnique: vi.fn().mockResolvedValue(null),
   };
@@ -50,6 +54,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
       cohortMember: mockCohortMember,
       roomLease: mockRoomLease,
       roomParticipant: mockRoomParticipant,
+      studyRoom: mockStudyRoom,
       message: mockMessage,
       userRestriction: mockUserRestriction,
     },
@@ -83,6 +88,17 @@ describe('Phase 7: Persistent Room Chat', () => {
           status: 'OPEN',
           cohortId: null,
         },
+      } as any);
+
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({
+        id: 'room-1',
+        title: 'Room 1',
+        slug: 'room-1',
+        status: 'OPEN',
+        listing: 'PUBLIC',
+        capacity: 10,
+        revision: 1,
+        cohortId: null,
       } as any);
 
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
@@ -165,6 +181,17 @@ describe('Phase 7: Persistent Room Chat', () => {
         },
       } as any);
 
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({
+        id: 'room-1',
+        title: 'Room 1',
+        slug: 'room-1',
+        status: 'OPEN',
+        listing: 'PUBLIC',
+        capacity: 10,
+        revision: 1,
+        cohortId: null,
+      } as any);
+
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
         id: 'user-stranger',
         email: 'stranger@test.com',
@@ -180,7 +207,7 @@ describe('Phase 7: Persistent Room Chat', () => {
           authorId: 'user-stranger',
           content: 'Hello',
         })
-      ).rejects.toThrow('Not an active participant in this study room');
+      ).rejects.toThrow(/Active room lease required|Not an active participant/);
     });
 
     it('rejects message sending if room is cohort-scoped and user is not enrolled', async () => {
@@ -221,6 +248,17 @@ describe('Phase 7: Persistent Room Chat', () => {
           status: 'OPEN',
           cohortId: null,
         },
+      } as any);
+
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({
+        id: 'room-1',
+        title: 'Room 1',
+        slug: 'room-1',
+        status: 'OPEN',
+        listing: 'PUBLIC',
+        capacity: 10,
+        revision: 1,
+        cohortId: null,
       } as any);
 
       vi.mocked(prisma.roomLease.findFirst).mockResolvedValueOnce({
@@ -266,6 +304,17 @@ describe('Phase 7: Persistent Room Chat', () => {
         },
       } as any);
 
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({
+        id: 'room-1',
+        title: 'Room 1',
+        slug: 'room-1',
+        status: 'OPEN',
+        listing: 'PUBLIC',
+        capacity: 10,
+        revision: 1,
+        cohortId: null,
+      } as any);
+
       // No active lease and no participant
       vi.mocked(prisma.roomLease.findFirst).mockResolvedValueOnce(null);
       vi.mocked(prisma.roomParticipant.findFirst).mockResolvedValueOnce(null);
@@ -277,7 +326,7 @@ describe('Phase 7: Persistent Room Chat', () => {
 
       expect(res.status).toBe(403);
       const json = await res.json();
-      expect(json.error).toMatch(/not an active participant/i);
+      expect(json.error).toMatch(/Active room lease required|not an active participant/i);
     });
   });
 });

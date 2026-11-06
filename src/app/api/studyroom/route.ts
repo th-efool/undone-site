@@ -33,6 +33,9 @@ export async function GET(req?: Request): Promise<Response> {
       if (hasDiscoveryQuery) {
         const user = await getUser();
         const tab = (url.searchParams.get('tab') || 'discover') as DiscoveryTab;
+        if (!['discover', 'cohorts', 'my-rooms', 'recent'].includes(tab)) {
+          return NextResponse.json({ error: 'Unknown discovery tab' }, { status: 400 });
+        }
         const queryText = url.searchParams.get('query') || undefined;
         const cohortId = url.searchParams.get('cohortId') || undefined;
         const tag = url.searchParams.get('tag') || undefined;
@@ -108,17 +111,11 @@ export async function GET(req?: Request): Promise<Response> {
     // Fetch public standalone rooms only (prevent leaking unlisted or private cohort rooms into public cache)
     const rooms = await prisma.studyRoom.findMany({
       where: {
-        listing: 'PUBLIC',
+        listing: { in: ['LISTED','PUBLIC'] },
+        status: 'OPEN',
         cohortId: null,
       },
-      include: {
-        participants: {
-          select: {
-            id: true,
-            userId: true,
-          },
-        },
-      },
+      select: {id:true,slug:true,title:true,thumbnail:true,status:true,onlineCount:true},
       orderBy: {
         createdAt: 'asc',
       },

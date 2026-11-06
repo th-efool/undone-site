@@ -29,6 +29,9 @@ export const roomDiscoveryService = {
       limit = 12,
     } = query;
 
+    if (!['discover', 'cohorts', 'my-rooms', 'recent'].includes(tab)) {
+      return { rooms: [], nextCursor: null, totalEstimatedCount: 0 };
+    }
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
     // 1. Resolve user's accessible cohort IDs
@@ -49,8 +52,6 @@ export const roomDiscoveryService = {
     if (tab !== 'my-rooms') {
       whereConditions.push({ status: 'OPEN' });
       whereConditions.push({ listing: 'LISTED' });
-    } else {
-      whereConditions.push({ status: { not: 'ARCHIVED' } });
     }
 
     // Tab-specific scoping
@@ -85,23 +86,9 @@ export const roomDiscoveryService = {
         return { rooms: [], nextCursor: null, totalEstimatedCount: 0 };
       }
 
-      // Find rooms where user has had leases or participant presence
-      const recentPresence = await prisma.roomParticipant.findMany({
-        where: { userId },
-        select: { studyRoomId: true },
-        take: 50,
-      });
-
-      const recentLeases = await prisma.roomLease.findMany({
-        where: { userId },
-        select: { studyRoomId: true },
-        take: 50,
-      });
-
-      const recentRoomIds = Array.from(
-        new Set([...recentPresence.map((p) => p.studyRoomId), ...recentLeases.map((l) => l.studyRoomId)])
-      );
-
+      const visits = await prisma.roomAuditLog.findMany({where:{actorId:userId,action:{in:['ROOM_JOIN','ROOM_SWITCH']}},
+        orderBy:{createdAt:'desc'},distinct:['studyRoomId'],take:50,select:{studyRoomId:true}});
+      const recentRoomIds = visits.map(visit => visit.studyRoomId);
       if (recentRoomIds.length === 0) {
         return { rooms: [], nextCursor: null, totalEstimatedCount: 0 };
       }
@@ -155,6 +142,7 @@ export const roomDiscoveryService = {
       whereConditions.push({ language: language.trim().toLowerCase() });
     }
 
+    if (availableOnly) whereConditions.push({onlineCount:{lt:prisma.studyRoom.fields.capacity}});
     const where = whereConditions.length > 0 ? { AND: whereConditions } : {};
 
     // 7. Query Database with deterministic ordering
@@ -164,7 +152,6 @@ export const roomDiscoveryService = {
       skip: cursor ? 1 : 0,
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: [
-        { onlineCount: 'desc' },
         { createdAt: 'desc' },
         { id: 'asc' },
       ],
@@ -180,8 +167,8 @@ export const roomDiscoveryService = {
 
     let nextCursor: string | null = null;
     if (rooms.length > safeLimit) {
-      const nextItem = rooms.pop();
-      nextCursor = nextItem?.id || null;
+      rooms.pop();
+      nextCursor = rooms.at(-1)?.id || null;
     }
 
     // 8. Transform to Safe DTO

@@ -95,11 +95,14 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
       !roomBootstrap?.viewer?.isJoined);
 
   const canParticipate =
-    orchestrationState === 'joined' ||
-    orchestrationState === 'reconnecting' ||
-    orchestrationState === 'joining';
+    orchestrationState === 'joined';
 
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
+  useEffect(() => {
+    const warn = () => setToast({id:Date.now(),text:'Room change could not be saved. Check your connection and retry.'});
+    window.addEventListener('studyroom:environment-error',warn);
+    return () => window.removeEventListener('studyroom:environment-error',warn);
+  },[]);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [isAcceptingTransfer, setIsAcceptingTransfer] = useState(false);
 
@@ -132,9 +135,9 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
 
   // Shared room state (admin/controller controls mutations, persisted to environment service)
   const env = useSharedEnvironment(room.defaultEnvironment, viewer.userId, {
-    roomSlug,
+    roomSlug: canParticipate ? roomSlug : undefined,
     canControlEnvironment: canControlEnv,
-    roomId: roomBootstrap?.room?.id || roomSlug,
+    roomId: canParticipate ? roomBootstrap?.room?.id : undefined,
     streamGeneration: roomBootstrap?.room?.streamGeneration,
   });
 
@@ -289,6 +292,7 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
       case 'people':
         return (
           <ParticipantPanel
+            canManageRoles={viewer.capabilities?.canManageRoles}
             participants={participants}
             now={now}
             roomSlug={roomSlug}
@@ -338,7 +342,7 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
     }
   };
 
-  if (orchestrationState === 'loading') {
+  if (['loading','joining','reconnecting'].includes(orchestrationState)) {
     return (
       <main className={styles.deniedContainer} aria-busy="true" data-testid="room-loading-stage">
         <div className={styles.deniedCard}>
@@ -409,7 +413,13 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
     );
   }
 
-  if (isDenied && eligibilityReason && eligibilityReason !== 'ELIGIBLE') {
+  if (isDenied && roomBootstrap?.capabilities.canEditRoom &&
+      ['DRAFT','CLOSED','ARCHIVED'].includes(roomBootstrap.room.status)) {
+    return <RoomSettingsModal isOpen isOwner room={roomBootstrap.room}
+      onClose={() => router.push('/studyroom')} onUpdated={() => void rejoin()} />;
+  }
+
+  if (isDenied) {
     let title = 'Access Restricted';
     let text = 'You do not currently have access to this study room.';
     let icon = <Lock size={28} />;
@@ -552,8 +562,8 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
             canManageParticipants={viewer.capabilities?.canManageParticipants ?? (viewer.role === 'admin')}
             onRosterMutated={() => void refreshRoster()}
             cohortTitle={roomBootstrap?.room?.cohortId ? 'Cohort' : null}
-            channelId={roomBootstrap?.channelId}
-            streamGeneration={roomBootstrap?.room?.streamGeneration}
+            channelId={canParticipate ? roomBootstrap?.channelId : null}
+            streamGeneration={roomBootstrap?.chatGeneration}
           />
         </div>
       </div>

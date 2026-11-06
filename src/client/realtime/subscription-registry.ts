@@ -113,10 +113,19 @@ export class SubscriptionRegistry {
 
     sub.on('subscribed', (_ctx: SubscribedContext) => {
       entry.status = 'subscribed';
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('studyroom:resync',{detail:channel}));
     });
 
-    sub.on('unsubscribed', (_ctx: UnsubscribedContext) => {
+    let revoked = false;
+    const notifyRevoked = () => {
+      if (revoked) return;
+      revoked = true;
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('studyroom:revoked', { detail: channel }));
+      this.onRevocation?.(channel);
+    };
+    sub.on('unsubscribed', (ctx: UnsubscribedContext) => {
       entry.status = 'unsubscribed';
+      if (ctx.code === 103 || ctx.code === 1) notifyRevoked();
     });
 
     sub.on('publication', (ctx: PublicationContext) => {
@@ -136,10 +145,7 @@ export class SubscriptionRegistry {
       entry.lastError = ctx.error?.message || 'Subscription error';
 
       if (ctx.error?.code === 103) {
-        // Access revoked or expired
-        if (this.onRevocation) {
-          this.onRevocation(channel);
-        }
+        notifyRevoked();
       }
     });
   }

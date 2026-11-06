@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(),
+}));
 vi.mock('server-only', () => ({}));
 
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
@@ -28,6 +33,12 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
       findUnique: vi.fn(),
     },
     studyRoom: {
+      findUniqueOrThrow: vi.fn(async () => {
+      const model = prisma.studyRoom;
+      const recent = [model.findUnique,model.findFirst].flatMap(fn => vi.isMockFunction(fn) ? fn.mock.results.slice(-1) : []);
+      for (const call of recent) { const room = await call.value; if (room) return room; }
+      throw Error('Missing room fixture');
+    }),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -395,7 +406,8 @@ describe('Integration Phase 3: Unified Room Authorization and Bootstrap', () => 
         ],
       } as any);
 
-      vi.mocked(prisma.roomLease.findFirst).mockResolvedValue(null);
+      vi.mocked(prisma.roomLease.findFirst).mockResolvedValue({expiresAt:new Date(Date.now()+90000),generation:1} as any);
+      vi.mocked(prisma.studyRoom.findUnique).mockImplementation((async()=>await vi.mocked(prisma.studyRoom.findFirst).mock.results.at(-1)?.value) as any);
       vi.mocked(prisma.roomLease.groupBy).mockResolvedValue([]);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: 'user-1',
@@ -439,16 +451,12 @@ describe('Integration Phase 3: Unified Room Authorization and Bootstrap', () => 
       } as any);
       vi.mocked(isSharedGuestAccount).mockReturnValue(false);
 
-      const bootstrap = await roomManagementService.getRoomBootstrap('private-cohort-room', 'user-outsider');
-
-      expect(bootstrap.capabilities.canJoin).toBe(false);
-      expect(bootstrap.capabilities.eligibilityReason).toBe('ENROLLMENT_REQUIRED');
-      // Chat channel ID is strictly withheld from non-members
-      expect(bootstrap.channelId).toBeNull();
+      await expect(roomManagementService.getRoomBootstrap('private-cohort-room','user-outsider')).rejects.toThrow(RoomNotFoundError);
     });
 
-    it('unlisted rooms throw RoomNotFoundError (404) for unauthorized users', async () => {
+    it('eligible direct-link visitors see only a preview before joining', async () => {
       vi.mocked(prisma.studyRoom.findFirst).mockResolvedValue({
+        createdAt:new Date(),
         id: 'room-secret',
         slug: 'secret-unlisted-room',
         title: 'Secret Room',
@@ -466,9 +474,7 @@ describe('Integration Phase 3: Unified Room Authorization and Bootstrap', () => 
       } as any);
       vi.mocked(isSharedGuestAccount).mockReturnValue(false);
 
-      await expect(
-        roomManagementService.getRoomBootstrap('secret-unlisted-room', 'user-curious')
-      ).rejects.toThrow(RoomNotFoundError);
+      expect((await roomManagementService.getRoomBootstrap('secret-unlisted-room','user-curious')).channelId).toBeNull();
     });
   });
 });

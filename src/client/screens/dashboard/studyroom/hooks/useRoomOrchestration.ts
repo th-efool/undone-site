@@ -8,6 +8,7 @@ import { STUDY_ROOM_LIMITS } from '@/src/shared/studyroom/contracts';
 import { getRoomBySlug } from '../data/roomCatalog';
 import { deriveViewer } from '../utils/deriveParticipants';
 import { studyRoomRepository } from '@/src/client/repositories/studyRoomRepository';
+import { useRoomRefresh } from './useRoomRefresh';
 import { useRealtime } from '@/src/client/realtime';
 
 export type RoomOrchestrationState =
@@ -130,6 +131,8 @@ export function useRoomOrchestration({
     if (!enabled || !roomSlug) return;
 
     const currentRunId = ++runIdRef.current;
+    generationRef.current=null;
+    setGeneration(null);
     void Promise.resolve().then(() => {
       if (currentRunId === runIdRef.current) {
         setState('loading');
@@ -177,6 +180,15 @@ export function useRoomOrchestration({
       const joinResult = await studyRoomRepository.joinRoom(actualRoomId, currentTabId);
       if (currentRunId !== runIdRef.current) return;
 
+      generationRef.current = joinResult.generation;
+      const joinedBootstrap = await studyRoomRepository.getBootstrap(roomSlug);
+      if (currentRunId !== runIdRef.current) return;
+      if (!joinedBootstrap.viewer.isJoined || !joinedBootstrap.capabilities.canJoin) {
+        setState('denied');
+        return;
+      }
+      bootstrapRef.current = joinedBootstrap;
+      setBootstrap(joinedBootstrap);
       setGeneration(joinResult.generation);
       generationRef.current = joinResult.generation;
       setState('joined');
@@ -210,7 +222,9 @@ export function useRoomOrchestration({
     const handleBeforeUnload = () => {
       const currentTabId = getTabId();
       const activeRoomId = bootstrapRef.current?.room?.id || roomSlug;
+      if (generationRef.current === null) return;
       const payload = JSON.stringify({
+        generation: generationRef.current,
         action: 'leave',
         roomId: activeRoomId,
         tabId: currentTabId,
@@ -241,9 +255,15 @@ export function useRoomOrchestration({
       }
       const currentTabId = getTabId();
       const activeRoomId = bootstrapRef.current?.room?.id || roomSlug;
-      void studyRoomRepository.leaveRoom(activeRoomId, currentTabId, false).catch(() => {});
+      void studyRoomRepository.leaveRoom(activeRoomId, currentTabId, false, generationRef.current ?? undefined).catch(() => {});
     };
   }, [initializeRoom, roomSlug, enabled]);
+
+  useEffect(() => {
+    if (state !== 'reconnecting' || generation !== null) return;
+    const timer = setTimeout(() => { void initializeRoom(); }, 5000);
+    return () => clearTimeout(timer);
+  }, [state,generation,initializeRoom]);
 
   // Periodic Lease Renewal Loop
   useEffect(() => {
@@ -312,9 +332,24 @@ export function useRoomOrchestration({
     }
   }, [state, realtime?.status]);
 
+  const refreshBootstrap = useCallback(async () => {
+    if (!roomSlug) return;
+    const run = runIdRef.current;
+    try {
+      const data = await studyRoomRepository.getBootstrap(roomSlug);
+      if (run !== runIdRef.current) return;
+      if (!data.viewer.isJoined || !data.capabilities.canJoin) setState('denied');
+      setBootstrap(data);
+      bootstrapRef.current = data;
+
+    } catch (cause) {
+      if (run === runIdRef.current && [401,403,404].includes((cause as {status:number}).status)) { setBootstrap(null); bootstrapRef.current=null; setState('denied'); }
+    }
+  }, [roomSlug]);
+
   // Realtime room events and cursor catchup
   const cursorRef = useRef<number>(0);
-  const isCatchingUpRef = useRef<boolean>(false);
+
 
   const applyRoomEvent = useCallback(
     (event: { type?: string; payload?: Record<string, unknown> }) => {
@@ -322,6 +357,9 @@ export function useRoomOrchestration({
       const payload = event.payload || {};
 
       switch (event.type) {
+        case 'room.governance.changed':
+          void refreshBootstrap();
+          break;
         case 'room.participant.left': {
           const currentUserId = bootstrapRef.current?.viewer?.userId;
           if (payload.userId && currentUserId && payload.userId === currentUserId) {
@@ -346,6 +384,7 @@ export function useRoomOrchestration({
           if (status === 'CLOSED' || status === 'ARCHIVED') {
             setState('denied');
             setError('This room has been closed');
+            void refreshBootstrap();
           }
           break;
         }
@@ -369,59 +408,27 @@ export function useRoomOrchestration({
           break;
       }
     },
-    []
+    [refreshBootstrap]
   );
 
-  const catchUpSync = useCallback(async () => {
-    if (isCatchingUpRef.current || !roomSlug) return;
-    isCatchingUpRef.current = true;
-    try {
-      const syncRes = await studyRoomRepository.syncRoomEvents(roomSlug, {
-        clientSequence: cursorRef.current,
-      });
-
-      if (syncRes.mode === 'SNAPSHOT') {
-        cursorRef.current = syncRes.currentSequence;
-        if (syncRes.room?.status === 'CLOSED' || syncRes.room?.status === 'ARCHIVED') {
-          setState('denied');
-          setError('This room has been closed');
-        }
-        if (syncRes.roster) {
-          setBootstrap((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  room: {
-                    ...prev.room,
-                    onlineCount: syncRes.roster!.length,
-                  },
-                }
-              : null
-          );
-        }
-      } else if (syncRes.mode === 'DELTA' && syncRes.events) {
-        for (const evt of syncRes.events) {
-          applyRoomEvent(evt as { type?: string; payload?: Record<string, unknown> });
-          cursorRef.current = Math.max(cursorRef.current, evt.sequence);
-        }
-      }
-    } catch (err: unknown) {
-      const errorObj = err as { status?: number; message?: string };
-      if (errorObj?.status === 403 || errorObj?.status === 401) {
-        setState('denied');
-        setError('Access revoked');
-      }
-    } finally {
-      isCatchingUpRef.current = false;
-    }
-  }, [roomSlug, applyRoomEvent]);
+  const roomChannel = bootstrap?.room.id ? `room:${bootstrap.room.id}:g${bootstrap.room.streamGeneration ?? 1}` : undefined;
+  useRoomRefresh(state === 'joined' ? roomChannel : undefined, refreshBootstrap);
+  useEffect(() => {
+    const revoked = (event:Event) => {
+      if ((event as CustomEvent<string>).detail !== roomChannel) return;
+      setBootstrap(null); bootstrapRef.current=null; setState('denied'); setError('Access revoked');
+    };
+    window.addEventListener('studyroom:revoked',revoked);
+    return () => window.removeEventListener('studyroom:revoked',revoked);
+  },[roomChannel]);
+  useEffect(() => { cursorRef.current = 0; }, [roomChannel]);
 
   // Subscribe to room stream channel
   useEffect(() => {
     if (
       state !== 'joined' ||
       !bootstrap?.room?.id ||
-      typeof realtimeRef.current?.subscribe !== 'function'
+      realtime?.status !== 'connected' || typeof realtimeRef.current?.subscribe !== 'function'
     ) {
       return;
     }
@@ -440,13 +447,12 @@ export function useRoomOrchestration({
 
       if (typeof envelope?.sequence === 'number') {
         const incomingSeq = envelope.sequence;
-        if (cursorRef.current > 0 && incomingSeq > cursorRef.current + 1) {
-          // Gap detected - catch up through sync endpoint
-          void catchUpSync();
-        } else {
-          cursorRef.current = Math.max(cursorRef.current, incomingSeq);
-          applyRoomEvent(envelope);
+        if (incomingSeq <= cursorRef.current) return;
+        if (incomingSeq !== cursorRef.current + 1) {
+          window.dispatchEvent(new CustomEvent('studyroom:resync',{detail:roomChannel}));
         }
+        cursorRef.current = incomingSeq;
+        applyRoomEvent(envelope);
       } else {
         applyRoomEvent(envelope);
       }
@@ -455,28 +461,14 @@ export function useRoomOrchestration({
     return () => {
       unsubscribe();
     };
-  }, [state, bootstrap?.room?.id, bootstrap?.room?.streamGeneration, applyRoomEvent, catchUpSync]);
-
-  const refreshBootstrap = useCallback(async () => {
-    if (!roomSlug) return;
-    try {
-      const data = await studyRoomRepository.getBootstrap(roomSlug);
-      setBootstrap(data);
-      bootstrapRef.current = data;
-      if (typeof realtimeRef.current?.refreshManifest === 'function') {
-        void Promise.resolve(realtimeRef.current.refreshManifest()).catch(() => {});
-      }
-    } catch {
-      // Best effort
-    }
-  }, [roomSlug]);
+  }, [state, bootstrap?.room?.id, bootstrap?.room?.streamGeneration, applyRoomEvent, realtime?.status]);
 
   const leave = useCallback(
     async (global = false) => {
       const currentTabId = getTabId();
       const activeRoomId = bootstrapRef.current?.room?.id || roomSlug;
       try {
-        await studyRoomRepository.leaveRoom(activeRoomId, currentTabId, global);
+        await studyRoomRepository.leaveRoom(activeRoomId, currentTabId, global, generationRef.current ?? undefined);
       } catch {
         // Silently catch leave network errors on exit
       } finally {

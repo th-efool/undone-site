@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(),
+}));
 vi.mock('server-only', () => ({}));
 
 // Mock database state tracking
@@ -14,6 +19,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   return {
     prisma: {
       studyRoom: {
+              findUniqueOrThrow: vi.fn(async ({where}:any)=>mockRooms.find(r=>r.id===where.id)),
         findUnique: vi.fn(async ({ where }: any) => {
           if (where.id) return mockRooms.find((r) => r.id === where.id) ?? null;
           if (where.slug) return mockRooms.find((r) => r.slug === where.slug) ?? null;
@@ -160,20 +166,9 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
         deleteMany: vi.fn(async ({ where }: any) => {
           let count = 0;
           mockLeases = mockLeases.filter((l) => {
-            if (where?.tabId && l.tabId === where.tabId) {
-              count++;
-              return false;
-            }
-            if (where?.userId && where?.studyRoomId && l.userId === where.userId && l.studyRoomId === where.studyRoomId) {
-              count++;
-              return false;
-            }
-            if (where?.expiresAt?.lte && l.expiresAt <= where.expiresAt.lte) {
-              count++;
-              return false;
-            }
-            return true;
-          });
+ const match = (!where?.tabId || l.tabId === where.tabId) && (!where?.userId || l.userId === where.userId) && (!where?.studyRoomId || l.studyRoomId === where.studyRoomId) && (where?.generation === undefined || l.generation === where.generation) && (!where?.expiresAt?.lte || l.expiresAt <= where.expiresAt.lte);
+ if(match) count++; return !match;
+});
           return { count };
         }),
       },
@@ -210,6 +205,12 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
         if (typeof cb === 'function') {
           return cb({
             studyRoom: {
+              updateMany:vi.fn(async ({where,data}:any)=>{
+                const row=mockRooms.find(r=>r.id===where.id && r.onlineCount!==where.onlineCount.not);
+                if(row) Object.assign(row,data);
+                return {count:row?1:0};
+              }),
+              findUniqueOrThrow: vi.fn(async ({where}:any)=>mockRooms.find(r=>r.id===where.id)),
               findUnique: vi.fn(async ({ where }: any) => {
                 if (where.id) return mockRooms.find((r) => r.id === where.id) ?? null;
                 if (where.slug) return mockRooms.find((r) => r.slug === where.slug) ?? null;
@@ -241,6 +242,11 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
               }),
             },
             roomParticipant: {
+              updateMany:vi.fn(async ({where,data}:any)=>{
+                const row=mockParticipants.find(p=>p.userId===where.userId && p.studyRoomId===where.studyRoomId && p.generation===where.generation);
+                if(row) Object.assign(row,data);
+                return {count:row?1:0};
+              }),
               findUnique: vi.fn(async ({ where }: any) => {
                 if (where.userId) return mockParticipants.find((p) => p.userId === where.userId) ?? null;
                 if (where.studyRoomId_userId) {
@@ -284,6 +290,11 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
                 if (idx >= 0) mockParticipants.splice(idx, 1);
               }),
               deleteMany: vi.fn(async ({ where }: any) => {
+                if(where.userId){
+                  const old=mockParticipants.length;
+                  mockParticipants=mockParticipants.filter(p=>!(p.userId===where.userId && p.studyRoomId===where.studyRoomId && p.generation===where.generation));
+                  return {count:old-mockParticipants.length};
+                }
                 if (where?.id?.in) {
                   mockParticipants = mockParticipants.filter((p) => !where.id.in.includes(p.id));
                 }
@@ -347,20 +358,9 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
               deleteMany: vi.fn(async ({ where }: any) => {
                 let count = 0;
                 mockLeases = mockLeases.filter((l) => {
-                  if (where?.tabId && l.tabId === where.tabId) {
-                    count++;
-                    return false;
-                  }
-                  if (where?.userId && where?.studyRoomId && l.userId === where.userId && l.studyRoomId === where.studyRoomId) {
-                    count++;
-                    return false;
-                  }
-                  if (where?.expiresAt?.lte && l.expiresAt <= where.expiresAt.lte) {
-                    count++;
-                    return false;
-                  }
-                  return true;
-                });
+ const match = (!where?.tabId || l.tabId === where.tabId) && (!where?.userId || l.userId === where.userId) && (!where?.studyRoomId || l.studyRoomId === where.studyRoomId) && (where?.generation === undefined || l.generation === where.generation) && (!where?.expiresAt?.lte || l.expiresAt <= where.expiresAt.lte);
+ if(match) count++; return !match;
+});
                 return { count };
               }),
             },
@@ -372,6 +372,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
               findFirst: vi.fn(async () => ({ id: 'ch-1', studyRoomId: 'room-1' })),
             },
             realtimeStream: {
+              upsert:vi.fn(async()=>({id:'stream',eventCounter:2,generation:1})),
               findUnique: vi.fn(async () => ({ id: 'stream-1', generation: 1, eventCounter: 1 })),
               update: vi.fn(async ({ data }: any) => ({ id: 'stream-1', generation: 1, eventCounter: 2, ...data })),
             },
@@ -429,6 +430,7 @@ describe('Phase 12 Section 9 Required End-to-End Scenarios', () => {
 
   describe('ROOM Lifecycle & Multi-User Presence (ROOM-01 to ROOM-10)', () => {
     it('ROOM-01: opens a database room by slug without static-only dependency', async () => {
+      await studyRoomService.joinRoom({roomId:'library',userId:'user-viewer',tabId:'viewer'});
       const room = await studyRoomService.getRoomRoster('library', 'user-viewer');
       expect(room).toBeDefined();
       expect(Array.isArray(room)).toBe(true);
@@ -485,6 +487,7 @@ describe('Phase 12 Section 9 Required End-to-End Scenarios', () => {
       });
 
       const leaveRes = await studyRoomService.leaveRoom({
+        generation:1,
         userId: 'user-alice',
         roomId: 'room-1',
         tabId: 'tab-alice-1',
@@ -657,6 +660,7 @@ describe('Phase 12 Section 9 Required End-to-End Scenarios', () => {
         publicGoal: 'Learn Rust',
       });
 
+      await studyRoomService.joinRoom({roomId:'room-1',userId:'user-bob',tabId:'bob'});
       let roster = await studyRoomService.getRoomRoster('room-1', 'user-bob');
       expect(roster.find((p) => p.userId === 'user-alice')?.publicGoal).toBe('Learn Rust');
 
@@ -684,7 +688,7 @@ describe('Phase 12 Section 9 Required End-to-End Scenarios', () => {
     });
 
     it('UI-01: empty room returns empty roster without fabricated mock participants', async () => {
-      const roster = await studyRoomService.getRoomRoster('room-1', 'user-anyone');
+      const roster = await studyRoomService.getRoomRoster('room-1');
       expect(roster).toHaveLength(0);
     });
   });

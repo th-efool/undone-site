@@ -7,6 +7,11 @@ import { proxyAuthService } from '@/src/server/domain/messaging/proxy-auth.servi
 import { studyroomPolicy } from '@/src/server/domain/studyroom/studyroom.policy';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(),
+}));
 vi.mock('server-only', () => ({}));
 
 vi.mock('@/src/server/domain/studyroom/studyroom.policy', () => ({
@@ -29,6 +34,13 @@ vi.mock('@/src/server/domain/studyroom/studyroom.policy', () => ({
 
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   const mockStudyRoom = {
+    updateMany:vi.fn(async()=>({count:1})),
+    findUniqueOrThrow: vi.fn(async () => {
+      const model = prisma.studyRoom;
+      const recent = [model.findUnique,model.findFirst].flatMap(fn => vi.isMockFunction(fn) ? fn.mock.results.slice(-1) : []);
+      for (const call of recent) { const room = await call.value; if (room) return room; }
+      throw Error('Missing room fixture');
+    }),
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -36,6 +48,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 
   const mockRoomParticipant = {
+    updateMany:vi.fn(async()=>({count:1})),
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn().mockResolvedValue([]),
@@ -45,6 +58,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 
   const mockRoomLease = {
+    updateMany:vi.fn(async()=>({count:1})),
     findFirst: vi.fn(),
     findMany: vi.fn().mockResolvedValue([]),
     upsert: vi.fn(),
@@ -54,10 +68,10 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 
   const mockRealtimeStream = {
+    upsert:vi.fn(async()=>({id:'s',eventCounter:1,generation:1})),
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
-    upsert: vi.fn(),
   };
 
   const mockRealtimeEvent = {
@@ -135,6 +149,7 @@ describe('Phase 6: Room Events and Recovery', () => {
 
   describe('studyRoomService.syncRoomEvents', () => {
     it('returns SNAPSHOT when clientSequence is not provided or 0', async () => {
+      vi.mocked(prisma.studyRoom.findUnique).mockImplementation((async()=>await vi.mocked(prisma.studyRoom.findFirst).mock.results.at(-1)?.value) as any);
       vi.mocked(prisma.studyRoom.findFirst).mockResolvedValue({
         id: 'room-1',
         slug: 'room-one',
@@ -182,6 +197,7 @@ describe('Phase 6: Room Events and Recovery', () => {
     });
 
     it('returns SNAPSHOT when sequence gap exceeds maxDeltaGap (150)', async () => {
+      vi.mocked(prisma.studyRoom.findUnique).mockImplementation((async()=>await vi.mocked(prisma.studyRoom.findFirst).mock.results.at(-1)?.value) as any);
       vi.mocked(prisma.studyRoom.findFirst).mockResolvedValue({
         id: 'room-1',
         slug: 'room-one',
@@ -218,6 +234,7 @@ describe('Phase 6: Room Events and Recovery', () => {
     });
 
     it('returns DELTA with events when clientSequence is within catchup window', async () => {
+      vi.mocked(prisma.studyRoom.findUnique).mockImplementation((async()=>await vi.mocked(prisma.studyRoom.findFirst).mock.results.at(-1)?.value) as any);
       vi.mocked(prisma.studyRoom.findFirst).mockResolvedValue({
         id: 'room-1',
         slug: 'room-one',
@@ -350,7 +367,13 @@ describe('Phase 6: Room Events and Recovery', () => {
         id: 'chan-1',
         studyRoomId: 'room-1',
         realtimeStream: { generation: 2 },
-        studyRoom: { status: 'OPEN' },
+        studyRoom: {
+      findUniqueOrThrow: vi.fn(async () => {
+      const model = prisma.studyRoom;
+      const recent = [model.findUnique,model.findFirst].flatMap(fn => vi.isMockFunction(fn) ? fn.mock.results.slice(-1) : []);
+      for (const call of recent) { const room = await call.value; if (room) return room; }
+      throw Error('Missing room fixture');
+    }), status: 'OPEN' },
       } as any);
 
       const result = await proxyAuthService.authorizeSubscription('user-1', 'roomchat:chan-1:g1');
@@ -362,47 +385,21 @@ describe('Phase 6: Room Events and Recovery', () => {
 
   describe('Outbox event publishing on room mutations', () => {
     it('reconcileExpiredLeases emits room.participant.left with LEASE_EXPIRED to outbox', async () => {
-      vi.mocked(prisma.roomParticipant.findMany).mockResolvedValueOnce([
-        {
-          id: 'p-1',
-          userId: 'user-expired',
-          studyRoomId: 'room-1',
-        },
-      ] as any);
-
-      // Active leases is empty -> user-expired is recognized as ghost participant
-      vi.mocked(prisma.roomLease.findMany).mockResolvedValueOnce([]);
-
-      vi.mocked(prisma.roomLease.deleteMany).mockResolvedValueOnce({ count: 1 });
-      vi.mocked(prisma.roomParticipant.deleteMany).mockResolvedValueOnce({ count: 1 });
-      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({ id: 'room-1', slug: 'room-1' } as any);
-
-      vi.mocked(prisma.realtimeStream.findUnique).mockResolvedValueOnce({
-        id: 'stream-1',
-        studyRoomId: 'room-1',
-        generation: 1,
-        eventCounter: 10,
-      } as any);
-
-      vi.mocked(prisma.realtimeStream.update).mockResolvedValueOnce({
-        id: 'stream-1',
-        studyRoomId: 'room-1',
-        generation: 1,
-        eventCounter: 11,
-      } as any);
-
-      const result = await studyRoomService.reconcileExpiredLeases({ batchSize: 10 });
-      expect(result.evictedParticipantsCount).toBe(1);
-
-      // Verify realtimeDelivery.create was called for room.participant.left
-      expect(prisma.realtimeDelivery.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            destination: 'room:room-1:g1',
-            status: 'PENDING',
-          }),
-        })
-      );
+      const candidate = {id:'expired',userId:'ghost',studyRoomId:'room-1',generation:3};
+      vi.mocked(prisma.roomLease.findMany).mockResolvedValueOnce([candidate] as any);
+      vi.mocked(prisma.roomLease.deleteMany).mockResolvedValueOnce({count:1});
+      vi.mocked(prisma.roomLease.count).mockResolvedValueOnce(0);
+      vi.mocked(prisma.roomParticipant.deleteMany).mockResolvedValueOnce({count:1});
+      vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{userId:'alive'}] as any);
+      const result = await studyRoomService.reconcileExpiredLeases({batchSize:10,gracePeriodMs:5000});
+      expect(result).toMatchObject({evictedLeasesCount:1,evictedParticipantsCount:1,updatedRoomsCount:1});
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
+      expect(prisma.roomLease.findMany).toHaveBeenCalledWith(expect.objectContaining({take:10,where:{expiresAt:{lte:expect.any(Date)}}}));
+      expect(prisma.roomLease.deleteMany).toHaveBeenCalledWith({where:{id:'expired',expiresAt:{lte:expect.any(Date)}}});
+      expect(prisma.roomParticipant.deleteMany).toHaveBeenCalledWith({where:{userId:'ghost',studyRoomId:'room-1',generation:3}});
+      expect(prisma.studyRoom.updateMany).toHaveBeenCalledWith({where:{id:'room-1',onlineCount:{not:1}},data:{onlineCount:1}});
+      expect(prisma.realtimeEvent.create).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({type:'room.participant.left',payload:expect.objectContaining({reason:'LEASE_EXPIRED'})})}));
+      expect(prisma.realtimeDelivery.create).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({destination:'room:room-1:g1'})}));
     });
 
     it('roomGovernanceService.removeParticipant emits room.participant.left with KICKED to outbox', async () => {

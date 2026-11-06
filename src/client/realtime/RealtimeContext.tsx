@@ -52,7 +52,9 @@ export function RealtimeProvider({
 
   const updateActiveChannels = useCallback(() => {
     if (registryRef.current) {
-      setActiveChannels(registryRef.current.getActiveChannels());
+      const next = registryRef.current.getActiveChannels();
+      setActiveChannels(previous => previous.length === next.length &&
+        previous.every((channel, index) => channel === next[index]) ? previous : next);
     }
   }, []);
 

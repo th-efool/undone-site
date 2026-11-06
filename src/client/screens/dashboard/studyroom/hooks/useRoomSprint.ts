@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRoomRefresh } from './useRoomRefresh';
 import { useRealtime } from '@/src/client/realtime';
 import type { RoomSprintBootstrapDTO } from '@/src/shared/studyroom/contracts';
 import {
@@ -74,6 +75,7 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
   const realtime = useSafeRealtime();
+  const subscribe = realtime?.status === 'connected' ? realtime.subscribe : undefined;
 
   const [sprint, setSprint] = useState<RoomSprintSnapshotDTO | null>(() =>
     toSprintSnapshot(options?.initialSprint)
@@ -113,6 +115,7 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
     setError(null);
     try {
       const res = await studyRoomRepository.getRoomSprint(roomSlug);
+      if (res.sprint && sprintRef.current?.id === res.sprint.id && sprintRef.current.revision > res.sprint.revision) return;
       setSprint(res.sprint);
       if (res.sprint) {
         setRemainingSeconds(res.sprint.remainingSeconds);
@@ -131,14 +134,17 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
     void fetchSprint();
   }, [fetchSprint]);
 
+  useRoomRefresh(enabled ? `room:${roomId}:g${streamGeneration}` : undefined, fetchSprint);
+
   // Realtime subscription to room.sprint.updated
   useEffect(() => {
-    if (!enabled || !roomId || typeof realtime?.subscribe !== 'function') return;
+    if (!enabled || !roomId || typeof subscribe !== 'function') return;
 
     const channel = `room:${roomId}:g${streamGeneration}`;
-    const unsubscribe = realtime.subscribe(channel, (data: unknown) => {
+    const unsubscribe = subscribe(channel, (data: unknown) => {
       const envelope = data as { type?: string; payload?: RoomSprintSnapshotDTO };
       if (envelope?.type === 'room.sprint.updated' && envelope.payload) {
+        if (sprintRef.current?.id === envelope.payload.id && sprintRef.current.revision > envelope.payload.revision) return;
         setSprint(envelope.payload);
         setRemainingSeconds(envelope.payload.remainingSeconds);
         setActionError(null);
@@ -148,7 +154,7 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
     return () => {
       unsubscribe();
     };
-  }, [enabled, roomId, streamGeneration, realtime]);
+  }, [enabled, roomId, streamGeneration, subscribe]);
 
   // Live countdown timer for ACTIVE sprints
   useEffect(() => {

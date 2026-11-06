@@ -1,3 +1,4 @@
+import { hasRoomAccess } from '@/src/server/domain/studyroom/room-access';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
@@ -33,6 +34,10 @@ export async function GET(
     const room = await sprintService.resolveRoom(roomSlug);
     if (!room) {
       return NextResponse.json({ error: 'Study room not found' }, { status: 404 });
+    }
+
+    if (!(await hasRoomAccess(room.id, user.id))) {
+      return NextResponse.json({ error: 'Active room membership required' }, { status: 403 });
     }
 
     const env = await environmentService.getRoomEnvironment(room.id);

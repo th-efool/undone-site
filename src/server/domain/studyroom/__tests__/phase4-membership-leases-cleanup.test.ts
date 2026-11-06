@@ -3,6 +3,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { studyRoomService } from '../studyroom.service';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(),
+}));
 vi.mock('server-only', () => ({}));
 
 vi.mock('@/src/server/domain/studyroom/studyroom.policy', () => ({
@@ -14,6 +19,13 @@ vi.mock('@/src/server/domain/studyroom/studyroom.policy', () => ({
 
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   const mockStudyRoom = {
+    updateMany:vi.fn(async()=>({count:1})),
+    findUniqueOrThrow: vi.fn(async () => {
+      const model = prisma.studyRoom;
+      const recent = [model.findUnique,model.findFirst].flatMap(fn => vi.isMockFunction(fn) ? fn.mock.results.slice(-1) : []);
+      for (const call of recent) { const room = await call.value; if (room) return room; }
+      throw Error('Missing room fixture');
+    }),
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -21,6 +33,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 
   const mockRoomParticipant = {
+    updateMany:vi.fn(async()=>({count:1})),
     findUnique: vi.fn(),
     findMany: vi.fn(),
     upsert: vi.fn(),
@@ -29,6 +42,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 
   const mockRoomLease = {
+    updateMany:vi.fn(async()=>({count:1})),
     findFirst: vi.fn(),
     findMany: vi.fn(),
     upsert: vi.fn(),
@@ -38,6 +52,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 
   const mockRealtimeStream = {
+    upsert:vi.fn(async()=>({id:'s',eventCounter:1,generation:1})),
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -356,43 +371,19 @@ describe('Phase 4: Membership, Leases, and Cleanup Robustness', () => {
 
   describe('Reconciliation Sweep with Grace Period Buffer', () => {
     it('sweeps only expired leases past the safety grace buffer and returns duration metrics', async () => {
-      vi.mocked(prisma.roomLease.deleteMany).mockResolvedValue({ count: 3 } as any);
-      vi.mocked(prisma.roomParticipant.findMany).mockResolvedValue([
-        { id: 'part-dead', userId: 'user-expired', studyRoomId: 'room-1' },
-        { id: 'part-alive', userId: 'user-active', studyRoomId: 'room-1' },
-      ] as any);
-
-      vi.mocked(prisma.roomLease.findMany).mockResolvedValue([
-        { userId: 'user-active', studyRoomId: 'room-1' },
-      ] as any);
-
-      vi.mocked(prisma.studyRoom.findMany).mockResolvedValue([{ id: 'room-1' }] as any);
-      vi.mocked(prisma.roomLease.groupBy).mockResolvedValue([{ userId: 'user-active' } as any]);
-
-      const result = await studyRoomService.reconcileExpiredLeases({
-        gracePeriodMs: 5000,
-      });
-
-      expect(result.evictedLeasesCount).toBe(3);
-      expect(result.evictedParticipantsCount).toBe(1);
-      expect(result.updatedRoomsCount).toBe(1);
-      expect(typeof result.durationMs).toBe('number');
+      const candidate = {id:'expired',userId:'ghost',studyRoomId:'room-1',generation:3};
+      vi.mocked(prisma.roomLease.findMany).mockResolvedValueOnce([candidate] as any);
+      vi.mocked(prisma.roomLease.deleteMany).mockResolvedValueOnce({count:1});
+      vi.mocked(prisma.roomLease.count).mockResolvedValueOnce(0);
+      vi.mocked(prisma.roomParticipant.deleteMany).mockResolvedValueOnce({count:1});
+      vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{userId:'alive'}] as any);
+      const result = await studyRoomService.reconcileExpiredLeases({batchSize:10,gracePeriodMs:5000});
+      expect(result).toMatchObject({evictedLeasesCount:1,evictedParticipantsCount:1,updatedRoomsCount:1});
       expect(result.durationMs).toBeGreaterThanOrEqual(0);
-
-      // Verify cutoff applied with grace buffer
-      expect(prisma.roomLease.deleteMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            expiresAt: expect.objectContaining({
-              lte: expect.any(Date),
-            }),
-          },
-        })
-      );
-      // Ghost participant was deleted
-      expect(prisma.roomParticipant.deleteMany).toHaveBeenCalledWith({
-        where: { id: { in: ['part-dead'] } },
-      });
+      expect(prisma.roomLease.findMany).toHaveBeenCalledWith(expect.objectContaining({take:10,where:{expiresAt:{lte:expect.any(Date)}}}));
+      expect(prisma.roomLease.deleteMany).toHaveBeenCalledWith({where:{id:'expired',expiresAt:{lte:expect.any(Date)}}});
+      expect(prisma.roomParticipant.deleteMany).toHaveBeenCalledWith({where:{userId:'ghost',studyRoomId:'room-1',generation:3}});
+      expect(prisma.studyRoom.updateMany).toHaveBeenCalledWith({where:{id:'room-1',onlineCount:{not:1}},data:{onlineCount:1}});
     });
   });
 });

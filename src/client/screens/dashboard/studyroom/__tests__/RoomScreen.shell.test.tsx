@@ -2,6 +2,7 @@
 import React from 'react';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { studyRoomRepository } from '@/src/client/repositories/studyRoomRepository';
 import { RoomScreen } from '../room/RoomScreen';
 
 const pushSpy = vi.fn();
@@ -24,6 +25,13 @@ vi.mock('next-auth/react', () => ({
   }),
 }));
 
+function fixtureRoom(slug:string, role:'admin'|'member') {
+  vi.mocked(studyRoomRepository.getBootstrap).mockResolvedValue({
+    room:{id:'r',slug,title:'Library'},viewer:{isJoined:true,userId:'test-viewer',role:role==='admin'?'OWNER':'PARTICIPANT'},
+    capabilities:{canJoin:true,canManageParticipants:role==='admin',canControlEnvironment:role==='admin',canEditRoom:role==='admin'}
+  } as Awaited<ReturnType<typeof studyRoomRepository.getBootstrap>>);
+  return <RoomScreen roomSlug={slug} />;
+}
 class MockAudioContext {
   currentTime = 0;
   sampleRate = 44100;
@@ -103,6 +111,10 @@ describe('RoomScreen shell component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(studyRoomRepository,'getBootstrap').mockResolvedValue({
+      room:{id:'r',slug:'library',title:'Library'},viewer:{isJoined:true,userId:'test-viewer'}
+    } as Awaited<ReturnType<typeof studyRoomRepository.getBootstrap>>);
+    vi.spyOn(studyRoomRepository,'joinRoom').mockResolvedValue({success:true,generation:1} as Awaited<ReturnType<typeof studyRoomRepository.joinRoom>>);
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.clear();
     }
@@ -120,7 +132,7 @@ describe('RoomScreen shell component', () => {
 
   it('renders room title, atmosphere, and default sound chip', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" viewAsOverride="admin" />);
+      render(fixtureRoom('library','admin'));
     });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Library' })).toBeTruthy();
@@ -135,9 +147,7 @@ describe('RoomScreen shell component', () => {
     let unmountFn!: () => void;
 
     await act(async () => {
-      const { unmount } = render(
-        <RoomScreen roomSlug="library" viewAsOverride="admin" />
-      );
+      const { unmount } = render(fixtureRoom('library','admin'));
       unmountFn = unmount;
     });
 
@@ -147,7 +157,7 @@ describe('RoomScreen shell component', () => {
     unmountFn();
 
     await act(async () => {
-      render(<RoomScreen roomSlug="library" viewAsOverride="member" />);
+      render(fixtureRoom('library','member'));
     });
 
     expect(screen.getByRole('button', { name: 'Room information' })).toBeTruthy();
@@ -157,7 +167,7 @@ describe('RoomScreen shell component', () => {
 
   it('switches panels such that only one panel is open at any time', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" />);
+      render(fixtureRoom('library','member'));
     });
 
     // Initially no dialog panel is open
@@ -185,7 +195,7 @@ describe('RoomScreen shell component', () => {
   it('closes open panel when Escape key is pressed', async () => {
     let containerElem!: HTMLElement;
     await act(async () => {
-      const { container } = render(<RoomScreen roomSlug="library" />);
+      const { container } = render(fixtureRoom('library','member'));
       containerElem = container;
     });
 
@@ -204,7 +214,7 @@ describe('RoomScreen shell component', () => {
 
   it('persists session tasks and goal draft across panel close and reopen', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" />);
+      render(fixtureRoom('library','member'));
     });
 
     // 1. Open Session panel
@@ -237,7 +247,7 @@ describe('RoomScreen shell component', () => {
 
   it('enforces privacy invariant: goal text is hidden in People panel when Private, visible when Visible to room', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" />);
+      render(fixtureRoom('library','member'));
     });
 
     const sessionBtn = screen.getByRole('button', { name: 'Personal tasks and session goal' });
@@ -274,7 +284,7 @@ describe('RoomScreen shell component', () => {
 
   it('navigates immediately on Leave when no personal state exists', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" />);
+      render(fixtureRoom('library','member'));
     });
 
     const leaveBtn = screen.getByRole('button', { name: 'Leave room' });

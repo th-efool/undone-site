@@ -1,4 +1,5 @@
 import 'server-only';
+import { hasRoomAccess, lockRooms } from './room-access';
 import { randomUUID } from 'crypto';
 import type { Prisma } from '@/generated/prisma/client';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
@@ -191,6 +192,8 @@ export const environmentService = {
     }
 
     return await prisma.$transaction(async (tx) => {
+      await lockRooms(tx, [roomId]);
+      if (!(await hasRoomAccess(roomId,userId,true,tx))) throw new MessagingForbiddenError('Control revoked');
       const room = await tx.studyRoom.findUnique({
         where: { id: roomId },
       });

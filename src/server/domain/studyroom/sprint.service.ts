@@ -2,7 +2,7 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import type { Prisma } from '@/generated/prisma/client';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
-import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
+import { hasRoomAccess, lockRooms } from './room-access';
 import {
   type RoomSprintSnapshot,
   type StartSprintInput,
@@ -61,95 +61,16 @@ export const sprintService = {
    * Resolves a room by ID or slug.
    */
   async resolveRoom(roomSlugOrId: string) {
-    let room = await prisma.studyRoom.findUnique({
-      where: { id: roomSlugOrId },
+    return prisma.studyRoom.findFirst({
+      where: { OR: [{ id: roomSlugOrId }, { slug: roomSlugOrId }] },
     });
-
-    if (!room) {
-      const rooms = await prisma.studyRoom.findMany();
-      room = rooms.find(
-        (r) =>
-          r.id === roomSlugOrId ||
-          r.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') === roomSlugOrId.toLowerCase()
-      ) ?? null;
-    }
-
-    return room;
   },
 
   /**
    * Evaluates if a user has controller/moderator authority in a study room.
    */
   async isRoomController(roomId: string, userId: string): Promise<boolean> {
-    if (prisma.user?.findUnique) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { email: true, username: true },
-      });
-      if (isSharedGuestAccount(user)) {
-        return false;
-      }
-    }
-
-    // 1. Direct RoomController role check
-    const controller = await prisma.roomController.findUnique({
-      where: {
-        studyRoomId_userId: {
-          studyRoomId: roomId,
-          userId,
-        },
-      },
-    });
-
-    if (controller && ['OWNER', 'MODERATOR', 'HOST'].includes(controller.role)) {
-      return true;
-    }
-
-    // 2. Direct room owner check
-    const room = await prisma.studyRoom.findUnique({
-      where: { id: roomId },
-      select: { ownerId: true, cohortId: true },
-    });
-
-    if (room?.ownerId && room.ownerId === userId) {
-      return true;
-    }
-
-    // 3. Cohort governance check
-    if (room?.cohortId) {
-      const cohort = await prisma.cohort.findUnique({
-        where: { id: room.cohortId },
-        select: { creatorId: true },
-      });
-      if (cohort?.creatorId === userId) {
-        return true;
-      }
-      const membership = await prisma.cohortMember.findUnique({
-        where: { cohortId_userId: { cohortId: room.cohortId, userId } },
-        select: { role: true },
-      });
-      if (membership && (membership.role === 'CREATOR' || membership.role === 'MODERATOR')) {
-        return true;
-      }
-    } else {
-      const channel = await prisma.channel.findFirst({
-        where: { studyRoomId: roomId },
-        include: {
-          community: {
-            include: {
-              cohort: { select: { creatorId: true } },
-            },
-          },
-        },
-      });
-
-      if (channel?.community?.cohort?.creatorId === userId) {
-        return true;
-      }
-    }
-
-    // Insecure fallback to any participant when 0 controllers exist is explicitly REMOVED.
-    return false;
+    return hasRoomAccess(roomId, userId, true);
   },
 
   /**
@@ -178,6 +99,8 @@ export const sprintService = {
     const deadline = new Date(now.getTime() + targetDurationSeconds * 1000);
 
     return await prisma.$transaction(async (tx) => {
+      await lockRooms(tx,[roomId]);
+      if (!(await hasRoomAccess(roomId,userId,true,tx))) throw new MessagingForbiddenError('Control revoked');
       // Check if an ACTIVE or PAUSED sprint already exists INSIDE transaction
       const existing = await tx.roomSprint.findFirst({
         where: {
@@ -264,11 +187,7 @@ export const sprintService = {
     }
 
     // User must be an active participant in this study room
-    const participant = await prisma.roomParticipant.findFirst({
-      where: { studyRoomId: sprint.studyRoomId, userId },
-    });
-
-    if (!participant) {
+    if (!(await hasRoomAccess(sprint.studyRoomId, userId))) {
       throw new MessagingForbiddenError('You must join the study room before participating in its sprint');
     }
 
@@ -356,7 +275,10 @@ export const sprintService = {
         throw new MessagingNotFoundError('Sprint not found');
       }
 
-      const isController = await this.isRoomController(sprint.studyRoomId, userId);
+      await lockRooms(tx,[sprint.studyRoomId]);
+      const latest = await tx.roomSprint.findUniqueOrThrow({where:{id:sprintId}});
+      if (latest.revision !== sprint.revision) throw new MessagingConflictError('Sprint revision conflict');
+      const isController = await hasRoomAccess(sprint.studyRoomId,userId,true,tx);
       if (!isController) {
         throw new MessagingForbiddenError('Only room controllers can pause the sprint');
       }
@@ -406,7 +328,10 @@ export const sprintService = {
         throw new MessagingNotFoundError('Sprint not found');
       }
 
-      const isController = await this.isRoomController(sprint.studyRoomId, userId);
+      await lockRooms(tx,[sprint.studyRoomId]);
+      const latest = await tx.roomSprint.findUniqueOrThrow({where:{id:sprintId}});
+      if (latest.revision !== sprint.revision) throw new MessagingConflictError('Sprint revision conflict');
+      const isController = await hasRoomAccess(sprint.studyRoomId,userId,true,tx);
       if (!isController) {
         throw new MessagingForbiddenError('Only room controllers can resume the sprint');
       }
@@ -460,7 +385,10 @@ export const sprintService = {
         throw new MessagingNotFoundError('Sprint not found');
       }
 
-      const isController = await this.isRoomController(sprint.studyRoomId, userId);
+      await lockRooms(tx,[sprint.studyRoomId]);
+      const latest = await tx.roomSprint.findUniqueOrThrow({where:{id:sprintId}});
+      if (latest.revision !== sprint.revision) throw new MessagingConflictError('Sprint revision conflict');
+      const isController = await hasRoomAccess(sprint.studyRoomId,userId,true,tx);
       if (!isController) {
         throw new MessagingForbiddenError('Only room controllers can stop the sprint');
       }

@@ -313,11 +313,11 @@ export function StudyRoomScreen({ initialRooms }: StudyRoomScreenProps) {
       )}
 
       {/* Create Room Modal */}
-      <CreateRoomModal
+      {isCreateModalOpen && <CreateRoomModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onRoomCreated={handleRoomCreated}
-      />
+      />}
     </div>
   );
 }

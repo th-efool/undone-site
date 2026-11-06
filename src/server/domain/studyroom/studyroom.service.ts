@@ -1,4 +1,6 @@
 import 'server-only';
+import { emitRoomChange } from './room-change';
+import { lockRooms, lockUser, hasRoomAccess } from './room-access';
 import { createHash, randomUUID } from 'node:crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { studyroomPolicy, type RoomEntity } from './studyroom.policy';
@@ -40,7 +42,7 @@ export interface RoomCatalogItem {
   slug?: string;
 }
 
-export const participantGoalsRegistry = new Map<string, string>();
+
 
 export interface RoomRosterMember {
   id: string;
@@ -193,16 +195,7 @@ export const studyRoomService = {
     }
     const actualRoomId = room.id;
 
-    if (_userId && studyroomPolicy && typeof studyroomPolicy.resolveRoomEligibility === 'function') {
-      const eligibility = await studyroomPolicy.resolveRoomEligibility(
-        room as unknown as RoomEntity,
-        _userId,
-        false
-      );
-      if (!eligibility.eligible && eligibility.reason !== 'ROOM_FULL') {
-        throw new RoomForbiddenError('Not authorized to view room roster');
-      }
-    }
+    if (_userId && !(await hasRoomAccess(actualRoomId,_userId))) throw new RoomForbiddenError('Active room membership required');
 
     // Query active participants who have at least one non-expired lease
     const participants = await prisma.roomParticipant.findMany({
@@ -213,6 +206,7 @@ export const studyRoomService = {
             id: true,
             name: true,
             username: true,
+            role: true,
             image: true,
           },
         },
@@ -252,6 +246,9 @@ export const studyRoomService = {
         select: { userId: true, role: true },
       });
     }
+    const cohort = room.cohortId ? await prisma.cohort.findUnique({where:{id:room.cohortId},select:{creatorId:true}}) : null;
+    const governors = room.cohortId ? await prisma.cohortMember.findMany({where:{cohortId:room.cohortId,userId:{in:userIds},role:{in:['CREATOR','MODERATOR']}},select:{userId:true}}) : [];
+    const inherited = new Set([cohort?.creatorId,...governors.map(member=>member.userId)]);
     const controllerMap = new Map<string, RoomRole>(
       controllers.map((c) => [c.userId, c.role as RoomRole])
     );
@@ -263,6 +260,10 @@ export const studyRoomService = {
         let role: RoomRole = 'PARTICIPANT';
         if (room?.ownerId && p.user.id === room.ownerId) {
           role = 'OWNER';
+        } else if (p.user.role === 'ADMIN' && !controllerMap.has(p.user.id)) {
+          role = 'MODERATOR';
+        } else if (inherited.has(p.user.id) && !controllerMap.has(p.user.id)) {
+          role = 'MODERATOR';
         } else if (controllerMap.has(p.user.id)) {
           role = controllerMap.get(p.user.id)!;
         }
@@ -276,7 +277,7 @@ export const studyRoomService = {
           role,
           joinedAt: p.joinedAt.toISOString(),
           tabCount: leaseCountMap.get(p.userId) ?? 1,
-          publicGoal: participantGoalsRegistry.get(`${actualRoomId}:${p.user.id}`) ?? null,
+          publicGoal: p.publicGoal ?? null,
         };
       });
   },
@@ -334,8 +335,9 @@ export const studyRoomService = {
     }
 
     return prisma.$transaction(async (tx) => {
+      await lockUser(tx, userId);
       // 1. Verify target room exists
-      const targetRoom = await findRoomByIdOrSlug(tx.studyRoom, roomId);
+      let targetRoom = await findRoomByIdOrSlug(tx.studyRoom, roomId);
       if (!targetRoom) {
         throw new RoomNotFoundError('Study room not found');
       }
@@ -348,14 +350,17 @@ export const studyRoomService = {
         where: { userId },
       });
 
-      const isAlreadyInTarget = currentParticipant?.studyRoomId === targetRoom.id;
+      await lockRooms(tx, [targetRoom.id, ...(currentParticipant ? [currentParticipant.studyRoomId] : [])]);
+      targetRoom = await tx.studyRoom.findUniqueOrThrow({ where: { id: targetRoom.id } });
+      const isAlreadyInTarget = currentParticipant?.studyRoomId === targetRoom.id &&
+        Boolean(await tx.roomLease.findFirst({ where: { userId, studyRoomId: targetRoom.id, expiresAt: { gt: new Date() } } }));
 
       // 3. Eligibility & Capacity Check
       if (studyroomPolicy && typeof studyroomPolicy.resolveRoomEligibility === 'function') {
         const eligibility = await studyroomPolicy.resolveRoomEligibility(
           targetRoom as unknown as RoomEntity,
           userId,
-          isAlreadyInTarget
+          isAlreadyInTarget, tx
         );
         if (!eligibility.eligible) {
           if (eligibility.reason === 'ROOM_FULL') {
@@ -430,11 +435,6 @@ export const studyRoomService = {
           isSwitch = true;
           generation = Math.max(currentParticipant.generation, maxHistoricalGen) + 1;
           const oldRoomId = currentParticipant.studyRoomId;
-
-          // Deterministic lock order on switch: sort room IDs to prevent deadlocks
-          const [firstRoomId, secondRoomId] = [targetRoom.id, oldRoomId].sort();
-          await tx.studyRoom.findUnique({ where: { id: firstRoomId } });
-          await tx.studyRoom.findUnique({ where: { id: secondRoomId } });
 
           // Delete leases for the old room
           await tx.roomLease.deleteMany({
@@ -512,11 +512,13 @@ export const studyRoomService = {
         create: {
           userId,
           studyRoomId: targetRoom.id,
+          publicGoal: params.publicGoal?.trim().slice(0,80) || null,
           generation,
           joinedAt: now,
         },
         update: {
           studyRoomId: targetRoom.id,
+          publicGoal: params.publicGoal?.trim().slice(0,80) || (isAlreadyInTarget ? undefined : null),
           generation,
           updatedAt: now,
         },
@@ -634,10 +636,6 @@ export const studyRoomService = {
         });
       }
 
-      if (typeof params.publicGoal === 'string' && params.publicGoal.trim().length > 0) {
-        participantGoalsRegistry.set(`${targetRoom.id}:${userId}`, params.publicGoal.trim().slice(0, 80));
-      }
-
       return {
         success: true,
         roomId: targetRoom.id,
@@ -668,6 +666,8 @@ export const studyRoomService = {
       const targetRoom = await findRoomByIdOrSlug(tx.studyRoom, roomId);
       const actualRoomId = targetRoom?.id || roomId;
 
+      await lockUser(tx,userId);
+      await lockRooms(tx,[actualRoomId]);
       const participant = await tx.roomParticipant.findUnique({
         where: { userId },
       });
@@ -684,29 +684,16 @@ export const studyRoomService = {
       const now = new Date();
       const expiresAt = new Date(now.getTime() + LEASE_DURATION_MS);
 
-      const lease = await tx.roomLease.upsert({
-        where: {
-          userId_tabId: {
-            userId,
-            tabId,
-          },
-        },
-        create: {
-          userId,
-          studyRoomId: actualRoomId,
-          generation,
-          tabId,
-          expiresAt,
-        },
-        update: {
-          expiresAt,
-          updatedAt: now,
-        },
+      if (!targetRoom || !(await studyroomPolicy.resolveRoomEligibility(targetRoom,userId,true,tx)).eligible) return { success: false, reason: 'not_in_room' };
+      const renewed = await tx.roomLease.updateMany({
+        where: { userId, tabId, studyRoomId: actualRoomId, generation, expiresAt: { gt: now } },
+        data: { expiresAt },
       });
+      if (!renewed.count) return { success: false, reason: 'not_in_room' };
 
       return {
         success: true,
-        expiresAt: (lease?.expiresAt ? new Date(lease.expiresAt) : expiresAt).toISOString(),
+        expiresAt: expiresAt.toISOString(),
       };
     });
   },
@@ -720,6 +707,7 @@ export const studyRoomService = {
     const { userId, tabId, generation, global = false } = params;
 
     return prisma.$transaction(async (tx) => {
+      await lockUser(tx, userId);
       const participant = await tx.roomParticipant.findUnique({
         where: { userId },
       });
@@ -742,6 +730,8 @@ export const studyRoomService = {
       }
 
       const roomId = participant.studyRoomId;
+      await lockRooms(tx, [roomId]);
+      if (tabId && typeof generation !== 'number') return { success: true, left: false, remainingLeases: 0 };
       const now = new Date();
       let left = false;
       let remainingLeases = 0;
@@ -761,7 +751,7 @@ export const studyRoomService = {
       } else {
         // Single tab closed: remove only that tab's lease
         await tx.roomLease.deleteMany({
-          where: { userId, tabId },
+          where: { userId, tabId, studyRoomId: roomId, generation },
         });
 
         // Count remaining active leases for this user in this room
@@ -839,9 +829,7 @@ export const studyRoomService = {
         }
       }
 
-      if (left) {
-        participantGoalsRegistry.delete(`${roomId}:${userId}`);
-      }
+
 
       return {
         success: true,
@@ -892,15 +880,17 @@ export const studyRoomService = {
         ? publicGoal.trim().slice(0, 80)
         : null;
 
-    const registryKey = `${actualRoomId}:${userId}`;
-    if (cleanedGoal) {
-      participantGoalsRegistry.set(registryKey, cleanedGoal);
-    } else {
-      participantGoalsRegistry.delete(registryKey);
-    }
-
-    // Emit outbox event: room.participant.updated
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async tx => {
+      await lockUser(tx, userId);
+      await lockRooms(tx, [actualRoomId]);
+      const lease = await tx.roomLease.findFirst({ where: { userId, tabId, generation, studyRoomId: actualRoomId, expiresAt: { gt: new Date() } } });
+      if (!lease) throw new RoomForbiddenError('Room assignment expired');
+      const changed = await tx.roomParticipant.updateMany({
+        where: { userId, studyRoomId: actualRoomId, generation,
+          ...(cleanedGoal === null ? { publicGoal: { not: null } } : { OR: [{publicGoal:null},{publicGoal:{not:cleanedGoal}}] }) },
+        data: { publicGoal: cleanedGoal },
+      });
+      if (!changed.count) return;
       if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create) {
         let stream = await tx.realtimeStream.findUnique({
           where: { studyRoomId: actualRoomId },
@@ -962,160 +952,36 @@ export const studyRoomService = {
     durationMs: number;
   }> {
     const startTime = Date.now();
-    const gracePeriodMs = options?.gracePeriodMs ?? 5000;
-    const cutoff = new Date(Date.now() - gracePeriodMs);
-
-    return prisma.$transaction(async (tx) => {
-      // 1. Delete expired leases past the grace cutoff
-      const deleteResult = await tx.roomLease.deleteMany({
-        where: {
-          expiresAt: { lte: cutoff },
-        },
+    const cutoff = new Date(Date.now() - (options?.gracePeriodMs ?? 5000));
+    const candidates = await prisma.roomLease.findMany({ where: { expiresAt: { lte: cutoff } },
+      take: Math.max(1,Math.min(100, options?.batchSize ?? 50)), orderBy: {expiresAt:'asc'} });
+    let evictedLeasesCount = 0;
+    let evictedParticipantsCount = 0;
+    const rooms = new Set<string>();
+    for (const candidate of candidates) {
+      const result = await prisma.$transaction(async tx => {
+        await lockUser(tx, candidate.userId);
+        await lockRooms(tx, [candidate.studyRoomId]);
+        const removed = await tx.roomLease.deleteMany({ where: { id: candidate.id, expiresAt: {lte:cutoff} } });
+        if (!removed.count) return null;
+        const remaining = await tx.roomLease.count({where:{userId:candidate.userId, studyRoomId:candidate.studyRoomId, expiresAt:{gt:new Date()}}});
+        if (remaining) return { evicted:0, changed:false };
+        const people = await tx.roomParticipant.deleteMany({where:{userId:candidate.userId, studyRoomId:candidate.studyRoomId, generation:candidate.generation}});
+        const live = await tx.roomLease.groupBy({by:['userId'],where:{studyRoomId:candidate.studyRoomId, expiresAt:{gt:new Date()}}});
+        const updated = await tx.studyRoom.updateMany({where:{id:candidate.studyRoomId,onlineCount:{not:live.length}},data:{onlineCount:live.length}});
+        if (people.count) await emitRoomChange(tx,candidate.studyRoomId,'room.participant.left',{userId:candidate.userId,reason:'LEASE_EXPIRED',onlineCount:live.length});
+        else if (updated.count) await emitRoomChange(tx,candidate.studyRoomId,'room.roster.changed',{onlineCount:live.length});
+        return { evicted:people.count, changed:Boolean(updated.count) };
       });
-
-      // 2. Find all participants who now have zero active leases
-      const allParticipants =
-        (await tx.roomParticipant.findMany({
-          select: { id: true, userId: true, studyRoomId: true },
-        })) || [];
-
-      const activeLeases =
-        (await tx.roomLease.findMany({
-          where: { expiresAt: { gt: cutoff } },
-          select: { userId: true, studyRoomId: true },
-        })) || [];
-
-      const activeUserRoomSet = new Set(
-        activeLeases.map((l) => `${l.userId}:${l.studyRoomId}`)
-      );
-      const ghostParticipants = allParticipants.filter(
-        (p) => !activeUserRoomSet.has(`${p.userId}:${p.studyRoomId}`)
-      );
-
-      if (ghostParticipants.length > 0) {
-        for (const p of ghostParticipants) {
-          participantGoalsRegistry.delete(`${p.studyRoomId}:${p.userId}`);
-        }
-
-        await tx.roomParticipant.deleteMany({
-          where: {
-            id: { in: ghostParticipants.map((p) => p.id) },
-          },
-        });
-
-        // Emit outbox events for ghost participants evicted
-        if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
-          for (const p of ghostParticipants) {
-            let stream = await tx.realtimeStream.findUnique({
-              where: { studyRoomId: p.studyRoomId },
-            });
-            if (stream) {
-              if (tx.realtimeStream?.update) {
-                stream = await tx.realtimeStream.update({
-                  where: { id: stream.id },
-                  data: { eventCounter: { increment: 1 } },
-                });
-              }
-              const leftEventId = randomUUID();
-              await tx.realtimeEvent.create({
-                data: {
-                  streamId: stream.id,
-                  sequence: stream.eventCounter,
-                  eventId: leftEventId,
-                  schemaVersion: 1,
-                  type: 'room.participant.left',
-                  generation: stream.generation,
-                  entityId: p.userId,
-                  payload: {
-                    userId: p.userId,
-                    roomId: p.studyRoomId,
-                    reason: 'LEASE_EXPIRED',
-                    occurredAt: new Date().toISOString(),
-                  },
-                },
-              });
-              await tx.realtimeDelivery.create({
-                data: {
-                  eventId: leftEventId,
-                  destination: `room:${p.studyRoomId}:g${stream.generation}`,
-                  status: 'PENDING',
-                },
-              });
-            }
-          }
-        }
+      if (result) {
+        evictedLeasesCount++;
+        evictedParticipantsCount += result.evicted;
+        if (result.changed) rooms.add(candidate.studyRoomId);
       }
-
-      // 3. Recalculate and repair onlineCount for all rooms
-      const allRooms = (await tx.studyRoom.findMany({ select: { id: true } })) || [];
-      let updatedRoomsCount = 0;
-
-      for (const room of allRooms) {
-        const activeUsers =
-          (await tx.roomLease.groupBy({
-            by: ['userId'],
-            where: {
-              studyRoomId: room.id,
-              expiresAt: { gt: cutoff },
-            },
-          })) || [];
-
-        await tx.studyRoom.update({
-          where: { id: room.id },
-          data: { onlineCount: activeUsers.length },
-        });
-        updatedRoomsCount++;
-
-        // Emit room.roster.changed
-        if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
-          let stream = await tx.realtimeStream.findUnique({
-            where: { studyRoomId: room.id },
-          });
-          if (stream) {
-            if (tx.realtimeStream?.update) {
-              stream = await tx.realtimeStream.update({
-                where: { id: stream.id },
-                data: { eventCounter: { increment: 1 } },
-              });
-            }
-            const rosterEventId = randomUUID();
-            await tx.realtimeEvent.create({
-              data: {
-                streamId: stream.id,
-                sequence: stream.eventCounter,
-                eventId: rosterEventId,
-                schemaVersion: 1,
-                type: 'room.roster.changed',
-                generation: stream.generation,
-                entityId: room.id,
-                payload: {
-                  roomId: room.id,
-                  onlineCount: activeUsers.length,
-                  occurredAt: new Date().toISOString(),
-                },
-              },
-            });
-            await tx.realtimeDelivery.create({
-              data: {
-                eventId: rosterEventId,
-                destination: `room:${room.id}:g${stream.generation}`,
-                status: 'PENDING',
-              },
-            });
-          }
-        }
-      }
-
-      const durationMs = Date.now() - startTime;
-      studyRoomMetricsService.recordReconciliation(deleteResult.count, durationMs);
-
-      return {
-        evictedLeasesCount: deleteResult.count,
-        evictedParticipantsCount: ghostParticipants.length,
-        updatedRoomsCount,
-        durationMs,
-      };
-    });
+    }
+    const durationMs = Date.now()-startTime;
+    studyRoomMetricsService.recordReconciliation(evictedLeasesCount,durationMs);
+    return {evictedLeasesCount,evictedParticipantsCount,updatedRoomsCount:rooms.size,durationMs};
   },
 
   /**

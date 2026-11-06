@@ -10,6 +10,7 @@ export interface ParticipantPanelProps {
   participants: RoomParticipantView[];
   now: number;
   roomSlug?: string;
+  canManageRoles?: boolean;
   canManageParticipants?: boolean;
   onNotify?: (text: string) => void;
   onRosterMutated?: () => void;
@@ -19,6 +20,7 @@ export function ParticipantPanel({
   participants,
   now,
   roomSlug,
+  canManageRoles = false,
   canManageParticipants = false,
   onNotify,
   onRosterMutated,
@@ -49,6 +51,7 @@ export function ParticipantPanel({
             participant={participant}
             now={now}
             roomSlug={roomSlug}
+            canManageRoles={canManageRoles}
             canManageParticipants={canManageParticipants}
             onNotify={onNotify}
             onRosterMutated={onRosterMutated}

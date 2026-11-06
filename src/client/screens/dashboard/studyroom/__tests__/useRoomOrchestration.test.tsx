@@ -49,7 +49,7 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
   });
 
   it('starts in loading and reaches joined state upon valid bootstrap and join', async () => {
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: {
         id: 'room-1',
         slug: 'lofi-cafe',
@@ -64,7 +64,7 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
       },
       viewer: {
         userId: 'test-user-1',
-        isJoined: false,
+        isJoined: true,
         role: 'MEMBER',
       },
       capabilities: {
@@ -110,7 +110,7 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
   });
 
   it('transitions to denied when capabilities.canJoin is false', async () => {
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: {
         id: 'room-full',
         slug: 'full-room',
@@ -170,7 +170,7 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
   it('detects 409 stale_generation on renewal and switches to switched_elsewhere', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
 
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: {
         id: 'room-active',
         slug: 'active-room',
@@ -239,7 +239,7 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
   });
 
   it('leave(false) calls leaveRoom with global=false and cleans up state', async () => {
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: { id: 'room-1', slug: 'room-1', title: 'Room 1', status: 'OPEN', capacity: 25, onlineCount: 1, ownerId: 'h-1', createdAt: '' },
       viewer: { userId: 'u-1', isJoined: true },
       capabilities: { canJoin: true, canControlEnvironment: false, canManageParticipants: false, canEditRoom: false, canTransferOwnership: false, canDeleteRoom: false, isOwner: false },
@@ -272,13 +272,13 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
       await result.current.leave(false);
     });
 
-    expect(leaveSpy).toHaveBeenCalledWith('room-1', expect.any(String), false);
+    expect(leaveSpy).toHaveBeenCalledWith('room-1', expect.any(String), false, 1);
     expect(result.current.state).toBe('unavailable');
     expect(result.current.generation).toBeNull();
   });
 
   it('leave(true) calls leaveRoom with global=true', async () => {
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: { id: 'room-2', slug: 'room-2', title: 'Room 2', status: 'OPEN', capacity: 25, onlineCount: 1, ownerId: 'h-1', createdAt: '' },
       viewer: { userId: 'u-1', isJoined: true },
       capabilities: { canJoin: true, canControlEnvironment: false, canManageParticipants: false, canEditRoom: false, canTransferOwnership: false, canDeleteRoom: false, isOwner: false },
@@ -309,11 +309,11 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
       await result.current.leave(true);
     });
 
-    expect(leaveSpy).toHaveBeenCalledWith('room-2', expect.any(String), true);
+    expect(leaveSpy).toHaveBeenCalledWith('room-2', expect.any(String), true, 2);
   });
 
   it('refreshBootstrap fetches updated room and calls realtime.refreshManifest()', async () => {
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: { id: 'room-3', slug: 'room-3', title: 'Room 3', status: 'OPEN', capacity: 25, onlineCount: 1, ownerId: 'h-1', createdAt: '' },
       viewer: { userId: 'u-1', isJoined: true },
       capabilities: { canJoin: true, canControlEnvironment: false, canManageParticipants: false, canEditRoom: false, canTransferOwnership: false, canDeleteRoom: false, isOwner: false },
@@ -335,7 +335,7 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
       await Promise.resolve();
     });
 
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: { id: 'room-3', slug: 'room-3', title: 'Updated Title', status: 'OPEN', capacity: 25, onlineCount: 1, ownerId: 'h-1', createdAt: '' },
       viewer: { userId: 'u-1', isJoined: true },
       capabilities: { canJoin: true, canControlEnvironment: false, canManageParticipants: false, canEditRoom: false, canTransferOwnership: false, canDeleteRoom: false, isOwner: false },
@@ -349,9 +349,9 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
   });
 
   it('subscribes to room realtime channel and handles room.participant.left KICKED', async () => {
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: { id: 'room-kick', slug: 'room-kick', title: 'Room Kick', status: 'OPEN', capacity: 25, onlineCount: 2, ownerId: 'h-1', createdAt: '', streamGeneration: 2 },
-      viewer: { userId: 'test-user-1', isJoined: false, role: 'MEMBER' },
+      viewer: { userId: 'test-user-1', isJoined: true, role: 'MEMBER' },
       capabilities: { canJoin: true, canControlEnvironment: false, canManageParticipants: false, canEditRoom: false, canTransferOwnership: false, canDeleteRoom: false, isOwner: false },
     } as any);
 
@@ -385,10 +385,10 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
     expect(result.current.state).toBe('denied');
   });
 
-  it('handles gap in sequence numbers by calling syncRoomEvents catchup', async () => {
-    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValueOnce({
+  it('handles gap in sequence numbers by refreshing the authoritative snapshot', async () => {
+    vi.spyOn(studyRoomRepository, 'getBootstrap').mockResolvedValue({
       room: { id: 'room-sync', slug: 'room-sync', title: 'Room Sync', status: 'OPEN', capacity: 25, onlineCount: 2, ownerId: 'h-1', createdAt: '', streamGeneration: 1 },
-      viewer: { userId: 'test-user-1', isJoined: false, role: 'MEMBER' },
+      viewer: { userId: 'test-user-1', isJoined: true, role: 'MEMBER' },
       capabilities: { canJoin: true, canControlEnvironment: false, canManageParticipants: false, canEditRoom: false, canTransferOwnership: false, canDeleteRoom: false, isOwner: false },
     } as any);
 
@@ -400,15 +400,8 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
       lease: { leaseId: 'l-s', tabId: getTabId(), expiresAt: '' },
     });
 
-    const syncSpy = vi.spyOn(studyRoomRepository, 'syncRoomEvents').mockResolvedValueOnce({
-      mode: 'DELTA',
-      roomId: 'room-sync',
-      streamId: 's-1',
-      currentSequence: 10,
-      generation: 1,
-      events: [],
-      serverTime: new Date().toISOString(),
-    });
+    const syncSpy = vi.fn();
+    window.addEventListener('studyroom:resync',syncSpy);
 
     const { result } = renderHook(() =>
       useRoomOrchestration({ roomSlug: 'room-sync' })
@@ -440,6 +433,7 @@ describe('useRoomOrchestration hook (Phase 5)', () => {
       });
     });
 
-    expect(syncSpy).toHaveBeenCalledWith('room-sync', { clientSequence: 1 });
+    expect(syncSpy).toHaveBeenCalledTimes(1);
+    window.removeEventListener('studyroom:resync',syncSpy);
   });
 });

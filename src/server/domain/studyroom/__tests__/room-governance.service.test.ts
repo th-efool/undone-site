@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Database doubles execute serially. The PostgreSQL gate covers real lock interleavings.
+vi.mock('@/src/server/domain/studyroom/room-access', async (load) => ({
+  ...await load<typeof import('@/src/server/domain/studyroom/room-access')>(),
+  lockRooms: vi.fn(), lockUser: vi.fn(),
+}));
 vi.mock('server-only', () => ({}));
 
 import { roomGovernanceService } from '../room-governance.service';
@@ -14,6 +19,12 @@ import {
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
   prisma: {
     studyRoom: {
+      findUniqueOrThrow: vi.fn(async () => {
+      const model = prisma.studyRoom;
+      const recent = [model.findUnique,model.findFirst].flatMap(fn => vi.isMockFunction(fn) ? fn.mock.results.slice(-1) : []);
+      for (const call of recent) { const room = await call.value; if (room) return room; }
+      throw Error('Missing room fixture');
+    }),
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -50,6 +61,8 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
       create: vi.fn(),
       findMany: vi.fn(),
     },
+    realtimeStream:{upsert:vi.fn(async()=>({id:'stream',generation:1,eventCounter:1}))},
+    realtimeEvent:{create:vi.fn()},realtimeDelivery:{create:vi.fn()},
     $transaction: vi.fn(async (cb: (tx: any) => Promise<any>) => {
       return cb(prisma);
     }),
@@ -351,6 +364,7 @@ describe('roomGovernanceService', () => {
     });
 
     it('cancels pending transfer if called by sender, recipient, or owner', async () => {
+      vi.mocked(prisma.studyRoom.findUniqueOrThrow).mockResolvedValueOnce({ownerId:'owner-1'} as any);
       vi.mocked(prisma.roomOwnershipTransfer.findUnique).mockResolvedValue({
         id: 'transfer-1',
         studyRoomId: 'room-1',

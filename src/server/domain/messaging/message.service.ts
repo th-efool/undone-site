@@ -1,3 +1,4 @@
+import { hasRoomAccess } from '@/src/server/domain/studyroom/room-access';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import { messagingRepo } from '@/src/server/infrastructure/db/postgres/repositories/messaging.repo';
@@ -95,25 +96,7 @@ export const messageService = {
         }
       }
 
-      const activeLease = await prisma.roomLease.findFirst({
-        where: {
-          studyRoomId: channel.studyRoom.id,
-          userId: authorId,
-          expiresAt: { gt: new Date() },
-        },
-      });
-
-      if (!activeLease) {
-        const participant = await prisma.roomParticipant.findFirst({
-          where: {
-            studyRoomId: channel.studyRoom.id,
-            userId: authorId,
-          },
-        });
-        if (!participant) {
-          throw new MessagingForbiddenError('Not an active participant in this study room');
-        }
-      }
+      if (!(await hasRoomAccess(channel.studyRoom.id,authorId))) throw new MessagingForbiddenError('Active room lease required');
     } else {
       throw new MessagingForbiddenError('Channel does not have a valid parent context');
     }
@@ -176,10 +159,7 @@ export const messageService = {
               (p) => p.userId === u.id && p.leftAt === null
             );
           } else if (channel.studyRoom) {
-            const p = await prisma.roomParticipant.findFirst({
-              where: { studyRoomId: channel.studyRoom.id, userId: u.id },
-            });
-            hasAccess = Boolean(p);
+            hasAccess = await hasRoomAccess(channel.studyRoom.id,u.id);
           }
 
           if (hasAccess) {

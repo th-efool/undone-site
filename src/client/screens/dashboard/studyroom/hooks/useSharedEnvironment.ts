@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useRoomRefresh } from './useRoomRefresh';
 import { useRealtime } from '@/src/client/realtime';
 import {
   studyRoomRepository,
@@ -42,32 +43,37 @@ export function useSharedEnvironment(
 ): UseSharedEnvironmentReturn {
   const [environment, setEnvironment] = useState<SharedRoomEnvironment>(initialEnvironment);
   const [revision, setRevision] = useState<number>(1);
+  const confirmed = useRef(initialEnvironment);
   const revisionRef = useRef<number>(1);
   const optionsRef = useRef(options);
   const realtime = useSafeRealtime();
+  const subscribe = realtime?.status === 'connected' ? realtime.subscribe : undefined;
 
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
 
   const applyServerSnapshot = useCallback((data: RoomEnvironmentSnapshotDTO) => {
+    if (data.revision < revisionRef.current) return;
     setRevision(data.revision);
     revisionRef.current = data.revision;
 
     const parsedMusic = data.musicStreamUrl ? parseMusicUrl(data.musicStreamUrl) : null;
     const nextMusic = parsedMusic && parsedMusic.ok ? parsedMusic.source : null;
 
-    setEnvironment((prev) => ({
+    const prev = confirmed.current;
+    confirmed.current = {
       ...prev,
       backgroundId: (data.sceneId as BackgroundId) || prev.backgroundId,
       music: nextMusic !== undefined ? nextMusic : prev.music,
       ambience: {
         ...prev.ambience,
-        presetId: (data.soundscapeId as AmbientPresetId) || prev.ambience.presetId,
+        presetId: (data.soundscapeId as AmbientPresetId | null) ?? null,
       },
       updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : prev.updatedAt,
       updatedByUserId: data.updatedByUserId || prev.updatedByUserId,
-    }));
+    };
+    setEnvironment(local => ({...confirmed.current,ambience:{...confirmed.current.ambience,volume:local.ambience.volume,isPlaying:confirmed.current.ambience.presetId !== null && local.ambience.isPlaying}}));
   }, []);
 
   const reloadEnvironment = useCallback(async () => {
@@ -75,7 +81,7 @@ export function useSharedEnvironment(
     if (!slug) return;
     try {
       const data = await studyRoomRepository.getRoomEnvironment(slug);
-      applyServerSnapshot(data);
+      if (optionsRef.current?.roomSlug === slug) applyServerSnapshot(data);
     } catch {
       // Fall back gracefully to local state
     }
@@ -83,6 +89,7 @@ export function useSharedEnvironment(
 
   // Initial load from server environment service if roomSlug provided
   useEffect(() => {
+    revisionRef.current = 0;
     const slug = options?.roomSlug;
     if (!slug) return;
 
@@ -103,14 +110,16 @@ export function useSharedEnvironment(
     };
   }, [options?.roomSlug, applyServerSnapshot]);
 
+  useRoomRefresh(options?.roomId ? `room:${options.roomId}:g${options.streamGeneration ?? 1}` : undefined, reloadEnvironment);
+
   // Realtime subscription for room.environment.updated events
   useEffect(() => {
     const roomId = options?.roomId;
     const streamGeneration = options?.streamGeneration ?? 1;
-    if (!roomId || typeof realtime?.subscribe !== 'function') return;
+    if (!roomId || typeof subscribe !== 'function') return;
 
     const channel = `room:${roomId}:g${streamGeneration}`;
-    const unsubscribe = realtime.subscribe(channel, (data: unknown) => {
+    const unsubscribe = subscribe(channel, (data: unknown) => {
       const envelope = data as { type?: string; payload?: RoomEnvironmentSnapshotDTO };
       if (envelope?.type === 'room.environment.updated' && envelope.payload) {
         applyServerSnapshot(envelope.payload);
@@ -120,7 +129,7 @@ export function useSharedEnvironment(
     return () => {
       unsubscribe();
     };
-  }, [options?.roomId, options?.streamGeneration, realtime, applyServerSnapshot]);
+  }, [options?.roomId, options?.streamGeneration, subscribe, applyServerSnapshot]);
 
   const persistServerEnvironment = useCallback(
     async (patch: {
@@ -137,16 +146,15 @@ export function useSharedEnvironment(
           ...patch,
           expectedRevision: revisionRef.current,
         });
-        setRevision(updated.revision);
-        revisionRef.current = updated.revision;
-      } catch (err: unknown) {
-        if ((err as { status?: number })?.status === 409) {
-          // 409 Conflict: Reload authoritative environment from server to realign local state
-          await reloadEnvironment();
-        }
+        if (optionsRef.current?.roomSlug === slug) applyServerSnapshot(updated);
+      } catch {
+        if (optionsRef.current?.roomSlug !== slug) return;
+        setEnvironment(confirmed.current);
+        await reloadEnvironment();
+        window.dispatchEvent(new Event('studyroom:environment-error'));
       }
     },
-    [reloadEnvironment]
+    [reloadEnvironment,applyServerSnapshot]
   );
 
   const actions: SharedEnvironmentActions = useMemo(

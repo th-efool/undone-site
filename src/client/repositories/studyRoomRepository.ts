@@ -79,6 +79,7 @@ export interface ApiHttpError extends Error {
 }
 
 export interface RoomChatMessageDTO {
+  reactions?: {emoji:string;count:number}[];
   id: string;
   content: string;
   channelId: string;
@@ -207,11 +208,11 @@ export const studyRoomRepository = {
     return res.json();
   },
 
-  async leaveRoom(roomId?: string, tabId?: string, global = false): Promise<{ success: boolean; left: boolean }> {
+  async leaveRoom(roomId?: string, tabId?: string, global = false, generation?: number): Promise<{ success: boolean; left: boolean }> {
     const res = await fetch('/api/studyroom', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'leave', roomId, tabId, global }),
+      body: JSON.stringify({ action: 'leave', roomId, tabId, global, generation }),
     });
 
     if (!res.ok) {

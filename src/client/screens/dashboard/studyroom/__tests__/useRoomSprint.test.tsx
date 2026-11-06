@@ -15,7 +15,7 @@ vi.mock('next-auth/react', () => ({
 
 vi.mock('@/src/client/realtime', () => ({
   useRealtime: vi.fn(() => ({
-    subscribe: mockSubscribe,
+    status:'connected',subscribe: mockSubscribe,
   })),
 }));
 
