@@ -216,7 +216,7 @@
 .mainHeroSection {
   flex: 1;
   width: 100%;
-  max-width: 1760px;
+  max-width: none;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -426,7 +426,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: max(0px, calc((100vw - 2160px) / 2));
+  left: 0;
   width: 320px;
   pointer-events: auto;
   z-index: 6;
@@ -715,7 +715,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  right: max(0px, calc((100vw - 2160px) / 2));
+  right: 0;
   width: 340px;
   pointer-events: auto;
   z-index: 6;
