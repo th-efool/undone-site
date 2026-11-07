@@ -4,8 +4,7 @@
  * Implements the 3-Tier Precedence Hierarchy from theme-and-cascade-contract.md:
  * 1. Route Theme Policy (ROUTE_THEME_CONFIG) -> Highest Priority
  * 2. User Saved Preference (localStorage: 'undone_theme')
- * 3. System Preference (prefers-color-scheme)
- * 4. Default: 'light'
+ * 3. Default: 'light'
  */
 
 export type ThemeMode = 'dark' | 'light';
@@ -54,7 +53,7 @@ export function resolveEffectiveTheme(pathname: string | null): ThemeMode {
     return routePolicy;
   }
 
-  // Client-only resolution for stored and system preferences
+  // Client-only resolution for saved preferences.
   if (typeof window !== 'undefined') {
     try {
       // Tier 2: User Saved Preference
@@ -63,10 +62,6 @@ export function resolveEffectiveTheme(pathname: string | null): ThemeMode {
         return stored;
       }
 
-      // Tier 3: System Preference
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
-      }
     } catch {
       // Ignore if localStorage unavailable
     }

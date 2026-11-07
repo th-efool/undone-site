@@ -190,7 +190,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
         <script
           id="ud-theme-init"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=window.location.pathname;var r={'/play':'dark','/explore':'dark','/message':'dark','/notes':'dark','/create-cohort':'dark','/studyroom':'dark'};var t=null;for(var k in r){if(p===k||p.indexOf(k+'/')===0){t=r[k];break;}}if(!t){t=localStorage.getItem('undone_theme');}if(!t&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){t='dark';}t=t||'light';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){}})();`,
+            __html: `(function(){try{var p=window.location.pathname;var r={'/play':'dark','/explore':'dark','/message':'dark','/notes':'dark','/create-cohort':'dark','/studyroom':'dark'};var t=null;for(var k in r){if(p===k||p.indexOf(k+'/')===0){t=r[k];break;}}if(!t){t=localStorage.getItem('undone_theme');}t=t||'light';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){}})();`,
           }}
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

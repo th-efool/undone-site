@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { m, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
+import { m, useScroll, useTransform } from 'framer-motion';
 import { useHlsVideo } from './hooks/useHlsVideo';
 import { useVideoKeyboardControls } from './hooks/useVideoKeyboardControls';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -24,7 +24,6 @@ export function VideoExplainer({
 }: VideoExplainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const userPausedManually = useRef(false);
 
   const {
     isPlaying,
@@ -32,7 +31,6 @@ export function VideoExplainer({
     isLoading,
     setIsLoading,
     isMuted,
-    setIsMuted,
     isEnded,
     setIsEnded,
     toggleMute,
@@ -53,24 +51,17 @@ export function VideoExplainer({
     if (!video) return;
 
     if (isEnded) {
-      userPausedManually.current = false;
       handleReplay();
       return;
     }
 
     if (video.paused) {
-      userPausedManually.current = false;
-      // On user interaction, unmute audio so they can hear it
+      // A user gesture permits audible HTML media playback.
       if (video.muted) {
         unmute();
       }
-      video.play().catch(() => {
-        video.muted = true;
-        setIsMuted(true);
-        video.play().catch(() => setIsPlaying(false));
-      });
+      video.play().catch(() => setIsPlaying(false));
     } else {
-      userPausedManually.current = true;
       video.pause();
     }
   };
@@ -92,33 +83,6 @@ export function VideoExplainer({
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end end'],
-  });
-
-  // Autoplay when video section is in view, auto-pause only when scrolled out of view
-  useMotionValueEvent(scrollYProgress, 'change', (progress) => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const isInView = progress > 0.05 && progress < 0.95;
-    const isOutOfView = progress <= 0 || progress >= 1;
-
-    if (isInView) {
-      if (video.paused && !userPausedManually.current) {
-        video.play().catch(() => {
-          // If unmuted autoplay blocked by browser policy, fallback to muted autoplay
-          video.muted = true;
-          setIsMuted(true);
-          video.play().catch(() => setIsPlaying(false));
-        });
-      }
-    } else if (isOutOfView) {
-      // Zoomed out (scrolled back up to Hero or down to Ikigai): auto pause
-      if (!video.paused) {
-        video.pause();
-      }
-      // Reset manual pause preference once user leaves the section
-      userPausedManually.current = false;
-    }
   });
 
   const clipPath = useTransform(

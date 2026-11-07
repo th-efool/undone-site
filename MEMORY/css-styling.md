@@ -48,7 +48,7 @@ Never create reverse aliases or circular dependencies.
 - `Field`: Accessible form controls (`TextField`, `SelectField`, `CheckboxField`, `RadioField`) binding `label`, `hint`, and `error` via `id`, `htmlFor`, and `aria-describedby`.
 
 ## Theme Precedence & Portal Encapsulation
-1. Route theme overrides are configured in `routeThemeConfig.ts`. Dark routes (e.g. `/notes`, `/cohort/play`) define dark mode surfaces.
+1. Route theme overrides are configured in `routeThemeConfig.ts`. Dark routes (e.g. `/notes`, `/cohort/play`) define dark mode surfaces. Unmapped routes default to light; a saved `undone_theme` preference still overrides that default. Keep `src/app/layout.tsx`'s pre-hydration script and the resolver aligned.
 2. Radix Dialog and Popover portals rendered into `document.body` MUST be wrapped in `.ud-dialog-portal` or `.ud-popover-portal` or inherit theme attributes so they do not fall back to light mode on dark routes.
 3. Checkboxes have isolated dimensions (`width: 1.125rem; height: 1.125rem; padding: 0; shrink-0;`) to prevent text-input line-height and padding bleeding.
 

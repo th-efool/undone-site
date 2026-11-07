@@ -97,7 +97,7 @@ describe('Theme Propagation & Font Loading Consolidation (Phase 3)', () => {
       expect(resolveEffectiveTheme('/')).toBe('light');
     });
 
-    it('Tier 3: Unmapped routes fall back to OS prefers-color-scheme when localStorage is empty', () => {
+    it('Tier 3: Unmapped routes default to light when localStorage is empty', () => {
       window.localStorage.clear();
 
       // Mock dark OS
@@ -113,7 +113,7 @@ describe('Theme Propagation & Font Loading Consolidation (Phase 3)', () => {
           dispatchEvent: () => false,
         }) as MediaQueryList;
 
-      expect(resolveEffectiveTheme('/')).toBe('dark');
+      expect(resolveEffectiveTheme('/')).toBe('light');
 
       // Mock light OS
       window.matchMedia = (query: string) =>

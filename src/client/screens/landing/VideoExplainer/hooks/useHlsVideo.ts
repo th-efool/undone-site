@@ -36,7 +36,7 @@ export function useHlsVideo({
 }: UseHlsVideoOptions): UseHlsVideoReturn {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoadingState] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isEnded, setIsEnded] = useState(false);
   const [hlsSupported, setHlsSupported] = useState(true);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -109,8 +109,8 @@ export function useHlsVideo({
 
     video.playbackRate = defaultPlaybackRate;
     video.defaultPlaybackRate = defaultPlaybackRate;
-    video.muted = true;
-    setIsMuted(true);
+    video.muted = false;
+    setIsMuted(false);
 
     let isCancelled = false;
 
@@ -223,11 +223,7 @@ export function useHlsVideo({
     if (video.muted) {
       unmute();
     }
-    video.play().catch(() => {
-      video.muted = true;
-      setIsMuted(true);
-      video.play().catch(() => setIsPlaying(false));
-    });
+    video.play().catch(() => setIsPlaying(false));
   }, [videoRef, unmute, setIsLoading]);
 
   const togglePlay = useCallback(() => {
@@ -243,11 +239,7 @@ export function useHlsVideo({
       if (video.muted) {
         unmute();
       }
-      video.play().catch(() => {
-        video.muted = true;
-        setIsMuted(true);
-        video.play().catch(() => setIsPlaying(false));
-      });
+      video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }

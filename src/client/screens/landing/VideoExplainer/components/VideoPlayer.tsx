@@ -37,7 +37,6 @@ export function VideoPlayer({
       src={!hlsSupported ? fallbackSrc : undefined}
       {...(poster ? { poster } : {})}
       preload="auto"
-      muted
       playsInline
       className={styles.videoElement}
       loop
