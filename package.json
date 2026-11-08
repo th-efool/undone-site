@@ -31,7 +31,7 @@
     "db:seed-users": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/db/seed-users.ts",
     "db:seed-notes": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/db/seedNotesData.ts",
     "db:sync-messaging": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/db/sync-messaging-schema.ts",
-    "postinstall": "npm run prebuild && prisma generate",
+    "postinstall": "node scripts/postinstall.mjs",
     "start": "node --import ./scripts/register-root-environment.mjs ./node_modules/next/dist/bin/next start",
     "lint": "eslint",
     "mobile:build": "npm --prefix packages/mobile run build",

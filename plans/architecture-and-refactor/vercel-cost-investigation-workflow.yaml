@@ -1,0 +1,107 @@
+workflow:
+  name: undone-vercel-cost-investigation
+  description: >-
+    Investigate each nonzero Vercel usage metric from the supplied billing screenshots,
+    correlate it with repository routes/assets/runtime behavior, and return ranked savings.
+  version: "1.0.0"
+  timeout: 45m
+  media_optimization_plan:
+    asset: public/videos/undone-investor-film.mp4 plus public/videos/hls/*.ts
+    method: Re-encode H.264 at CRF 22, keep 1920x1080 and 60 fps, AAC 160 kbps, then regenerate the HLS VOD segments from the same encoded source.
+    acceptance: Preserve duration and dimensions; inspect stream metadata and compare total bytes before replacing deployed assets.
+  inputs:
+    - name: repository
+      type: file_path
+      required: true
+      default: C:/Development/undone-site
+      description: Repository checkout to inspect; no Vercel logs or credentials are available.
+    - name: usage_snapshot
+      type: string
+      required: true
+      description: User supplied Vercel usage screenshots and metric totals for roughly Oct 8-Nov 8, 2026.
+  agents:
+    data_transfer:
+      name: Transfer Cost Investigator
+      role: Trace Fast Data Transfer and Fast Origin Transfer risks.
+      prompt: Inspect routes, assets, caching, and media delivery. Distinguish evidence from hypotheses and quantify possible savings where source sizes allow.
+      tools: [Read, Bash]
+      timeout: 20m
+    cdn_requests:
+      name: CDN Request Investigator
+      role: Trace CDN request volume and scraper/test amplification paths.
+      prompt: Inspect routes, assets, polling, prefetching, and cache headers. Identify likely high-request sources and recommend attribution evidence available without logs.
+      tools: [Read, Bash]
+      timeout: 20m
+    isr:
+      name: ISR Investigator
+      role: Explain ISR reads/writes and identify routes that generate them.
+      prompt: Inspect static/ISR routes and revalidation paths. Assess whether the 139K reads and 326 writes are expected, and recommend targeted changes.
+      tools: [Read, Bash]
+      timeout: 20m
+    functions:
+      name: Function Usage Investigator
+      role: Trace Function Invocations and Function Duration.
+      prompt: Inspect API routes, dynamic pages, auth, polling, and server-side work. Rank likely invocation and duration sources without assuming access to production logs.
+      tools: [Read, Bash]
+      timeout: 20m
+    fluid_compute:
+      name: Fluid Compute Investigator
+      role: Trace Fluid Provisioned Memory and Fluid Active CPU.
+      prompt: Inspect long-lived/waiting handlers, workers, database calls, and runtime settings. Explain GB-Hrs versus active CPU and identify likely hotspots.
+      tools: [Read, Bash]
+      timeout: 20m
+    builds:
+      name: Build Cost Investigator
+      role: Trace Build CPU Minutes and Build Minutes.
+      prompt: Inspect build/install scripts, deployment configuration, package scripts, and repository build weight. Recommend ways to reduce repeated build consumption.
+      tools: [Read, Bash]
+      timeout: 20m
+    image_optimization:
+      name: Image Optimization Investigator
+      role: Trace image transformations/cache reads/cache writes.
+      prompt: Inspect Next Image usage, remote image hosts, dimensions, and unoptimized boundaries. Assess whether 580 transforms and cache counts can be reduced safely.
+      tools: [Read, Bash]
+      timeout: 20m
+    queues_storage:
+      name: Queues and Storage Investigator
+      role: Trace queue operations, deployment/functions storage, and other nonzero secondary usage.
+      prompt: Inspect queue/worker code and deployment artifact configuration. Map 1.7K sends, receives, deletes, notifications, visibility changes, and storage figures to code or identify missing attribution.
+      tools: [Read, Bash]
+      timeout: 20m
+    aggregator:
+      name: Cost Plan Synthesizer
+      role: Combine metric investigations into a prioritized plan.
+      prompt: Merge specialist findings, deduplicate recommendations, distinguish confirmed causes from hypotheses, and produce a phased savings plan with expected impact, effort, and verification.
+      tools: [Read]
+      timeout: 15m
+  steps:
+    - id: metric_reviews
+      type: parallel
+      parallel:
+        - agent: data_transfer
+          input: "{{inputs.repository}}; {{inputs.usage_snapshot}}"
+        - agent: cdn_requests
+          input: "{{inputs.repository}}; {{inputs.usage_snapshot}}"
+        - agent: isr
+          input: "{{inputs.repository}}; {{inputs.usage_snapshot}}"
+        - agent: functions
+          input: "{{inputs.repository}}; {{inputs.usage_snapshot}}"
+        - agent: fluid_compute
+          input: "{{inputs.repository}}; {{inputs.usage_snapshot}}"
+        - agent: builds
+          input: "{{inputs.repository}}; {{inputs.usage_snapshot}}"
+        - agent: image_optimization
+          input: "{{inputs.repository}}; {{inputs.usage_snapshot}}"
+        - agent: queues_storage
+          input: "{{inputs.repository}}; {{inputs.usage_snapshot}}"
+      wait: all
+      output:
+        store_as: specialist_findings
+        format: markdown
+    - id: synthesis
+      agent: aggregator
+      type: sequential
+      input: "{{steps.metric_reviews.output}}"
+      output:
+        store_as: final_cost_plan
+        format: markdown

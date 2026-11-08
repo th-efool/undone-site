@@ -11,3 +11,4 @@
   - `UpcomingEvents`: Initializes from learner's local date/time, updates at local midnight, retains `useUnifiedTasks`, and clearly disables unintegrated calendar providers (Google, Outlook, Apple) with `Coming later` badges.
   - `ChannelHub`: Unconsumed automation settings (weekly goal, learning allocation, reminder window) are disabled with `Coming later`, keeping working channel sliders fully functional.
 - Focused checks: `npx vitest run src/server/domain/home src/client/screens/dashboard/home src/client/mobile/screens/Home "src/app/(dashboard)/home" src/app/api/user/cohort-config src/client/components/global/UpcomingEvents`.
+- Dashboard feed prefetch: `src/client/components/global/DashboardShell/DashboardShell.tsx` no longer POSTs `/api/feed` speculatively on shell mount; the Play experience loads feed data on demand. The separate idle Explore warmup remains and is scheduled once per shell mount. Room lease behavior is not changed by this boundary.

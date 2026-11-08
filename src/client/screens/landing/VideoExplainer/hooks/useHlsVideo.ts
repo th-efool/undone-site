@@ -26,6 +26,7 @@ export interface UseHlsVideoReturn {
   handleEnded: () => void;
   handleReplay: () => void;
   handleError: () => void;
+  startLoading: () => void;
 }
 
 export function useHlsVideo({
@@ -41,6 +42,7 @@ export function useHlsVideo({
   const [hlsSupported, setHlsSupported] = useState(true);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hlsInstanceRef = useRef<Hls | null>(null);
+  const mediaLoadRequestedRef = useRef(false);
 
   // Debounced loading state: prevents micro-buffering (< 300ms) from flashing loading spinner
   const setIsLoading = useCallback((loading: boolean) => {
@@ -80,7 +82,7 @@ export function useHlsVideo({
     if (video) {
       if (video.src !== fallbackSrc && !video.src.endsWith(fallbackSrc)) {
         video.src = fallbackSrc;
-        video.load();
+        if (mediaLoadRequestedRef.current) video.load();
       }
     }
   }, [videoRef, fallbackSrc]);
@@ -122,7 +124,7 @@ export function useHlsVideo({
 
         if (HlsModule.isSupported()) {
           const hls = new HlsModule({
-            autoStartLoad: true,
+            autoStartLoad: false,
             startPosition: -1,
             capLevelToPlayerSize: true,
             maxBufferLength: 30,
@@ -135,6 +137,7 @@ export function useHlsVideo({
 
           hls.loadSource(hlsSrc);
           hls.attachMedia(currentVideo);
+          if (mediaLoadRequestedRef.current) hls.startLoad();
 
           hls.on(HlsModule.Events.MANIFEST_PARSED, () => {
             if (!isCancelled) {
@@ -191,6 +194,19 @@ export function useHlsVideo({
     };
   }, [videoRef, hlsSrc, fallbackSrc, defaultPlaybackRate, setIsLoading, switchToFallback]);
 
+  const startLoading = useCallback(() => {
+    mediaLoadRequestedRef.current = true;
+    const video = videoRef.current;
+    if (!video) return;
+
+    const hls = hlsInstanceRef.current;
+    if (hls) {
+      hls.startLoad();
+    } else if (video.src) {
+      video.load();
+    }
+  }, [videoRef]);
+
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -217,6 +233,7 @@ export function useHlsVideo({
     if (!video) return;
 
     video.currentTime = 0;
+    startLoading();
     setIsEnded(false);
     setIsLoading(false);
     setIsPlaying(true);
@@ -224,7 +241,7 @@ export function useHlsVideo({
       unmute();
     }
     video.play().catch(() => setIsPlaying(false));
-  }, [videoRef, unmute, setIsLoading]);
+  }, [videoRef, unmute, setIsLoading, startLoading]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -236,6 +253,7 @@ export function useHlsVideo({
     }
 
     if (video.paused) {
+      startLoading();
       if (video.muted) {
         unmute();
       }
@@ -243,7 +261,7 @@ export function useHlsVideo({
     } else {
       video.pause();
     }
-  }, [videoRef, isEnded, handleReplay, unmute]);
+  }, [videoRef, isEnded, handleReplay, unmute, startLoading]);
 
   // Video finish callback
   const handleEnded = useCallback(() => {
@@ -268,5 +286,6 @@ export function useHlsVideo({
     handleEnded,
     handleReplay,
     handleError: switchToFallback,
+    startLoading,
   };
 }

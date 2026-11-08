@@ -8,7 +8,6 @@ import clsx from 'clsx';
 import { resolveEffectiveTheme, applyThemeToDocument, getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { useExperience } from '@/src/client/hooks/useExperience';
 import { MobileNav } from '@/src/client/mobile/components/navigation/MobileNav/MobileNav';
-import { prefetchDefaultFeed } from '@/src/client/screens/dashboard/play/hooks/usePlayback';
 import { exploreRepository } from '@/src/client/repositories/exploreRepository';
 import { useSession } from 'next-auth/react';
 import { Sidebar } from '../Sidebar';
@@ -49,22 +48,21 @@ function DashboardInner({ children }: PropsWithChildren) {
     applyThemeToDocument(effectiveTheme);
   }, [pathname, effectiveTheme]);
 
-  // Warm up feed and explore caches ONCE on initial idle mount (not on every route change)
+  // Warm the shared Explore cache on idle mount. Feed data is fetched on demand in Play.
   useEffect(() => {
     if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
-    const runPrefetch = () => {
-      void prefetchDefaultFeed(userId);
+    const warmExploreCache = () => {
       void exploreRepository.getExplore().catch(() => {});
     };
 
     if ('requestIdleCallback' in window) {
-      const handle = (window as any).requestIdleCallback(runPrefetch, { timeout: 3000 });
+      const handle = (window as any).requestIdleCallback(warmExploreCache, { timeout: 3000 });
       return () => (window as any).cancelIdleCallback(handle);
     } else {
-      const timer = setTimeout(runPrefetch, 1500);
+      const timer = setTimeout(warmExploreCache, 1500);
       return () => clearTimeout(timer);
     }
-  }, [userId]);
+  }, []);
 
   // ⌘K / Ctrl+K global shortcut
   useEffect(() => {

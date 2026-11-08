@@ -81,3 +81,4 @@ npm run messaging:load -- --tier=650 --seconds=2 --burst --worker-kill
 - Operational handoff & 12 mandatory runbooks: `docs/messaging-operational-release-package.md`
 - Full test ID matrix verified: AUTH-01 through LOAD-01 (43 acceptance test targets).
 - Implementing lead completion checklist: all 22 checklist items passed.
+- Active-channel polling: `src/client/screens/dashboard/message/hooks/useMessage.ts` polls messages every 2.5 seconds only while the document is visible, stops its timer on `visibilitychange` to hidden, and refreshes immediately when visible again. Poll requests are guarded against overlapping in-flight requests; studyroom lease renewal is a separate path and unchanged.

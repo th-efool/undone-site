@@ -331,9 +331,12 @@ export function useMessage() {
         });
     }
 
-    // Background poll for newly arrived messages every 2500ms
+    // Background poll for newly arrived messages while this tab is visible.
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let pollInFlight = false;
     const pollMessages = async () => {
-      if (!active) return;
+      if (!active || document.visibilityState !== 'visible' || pollInFlight) return;
+      pollInFlight = true;
       try {
         const rawMessages = await messagesRepository.fetchChannelMessages(currentActiveChannelId, 50);
         if (!active) return;
@@ -370,16 +373,37 @@ export function useMessage() {
         });
       } catch (err) {
         console.warn(`Background poll failed for channel ${currentActiveChannelId}:`, err);
+      } finally {
+        pollInFlight = false;
       }
     };
 
-    const interval = setInterval(pollMessages, 2500);
-    const onFocus = () => pollMessages();
+    const startPolling = () => {
+      if (interval || document.visibilityState !== 'visible') return;
+      void pollMessages();
+      interval = setInterval(() => void pollMessages(), 2500);
+    };
+    const stopPolling = () => {
+      if (!interval) return;
+      clearInterval(interval);
+      interval = null;
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') startPolling();
+      else stopPolling();
+    };
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') startPolling();
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', onVisibilityChange);
     window.addEventListener('focus', onFocus);
 
     return () => {
       active = false;
-      clearInterval(interval);
+      stopPolling();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('focus', onFocus);
     };
   }, [currentActiveChannelId, currentUserId]);

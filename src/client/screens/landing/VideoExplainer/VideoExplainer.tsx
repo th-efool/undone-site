@@ -39,6 +39,7 @@ export function VideoExplainer({
     handleEnded,
     handleReplay,
     handleError,
+    startLoading,
   } = useHlsVideo({
     videoRef,
     hlsSrc,
@@ -56,6 +57,7 @@ export function VideoExplainer({
     }
 
     if (video.paused) {
+      startLoading();
       // A user gesture permits audible HTML media playback.
       if (video.muted) {
         unmute();

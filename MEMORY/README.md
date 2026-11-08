@@ -1,6 +1,7 @@
 # Repository operational index
 
 - [landing-investor-film.md](landing-investor-film.md): normal-Git film storage, asset integrity, and pending deployment hardening.
+- [build-and-deploy-costs.md](build-and-deploy-costs.md): root npm lifecycle, Vercel install/build boundaries, and duplicate-work avoidance.
 
 - [home-dashboard.md](home-dashboard.md): cohort card controls, pause dates, learning settings, subscription removal, cache boundaries, and focused checks.
 
