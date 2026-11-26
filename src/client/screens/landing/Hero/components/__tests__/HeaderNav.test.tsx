@@ -26,14 +26,18 @@ describe('HeaderNav authentication behavior', () => {
     cleanup();
   });
 
-  it('renders sign-in and get-started links pointing to /auth?returnTo=/ when unauthenticated', () => {
+  it('renders interested prompt and contact-us link instead of sign-in or get-started when unauthenticated', () => {
     render(<HeaderNav />);
 
-    const signInLink = screen.getByRole('link', { name: /sign in/i });
-    expect(signInLink.getAttribute('href')).toBe('/auth?returnTo=/');
+    expect(screen.queryByRole('link', { name: /sign in/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /get started/i })).toBeNull();
 
-    const getStartedLink = screen.getByRole('link', { name: /get started/i });
-    expect(getStartedLink.getAttribute('href')).toBe('/auth?returnTo=/');
+    expect(screen.getByText(/interested\?/i)).toBeTruthy();
+
+    const contactLink = screen.getByRole('link', { name: /contact us/i });
+    expect(contactLink.getAttribute('href')).toBe(
+      'mailto:support@undone.in?subject=Interested%20in%20Undone'
+    );
   });
 
   it('renders dashboard and my quests links pointing to /home when authenticated', () => {
@@ -47,5 +51,6 @@ describe('HeaderNav authentication behavior', () => {
     expect(myQuestsLink.getAttribute('href')).toBe('/home');
 
     expect(screen.queryByRole('link', { name: /sign in/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /contact us/i })).toBeNull();
   });
 });

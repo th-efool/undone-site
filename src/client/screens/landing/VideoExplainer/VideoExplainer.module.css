@@ -61,16 +61,15 @@
 .playButton {
   width: 5rem;
   height: 5rem;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.2);
   border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
+  outline: none;
   transition: background-color 200ms ease, transform 150ms ease;
   pointer-events: auto;
 }
@@ -85,6 +84,11 @@
 .playButton:hover {
   background-color: rgba(255, 255, 255, 0.35);
   transform: scale(1.05);
+}
+
+.playButton:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 4px;
 }
 
 .playButton:active {

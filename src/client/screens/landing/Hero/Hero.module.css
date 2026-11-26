@@ -151,6 +151,14 @@
   color: #0e1738;
 }
 
+.contactPrompt {
+  font-family: var(--font-manrope-next), sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #3b4356;
+  white-space: nowrap;
+}
+
 .themeToggleBtn {
   display: flex;
   align-items: center;
@@ -1247,6 +1255,11 @@
 :global([data-theme='dark']) .heroWrapper .signInLink:hover,
 .heroWrapper[data-theme='dark'] .signInLink:hover {
   color: #ffffff;
+}
+
+:global([data-theme='dark']) .heroWrapper .contactPrompt,
+.heroWrapper[data-theme='dark'] .contactPrompt {
+  color: #d4d4d8;
 }
 
 :global([data-theme='dark']) .heroWrapper .themeToggleBtn,

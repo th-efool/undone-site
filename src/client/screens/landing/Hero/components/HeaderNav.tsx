@@ -69,12 +69,13 @@ export function HeaderNav() {
           </>
         ) : (
           <>
-            <Link href="/auth?returnTo=/" className={styles.signInLink}>
-              Sign in
-            </Link>
-            <Link href="/auth?returnTo=/" className={styles.getStartedBtn}>
-              Get Started
-            </Link>
+            <span className={styles.contactPrompt}>Interested?</span>
+            <a
+              href="mailto:support@undone.in?subject=Interested%20in%20Undone"
+              className={styles.getStartedBtn}
+            >
+              Contact us
+            </a>
           </>
         )}
       </div>
