@@ -424,5 +424,30 @@ describe('PlayDesktop visual redesign composition', () => {
 
     const homeLink = screen.getByRole('link', { name: /back home/i });
     expect(homeLink.getAttribute('href')).toBe('/home');
+    expect(screen.queryByRole('banner', { name: /playback header/i })).toBeNull();
+    expect(screen.queryByRole('toolbar', { name: /playback controls dock/i })).toBeNull();
+    expect(screen.queryByRole('complementary', { name: /learning tools rail/i })).toBeNull();
+  });
+
+  it('renders only a clean loading screen without placeholder metadata or docks during initial load', () => {
+    const playback = createMockPlayback({
+      activeItem: undefined,
+      feedItems: [],
+      feedLoading: true,
+      lesson: {
+        ...createMockPlayback().lesson,
+        title: '',
+      },
+    });
+
+    render(<PlayDesktop playback={playback} />);
+
+    expect(screen.getByRole('status', { name: /loading lessons/i })).toBeDefined();
+    expect(screen.queryByRole('banner', { name: /playback header/i })).toBeNull();
+    expect(screen.queryByRole('toolbar', { name: /playback controls dock/i })).toBeNull();
+    expect(screen.queryByRole('complementary', { name: /learning tools rail/i })).toBeNull();
+    expect(screen.queryByText(/syncing channel feed/i)).toBeNull();
+    expect(screen.queryByText(/course media/i)).toBeNull();
+    expect(screen.queryByText(/chunk 1 of 1/i)).toBeNull();
   });
 });

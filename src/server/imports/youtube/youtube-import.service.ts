@@ -58,6 +58,9 @@ interface YoutubeVideosResponse {
     contentDetails?: {
       duration?: string;
     };
+    status?: {
+      embeddable?: boolean;
+    };
   }>;
 }
 
@@ -271,7 +274,7 @@ async function fetchVideoDetails(
   return fetchYoutubeJson<YoutubeVideosResponse>(
     'videos',
     {
-      part: 'snippet,contentDetails',
+      part: 'snippet,contentDetails,status',
       id: videoIds.join(','),
       maxResults: 50,
     },
@@ -462,7 +465,8 @@ export async function importYouTubePlaylist(
         lowerTitle.includes('this video is private') ||
         lowerTitle.includes('this video is deleted') ||
         rawTitle === '[private video]' ||
-        rawTitle === '[deleted video]'
+        rawTitle === '[deleted video]' ||
+        video?.status?.embeddable === false
       ) {
         continue;
       }
@@ -555,6 +559,13 @@ export async function importYouTubePlaylist(
     });
   }
 
+  if (playlistItems.length > 0 && lessons.length === 0) {
+    throw createYoutubeImportError(
+      'video_not_embeddable',
+      'None of the videos in this playlist allow embedded playback on YouTube. Please choose a different playlist.',
+    );
+  }
+
   const importedSource: ServerImportedSourceModel = {
     id: request.sourceId,
     title: playlistTitle,
@@ -645,6 +656,9 @@ export async function importYouTubeVideo(
   try {
     const videoDetails = await fetchVideoDetails([videoId], signal);
     const videoItem = videoDetails?.items?.[0];
+    if (videoItem?.status?.embeddable === false) {
+      throw createYoutubeImportError('video_not_embeddable');
+    }
     if (videoItem) {
       title = videoItem.snippet?.title?.trim() || title;
       description = videoItem.snippet?.description || description;
@@ -652,7 +666,10 @@ export async function importYouTubeVideo(
       thumbnail = pickThumbnail(videoItem.snippet?.thumbnails) || thumbnail;
       durationSeconds = parseIsoDuration(videoItem.contentDetails?.duration || 'PT12M') || 720;
     }
-  } catch {
+  } catch (err: any) {
+    if (err?.code === 'video_not_embeddable') {
+      throw err;
+    }
     try {
       const oembedRes = await fetch(
         `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
@@ -680,6 +697,13 @@ export async function importYouTubeVideo(
     videoId,
     publishedLabel: 'Published on YouTube',
   };
+
+  if (playlistItems.length > 0 && lessons.length === 0) {
+    throw createYoutubeImportError(
+      'video_not_embeddable',
+      'None of the videos in this playlist allow embedded playback on YouTube. Please choose a different playlist.',
+    );
+  }
 
   const importedSource: ServerImportedSourceModel = {
     id: request?.sourceId ?? 'source',
@@ -791,6 +815,13 @@ export async function importWebArticle(
     videoId: '',
     publishedLabel: `Web Reference (${domain})`,
   };
+
+  if (playlistItems.length > 0 && lessons.length === 0) {
+    throw createYoutubeImportError(
+      'video_not_embeddable',
+      'None of the videos in this playlist allow embedded playback on YouTube. Please choose a different playlist.',
+    );
+  }
 
   const importedSource: ServerImportedSourceModel = {
     id: request.sourceId,

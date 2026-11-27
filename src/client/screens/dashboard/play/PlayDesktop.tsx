@@ -74,6 +74,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
   });
 
   const mediaSource = resolveMediaSource(playback.activeItem);
+  const hasActiveContent = Boolean(playback.activeItem && !playback.feedError);
   const speedSupported = !playback.activeItem || mediaSource.isYouTube || mediaSource.isDirectVideo;
   const isChunkCompleted =
     playback.activeItem && playback.isChunkCompleted
@@ -104,11 +105,11 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
       </div>
 
       {/* 1. Header: Position Capsules, Lesson Title, Provider Badge, Chunk & Episode Info */}
-      <PlayHeader playback={playback} />
+      {hasActiveContent && <PlayHeader playback={playback} />}
 
       {/* 2. Central Stage: Edge previews, 16:9 Video surface, or non-blocking stage status */}
       {!playback.activeItem && playback.feedLoading ? (
-        <PlaySkeleton stageOnly />
+        <PlaySkeleton />
       ) : playback.feedError ? (
         <PlaySkeleton
           stageOnly
@@ -178,30 +179,34 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
       )}
 
       {/* 3. Bottom Dock: Fullscreen, Volume slider, Complete, Next, Speed menu, Captions, Report */}
-      <PlayDock
-        volume={playback.volume}
-        muted={playback.muted}
-        playbackSpeed={playback.playbackSpeed}
-        hasNext={playback.hasNext}
-        completionPending={playback.completionPending}
-        completionError={playback.completionError}
-        isCompleted={isChunkCompleted}
-        speedSupported={speedSupported}
-        isFullscreen={isFullscreen}
-        onVolumeChange={playback.setVolume}
-        onToggleMute={playback.toggleMute}
-        onSpeedChange={playback.setPlaybackSpeed}
-        onCompleteChunk={() => void playback.completeActiveChunk()}
-        onNextChunk={playback.nextChunk}
-        onToggleFullscreen={handleFullscreen}
-        onToggleShortcuts={() => setShortcutsOpen((prev) => !prev)}
-      />
+      {hasActiveContent && (
+        <PlayDock
+          volume={playback.volume}
+          muted={playback.muted}
+          playbackSpeed={playback.playbackSpeed}
+          hasNext={playback.hasNext}
+          completionPending={playback.completionPending}
+          completionError={playback.completionError}
+          isCompleted={isChunkCompleted}
+          speedSupported={speedSupported}
+          isFullscreen={isFullscreen}
+          onVolumeChange={playback.setVolume}
+          onToggleMute={playback.toggleMute}
+          onSpeedChange={playback.setPlaybackSpeed}
+          onCompleteChunk={() => void playback.completeActiveChunk()}
+          onNextChunk={playback.nextChunk}
+          onToggleFullscreen={handleFullscreen}
+          onToggleShortcuts={() => setShortcutsOpen((prev) => !prev)}
+        />
+      )}
 
       {/* 4. Floating Right Rail: Learning tools (Capture, Annotate, Mic placeholders, Bookmark toggle) */}
-      <PlayToolsRail
-        bookmarked={playback.bookmarked}
-        onToggleBookmark={playback.toggleBookmark}
-      />
+      {hasActiveContent && (
+        <PlayToolsRail
+          bookmarked={playback.bookmarked}
+          onToggleBookmark={playback.toggleBookmark}
+        />
+      )}
 
       {/* 5. Shortcuts Help Modal */}
       <ShortcutsDialog

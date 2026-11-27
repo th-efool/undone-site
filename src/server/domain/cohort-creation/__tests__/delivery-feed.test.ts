@@ -116,4 +116,34 @@ describe('retained delivery projection', () => {
     expect(output[0].lessonOrder).toBe(1);
     expect(output[1].lessonOrder).toBe(2);
   });
+  it('normalizes 0-indexed season, lesson, and chunk orders per cohort/season without shifting 1-indexed cohorts', () => {
+    const c1s0 = { order: 0, title: 'S0', cohortId: 'c1', cohort: { title: 'C1', coverImage: null } };
+    const c2s1 = { order: 1, title: 'S1', cohortId: 'c2', cohort: { title: 'C2', coverImage: null } };
+    const lA0 = {
+      ...lesson([{ ...chunk, id: 'a0-c0', order: 0 }, { ...chunk, id: 'a0-c1', order: 1 }]),
+      id: 'a0',
+      order: 0,
+      seasonId: 'c1-s0',
+      season: c1s0,
+    };
+    const lA1 = {
+      ...lesson([{ ...chunk, id: 'a1-c0', order: 0 }]),
+      id: 'a1',
+      order: 1,
+      seasonId: 'c1-s0',
+      season: c1s0,
+    };
+    const lB1 = {
+      ...lesson([{ ...chunk, id: 'b1-c1', order: 1 }]),
+      id: 'b1',
+      order: 1,
+      seasonId: 'c2-s1',
+      season: c2s1,
+    };
+    const output = deliveryFeedChunks([lA0, lA1, lB1]);
+    expect(output[0]).toMatchObject({ seasonOrder: 1, lessonOrder: 1, chunkOrder: 1, totalLessonsInSeason: 2, totalVideos: 2 });
+    expect(output[1]).toMatchObject({ seasonOrder: 1, lessonOrder: 1, chunkOrder: 2, totalLessonsInSeason: 2, totalVideos: 2 });
+    expect(output[2]).toMatchObject({ seasonOrder: 1, lessonOrder: 2, chunkOrder: 1, totalLessonsInSeason: 2, totalVideos: 2 });
+    expect(output[3]).toMatchObject({ seasonOrder: 1, lessonOrder: 1, chunkOrder: 1, totalLessonsInSeason: 1, totalVideos: 1 });
+  });
 });

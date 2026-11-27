@@ -328,7 +328,7 @@ export const LearningPromptBar = React.memo(
         }
       }
 
-      if (!draftRestored || status === 'loading' || !textToSearch.trim() || submitInFlight.current || submitting || composerAttachments.isExtracting) return;
+      if (!draftRestored || status === 'loading' || !textToSearch.trim() || submitInFlight.current || submitting || composerAttachments.isExtracting || composerAttachments.hasError) return;
 
       if (customOnSubmit) {
         customOnSubmit(textToSearch.trim());
@@ -606,7 +606,7 @@ export const LearningPromptBar = React.memo(
                   <button
                     type="button"
                     className={`${styles.promptBeginBtn} ${selectedMode === 'plan' ? styles.promptBeginBtnPlan : ''}`}
-                    disabled={isBusy}
+                    disabled={isBusy || composerAttachments.hasError}
                     onClick={(e) => void handleSubmit(selectedMode, e)}
                     title={selectedMode === 'plan' ? 'Plan your cohort with AI assistant' : 'Search matching cohorts and begin your journey'}
                   >

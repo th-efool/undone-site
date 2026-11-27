@@ -201,7 +201,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
   }, [messages.length, showsProcessing, recommendations?.status]);
 
   const handleSend = async (customText?: string) => {
-    if (sending || staleSelection || composerAttachments.isExtracting) return;
+    if (sending || staleSelection || composerAttachments.isExtracting || composerAttachments.hasError) return;
     const readySources = composerAttachments.getReadySources();
     const rawText = customText ?? input;
     let textToSend = rawText.trim();
@@ -690,6 +690,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
                 sending ||
                 staleSelection ||
                 composerAttachments.isExtracting ||
+                composerAttachments.hasError ||
                 (!input.trim() && !attachedEntity && composerAttachments.getReadySources().length === 0)
               }
             >

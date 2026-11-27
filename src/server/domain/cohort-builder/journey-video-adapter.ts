@@ -67,7 +67,15 @@ export class LiveVideoObservationProvider implements VideoObservationProvider {
     const parsedUrl = singleYoutubeVideo(videoUrl);
 
     // Fail closed: must fetch and verify trusted metadata from reader; no synthetic fallback
-    const fetched = await this.reader.read(videoUrl, signal);
+    let fetched;
+    try {
+      fetched = await this.reader.read(videoUrl, signal);
+    } catch (err) {
+      if (err instanceof Error && /cannot be embedded/i.test(err.message)) {
+        throw new Error('VIDEO_NOT_EMBEDDABLE');
+      }
+      throw err;
+    }
     signal.throwIfAborted();
 
     const unit = fetched.units.find(u => u.videoId === parsedUrl.videoId);
@@ -261,6 +269,7 @@ export async function acquireVideoObservation(
       'FOREIGN_VIDEO_OBSERVATION',
       'INVALID_YOUTUBE_VIDEO_URL',
       'VIDEO_NOT_FOUND',
+      'VIDEO_NOT_EMBEDDABLE',
       'EMPTY_VIDEO_OBSERVATION',
       'AI_INVALID_OUTPUT',
       'AI_UNAVAILABLE',

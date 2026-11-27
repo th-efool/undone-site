@@ -57,6 +57,13 @@ export async function loadAuthorizedFeedCatalog(
         order: true,
         title: true,
         cohortId: true,
+        _count: {
+          select: {
+            lessons: {
+              where: { isPublished: true },
+            },
+          },
+        },
         cohort: {
           select: {
             title: true,

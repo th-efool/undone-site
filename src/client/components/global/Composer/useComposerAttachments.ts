@@ -52,6 +52,15 @@ async function extractSingleLink(kind: ReturnType<typeof detectSourceKind>, url:
     let info = meta;
     if (!info) {
       const res = await fetch(`/api/import/youtube/metadata?url=${encodeURIComponent(url)}`).catch(() => null);
+      if (res && !res.ok) {
+        const errBody = await res.json().catch(() => null);
+        if (res.status === 422 || errBody?.code === 'YOUTUBE_NOT_EMBEDDABLE') {
+          throw new Error(
+            errBody?.error ||
+              'This YouTube video cannot be embedded (disabled by the uploader). Please replace it with an embeddable video.',
+          );
+        }
+      }
       info = res?.ok ? await res.json().catch(() => undefined) : undefined;
     }
     const extraction = await extractYoutubeClient(url, info);
@@ -187,7 +196,21 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
     // A playlist expands into one card per video (metadata already includes duration + description).
     if (kind === 'youtube' && /[?&]list=/.test(url)) {
       const res = await fetch(`/api/import/youtube/metadata?url=${encodeURIComponent(url)}`).catch(() => null);
+      if (res && !res.ok) {
+        const errBody = await res.json().catch(() => null);
+        if (res.status === 422 || errBody?.code === 'YOUTUBE_NOT_EMBEDDABLE') {
+          const msg =
+            errBody?.error ||
+            'None of the videos in this playlist allow embedded playback on YouTube. Please choose a different playlist.';
+          patch(setLinks, id, { status: 'error', error: msg });
+          addError(`${url}: ${msg}`);
+          return;
+        }
+      }
       const data = res?.ok ? await res.json().catch(() => null) : null;
+      if (data?.skippedUnembeddableCount > 0) {
+        addError(`Skipped ${data.skippedUnembeddableCount} video(s) with embedding disabled by the uploader.`);
+      }
       if (data?.isPlaylist && Array.isArray(data.videos)) {
         const room = maxLinks - linksRef.current.length + 1; // the placeholder row is replaced below
         const videos = (data.videos as Array<YoutubeMeta & { videoId: string }>).slice(0, Math.max(room, 0));
@@ -264,12 +287,17 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
     [files, links],
   );
 
+  const hasError = useMemo(
+    () => files.some((f) => f.status === 'error') || links.some((l) => l.status === 'error'),
+    [files, links],
+  );
+
   const getReadySources = useCallback((): CohortSource[] => [
     ...files.flatMap((f) => (f.status === 'ready' && f.extraction ? [toCohortSource({ id: f.id, label: f.name, extraction: f.extraction })] : [])),
     ...links.flatMap((l) => (l.status === 'ready' && l.extraction ? [toCohortSource({ id: l.id, label: l.title || l.url, extraction: l.extraction, url: l.url, kind: l.kind })] : [])),
   ], [files, links]);
 
-  return { files, links, isExtracting, totalCount: files.length + links.length, errors, addFiles, removeFile, addLink, removeLink, clearAll, getReadySources, restoreSources };
+  return { files, links, isExtracting, hasError, totalCount: files.length + links.length, errors, addFiles, removeFile, addLink, removeLink, clearAll, getReadySources, restoreSources };
 }
 
 

@@ -7,6 +7,7 @@ export type YoutubeImportErrorCode =
   | 'quota_exceeded'
   | 'network_timeout'
   | 'video_not_found'
+  | 'video_not_embeddable'
   | 'request_failed';
 
 export interface YoutubeImportError {
@@ -78,6 +79,15 @@ export function createYoutubeImportError(
         title: 'Video unavailable',
         message: message ?? 'One or more videos in the playlist are unavailable.',
         retryable: true,
+      };
+    case 'video_not_embeddable':
+      return {
+        code,
+        title: 'Embedding disabled on YouTube',
+        message:
+          message ??
+          'The video owner has disabled embedded playback on YouTube. Please replace it with an embeddable video.',
+        retryable: false,
       };
     default:
       return {

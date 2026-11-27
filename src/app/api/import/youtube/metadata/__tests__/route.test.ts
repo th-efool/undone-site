@@ -118,7 +118,7 @@ describe('GET /api/import/youtube/metadata', () => {
       });
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/videos?part=snippet&id=dQw4w9WgXcQ&key=test-youtube-api-key')
+        expect.stringContaining('/videos?part=snippet,status&id=dQw4w9WgXcQ&key=test-youtube-api-key')
       );
       expect(getYouTubeMetadataCacheSize()).toBe(1);
 
@@ -142,6 +142,38 @@ describe('GET /api/import/youtube/metadata', () => {
       const body3 = await res3.json();
       expect(body3).toEqual(body1);
       expect(mockFetch).toHaveBeenCalledTimes(1); // Normalized video ID hits same cache entry!
+    });
+
+    it('rejects non-embeddable single video with 422 and caches the rejection', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              snippet: {
+                title: 'Blocked Lecture',
+                thumbnails: { high: { url: 'https://i.ytimg.com/vi/blocked12345/hqdefault.jpg' } },
+              },
+              status: { embeddable: false },
+            },
+          ],
+        }),
+      });
+
+      const blockedUrl = 'https://www.youtube.com/watch?v=blocked12345';
+      const res1 = await GET(new NextRequest(`http://localhost/api/import/youtube/metadata?url=${encodeURIComponent(blockedUrl)}`));
+      expect(res1.status).toBe(422);
+      const body1 = await res1.json();
+      expect(body1).toMatchObject({
+        code: 'YOUTUBE_NOT_EMBEDDABLE',
+        embeddable: false,
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const res2 = await GET(new NextRequest(`http://localhost/api/import/youtube/metadata?url=${encodeURIComponent(blockedUrl)}`));
+      expect(res2.status).toBe(422);
+      expect(await res2.json()).toEqual(body1);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -200,6 +232,15 @@ describe('GET /api/import/youtube/metadata', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => mockPlaylistItemsResponse,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [
+              { id: 'vid-101', status: { embeddable: true } },
+              { id: 'vid-102', status: { embeddable: true } },
+            ],
+          }),
         });
 
       // 1st request - Miss: fetches playlist and playlist items
@@ -219,7 +260,7 @@ describe('GET /api/import/youtube/metadata', () => {
           { videoId: 'vid-102', title: 'Lesson 2: Advanced Types' },
         ],
       });
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
       expect(getYouTubeMetadataCacheSize()).toBe(1);
 
       // 2nd request - Hit: returns cached payload without any network calls
@@ -230,7 +271,47 @@ describe('GET /api/import/youtube/metadata', () => {
       expect(res2.headers.get('Cache-Control')).toBe('public, s-maxage=86400, stale-while-revalidate=604800');
       const body2 = await res2.json();
       expect(body2).toEqual(body1);
-      expect(mockFetch).toHaveBeenCalledTimes(2); // Still 2 calls! 0 additional network calls
+      expect(mockFetch).toHaveBeenCalledTimes(3); // 2 playlist calls + 1 batched video status check (cached on 2nd request)
+    });
+
+    it('filters out non-embeddable videos from playlists and returns 422 when none are embeddable', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockPlaylistResponse })
+        .mockResolvedValueOnce({ ok: true, json: async () => mockPlaylistItemsResponse })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [
+              { id: 'vid-101', status: { embeddable: false } },
+              { id: 'vid-102', status: { embeddable: true } },
+            ],
+          }),
+        });
+
+      const partialUrl = 'https://www.youtube.com/playlist?list=PLpartialEmbeddable';
+      const res = await GET(new NextRequest(`http://localhost/api/import/youtube/metadata?url=${encodeURIComponent(partialUrl)}`));
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.videos).toEqual([{ videoId: 'vid-102', title: 'Lesson 2: Advanced Types' }]);
+      expect(body.skippedUnembeddableCount).toBe(1);
+
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockPlaylistResponse })
+        .mockResolvedValueOnce({ ok: true, json: async () => mockPlaylistItemsResponse })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [
+              { id: 'vid-101', status: { embeddable: false } },
+              { id: 'vid-102', status: { embeddable: false } },
+            ],
+          }),
+        });
+
+      const allBlockedUrl = 'https://www.youtube.com/playlist?list=PLallBlockedVideos';
+      const resBlocked = await GET(new NextRequest(`http://localhost/api/import/youtube/metadata?url=${encodeURIComponent(allBlockedUrl)}`));
+      expect(resBlocked.status).toBe(422);
+      expect(await resBlocked.json()).toMatchObject({ code: 'YOUTUBE_NOT_EMBEDDABLE', embeddable: false });
     });
   });
 

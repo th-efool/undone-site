@@ -29,7 +29,14 @@ function seconds(duration: string | undefined) {
 }
 /** Caller must authorize published SQL lessons first. Invalid delivery data is never fabricated. */
 export function deliveryFeedChunks(lessons: Lesson[], onRejected?: (failure: DeliveryRejection) => void): FeedChunkInput[] {
-  const isZeroIndexed = lessons.some(l => l.order === 0);
+  const zeroIndexedLessonSeasons = new Set(lessons.filter(l => l.order === 0).map(l => l.seasonId));
+  const zeroIndexedSeasonCohorts = new Set(lessons.filter(l => l.season.order === 0).map(l => l.season.cohortId));
+  const lessonsPerSeason = new Map<string, Set<string>>();
+  for (const l of lessons) {
+    let set = lessonsPerSeason.get(l.seasonId);
+    if (!set) { set = new Set(); lessonsPerSeason.set(l.seasonId, set); }
+    set.add(l.id);
+  }
   return lessons.flatMap(lesson => {
     const reject = (reason: DeliveryRejection['reason']): FeedChunkInput[] => {
       onRejected?.({ lessonId: lesson.id, cohortId: lesson.season.cohortId, reason }); return [];
@@ -44,6 +51,18 @@ export function deliveryFeedChunks(lessons: Lesson[], onRejected?: (failure: Del
     const reading = lesson.lessonType !== 'VIDEO';
     if (reading && chunks.some(chunk => !chunk.text?.trim())) return reject('MISSING_TEXT');
     if (!reading && !lesson.videoId) return reject('MISSING_VIDEO');
+    const chunksZeroIndexed = chunks.some(c => c.order === 0);
+    const normalizedLessonOrder = typeof lesson.order === 'number'
+      ? (zeroIndexedLessonSeasons.has(lesson.seasonId) ? lesson.order + 1 : (lesson.order || 1))
+      : 1;
+    const normalizedSeasonOrder = typeof lesson.season.order === 'number'
+      ? (zeroIndexedSeasonCohorts.has(lesson.season.cohortId) ? lesson.season.order + 1 : (lesson.season.order || 1))
+      : 1;
+    const totalInSeason =
+      lesson.season._count?.lessons ??
+      lesson.season.lessons?.length ??
+      lessonsPerSeason.get(lesson.seasonId)?.size ??
+      1;
     let offset = 0;
     const projected = chunks.map((chunk, index) => {
       const duration = chunk.durationSeconds ?? seconds(chunk.duration); const start = chunk.startSeconds ?? offset; const end = chunk.endSeconds ?? start + duration; offset = end;
@@ -63,15 +82,16 @@ export function deliveryFeedChunks(lessons: Lesson[], onRejected?: (failure: Del
         : vector
         ? PEDAGOGICAL_DIMENSIONS.map(key => vector[key])
         : fallbackScored?.vector;
-      return { chunkId: chunk.id, chunkTitle: chunk.title ?? lesson.title, chunkOrder: chunk.order ?? index,
+      return { chunkId: chunk.id, chunkTitle: chunk.title ?? lesson.title,
+        chunkOrder: chunksZeroIndexed ? (chunk.order ?? index) + 1 : (chunk.order ?? (index + 1)),
         chunkDuration: chunk.duration ?? `${actualDurationSec}s`, startSeconds: start, endSeconds: end,
         lessonId: lesson.id, lessonTitle: lesson.title, lessonVideoId: lesson.videoId ?? undefined, lessonThumbnail: lesson.thumbnailUrl ?? '',
-        lessonOrder: typeof lesson.order === 'number' ? (isZeroIndexed ? lesson.order + 1 : (lesson.order || 1)) : 1, lessonType: reading ? lesson.lessonType === 'ASSIGNMENT' ? 'assignment' : 'reading' : 'video',
-        seasonId: lesson.seasonId, seasonTitle: lesson.season.title, seasonOrder: lesson.season.order,
+        lessonOrder: normalizedLessonOrder, lessonType: reading ? lesson.lessonType === 'ASSIGNMENT' ? 'assignment' : 'reading' : 'video',
+        seasonId: lesson.seasonId, seasonTitle: lesson.season.title, seasonOrder: normalizedSeasonOrder,
         cohortId: lesson.season.cohortId, cohortTitle: lesson.season.cohort.title, cohortCoverImage: lesson.season.cohort.coverImage ?? '', cohortProvider: '',
         totalChunksInLesson: chunks.length,
-        totalLessonsInSeason: lesson.season._count?.lessons ?? lesson.season.lessons?.length ?? 1,
-        totalVideos: lesson.season._count?.lessons ?? lesson.season.lessons?.length ?? 1,
+        totalLessonsInSeason: totalInSeason,
+        totalVideos: totalInSeason,
         isStrictlyLinear: chunk.isStrictlyLinear ?? fallbackScored?.isStrictlyLinear,
         chunkVector: resolvedVector,
         ...(chunk.text ? { content: { text: chunk.text, contentOrigin: chunk.contentOrigin, limitations: chunk.coverage?.limitations ?? [], durationMethod: chunk.durationMethod } } : {}) };

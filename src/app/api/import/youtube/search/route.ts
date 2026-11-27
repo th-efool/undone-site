@@ -117,7 +117,33 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const payload: YouTubeSearchResponse = { items };
+    const videoIds = items.filter((i) => i.kind === 'video').map((i) => i.id);
+    let filteredItems = items;
+    if (videoIds.length > 0) {
+      try {
+        const statusRes = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?part=status&id=${videoIds.join(',')}&key=${apiKey}`
+        );
+        if (statusRes.ok) {
+          const statusData = await statusRes.json().catch(() => null);
+          const blocked = new Set<string>();
+          if (Array.isArray(statusData?.items)) {
+            for (const item of statusData.items) {
+              if (item?.id && item?.status?.embeddable === false) {
+                blocked.add(item.id);
+              }
+            }
+          }
+          if (blocked.size > 0) {
+            filteredItems = items.filter((i) => i.kind !== 'video' || !blocked.has(i.id));
+          }
+        }
+      } catch {
+        // Non-fatal if embeddable status lookup fails transiently
+      }
+    }
+
+    const payload: YouTubeSearchResponse = { items: filteredItems };
     CACHE.set(normalizedQuery, {
       expiresAt: Date.now() + CACHE_TTL_MS,
       payload,

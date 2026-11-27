@@ -8,7 +8,7 @@ import { youtubeSourceUrl } from './youtube-url';
 const videoResponse = z.object({ items: z.array(z.object({ id: youtubeVideoIdSchema, etag: z.string(),
   snippet: z.object({ title: z.string(), description: z.string(), channelId: z.string(), channelTitle: z.string(),
     publishedAt: z.string(), liveBroadcastContent: z.enum(['none', 'live', 'upcoming']) }),
-  contentDetails: z.object({ duration: z.string() }), status: z.object({ privacyStatus: z.string(), uploadStatus: z.string() }),
+  contentDetails: z.object({ duration: z.string() }), status: z.object({ privacyStatus: z.string(), uploadStatus: z.string(), embeddable: z.boolean().optional() }),
 })).max(50) });
 const playlistResponse = z.object({ items: z.array(z.object({ contentDetails: z.object({ videoId: youtubeVideoIdSchema }),
   snippet: z.object({ position: z.number().int().nonnegative() }) })).max(50),
@@ -88,6 +88,7 @@ export class YoutubeMetadataReader {
       for (const id of selected) {
         const item = byId.get(id);
         if (!item || item.status.privacyStatus !== 'public' || item.status.uploadStatus !== 'processed' || item.snippet.liveBroadcastContent !== 'none') invalid('A selected video is unavailable, private, unlisted or live. Supply public completed videos or text material.');
+        if (item.status.embeddable === false) invalid('This YouTube video cannot be embedded (disabled by the uploader). Replace it with an embeddable video.');
         const unit = { videoId: id, url: `https://www.youtube.com/watch?v=${id}`, ...item.snippet,
           durationSeconds: duration(item.contentDetails.duration), etag: item.etag, privacy: 'public' as const };
         const { liveBroadcastContent, ...metadata } = unit; void liveBroadcastContent; units.push(metadata);

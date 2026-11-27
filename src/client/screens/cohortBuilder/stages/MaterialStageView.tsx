@@ -239,6 +239,7 @@ export function MaterialStageView({ workspace, dispatchAction }: MaterialStageVi
           title?: string;
           isPlaylist?: boolean;
           videos?: Array<{ videoId: string; title: string }>;
+          skippedUnembeddableCount?: number;
         } | null = null;
         try {
           const metaRes = await fetch(
@@ -246,6 +247,15 @@ export function MaterialStageView({ workspace, dispatchAction }: MaterialStageVi
           );
           if (metaRes.ok) {
             metadata = await metaRes.json();
+          } else {
+            const errData = await metaRes.json().catch(() => null);
+            if (metaRes.status === 422 || errData?.code === 'YOUTUBE_NOT_EMBEDDABLE') {
+              setError(
+                errData?.error ||
+                  'This YouTube video cannot be embedded (disabled by the uploader). Please replace it with an embeddable video.'
+              );
+              return;
+            }
           }
         } catch {
           // Metadata fetch failure is non-fatal

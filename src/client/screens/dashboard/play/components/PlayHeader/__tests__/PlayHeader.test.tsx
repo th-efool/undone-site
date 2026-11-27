@@ -177,4 +177,10 @@ describe('PlayHeader component', () => {
     const capsules = screen.getAllByRole('button', { name: /jump to lesson/i });
     expect(capsules.length).toBe(8);
   });
+
+  it('renders nothing when activeItem is undefined', () => {
+    const playback = createMockPlayback({ activeItem: undefined, feedItems: [] });
+    const { container } = render(<PlayHeader playback={playback} />);
+    expect(container.firstChild).toBeNull();
+  });
 });

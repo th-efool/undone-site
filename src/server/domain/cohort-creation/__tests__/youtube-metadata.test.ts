@@ -51,6 +51,10 @@ describe('bounded public YouTube metadata', () => {
     const item = video(); item.status.privacyStatus = privacy;
     await expect(reader({ items: [item] }).service.read(videoUrl)).rejects.toThrow('private, unlisted or live');
   });
+  it('rejects non-embeddable videos upfront before observation or chunking', async () => {
+    const item = { ...video(), status: { privacyStatus: 'public', uploadStatus: 'processed', embeddable: false } };
+    await expect(reader({ items: [item] }).service.read(videoUrl)).rejects.toThrow('cannot be embedded');
+  });
   it('rejects unavailable/live/incomplete/malformed metadata without guessed values', async () => {
     const live = video(); live.snippet.liveBroadcastContent = 'live';
     const missingDuration = video(); missingDuration.contentDetails.duration = '';

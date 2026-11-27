@@ -1291,7 +1291,7 @@ export function usePlayback() {
   const timelineMarkers: TimelineMarker[] = [];
   const lessonModel = {
     platform: 'youtube' as const,
-    title: activeItem?.lessonTitle || 'Loading...',
+    title: activeItem?.lessonTitle || '',
     subtitle: activeItem ? `${activeItem.chunkTitle} • ${activeItem.cohortTitle}` : '',
     cohortTitle: activeItem?.cohortTitle || '',
     cohortId: activeItem?.cohortId || '',
@@ -1299,7 +1299,7 @@ export function usePlayback() {
     seasonOrder: activeItem?.seasonOrder ?? 1,
     seasonNumber: activeItem?.seasonOrder ?? 1,
     currentVideo: activeItem?.lessonOrder ?? 1,
-    totalVideos: activeItem?.totalLessonsInSeason ?? activeItem?.totalVideos ?? Math.max(activeItem?.lessonOrder ?? 1, 1),
+    totalVideos: Math.max(activeItem?.totalLessonsInSeason ?? activeItem?.totalVideos ?? 0, activeItem?.lessonOrder ?? 1),
     currentChunk: activeItem?.chunkOrder || 1,
     totalChunks: activeItem?.totalChunksInLesson || activeItem?.chunkOrder || 1,
     // Chunk-relative times: player always seeks to startSeconds, so from the user's POV

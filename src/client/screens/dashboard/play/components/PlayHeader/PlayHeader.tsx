@@ -14,8 +14,8 @@ interface PlayHeaderProps {
 
 export function PlayHeader({ playback }: PlayHeaderProps) {
   const { currentIndex, feedItems, lesson, activeItem, goToIndex } = playback;
+  if (!activeItem) return null;
   const isFieldLoading = Boolean(playback.feedLoading);
-  const isRefreshing = Boolean(playback.isRefreshing);
 
   // Resolve media source accurately - never label all sources YouTube
   const mediaSource = resolveMediaSource(activeItem);
@@ -98,37 +98,9 @@ export function PlayHeader({ playback }: PlayHeaderProps) {
         {/* Left Section: Lesson Title, Provider, Chunk order & relative duration */}
         <div className={styles.metadataSection}>
           <h1 className={styles.lessonTitle} title={lesson.title}>
-            {isFieldLoading && (!lesson.title || lesson.title === 'Loading...')
-              ? 'Syncing channel feed…'
-              : (lesson.title || 'Untitled Lesson')}
+            {lesson.title}
           </h1>
           <div className={styles.subtitleRow}>
-            {(isFieldLoading || isRefreshing) && (
-              <>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    color: '#A5B4FC',
-                    fontSize: 11,
-                    fontWeight: 600,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: '#818CF8',
-                      boxShadow: '0 0 8px #818CF8',
-                    }}
-                  />
-                  {isFieldLoading ? 'Loading feed…' : 'Updating…'}
-                </span>
-                <span className={styles.dotSeparator}>•</span>
-              </>
-            )}
             <span className={styles.providerBadge}>
               {isYouTube ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ color: '#EF4444' }}>

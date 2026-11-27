@@ -137,6 +137,7 @@ export interface PlayMobileHeaderProps {
   fitScores: FitScores;
   currentChunk: number;
   totalChunks: number;
+  hideMetadata?: boolean;
   ariaLabel?: string;
 }
 
@@ -156,32 +157,35 @@ export const PlayMobileHeader = React.memo(function PlayMobileHeader({
   fitScores,
   currentChunk,
   totalChunks,
+  hideMetadata = false,
   ariaLabel = 'Playback Header',
 }: PlayMobileHeaderProps) {
   return (
     <header className={styles.header} aria-label={ariaLabel}>
       <div className={styles.topBarRow}>
-        <div className={styles.capsulesRow} role="tablist" aria-label="Lesson progression">
-          {feedItems.map((item, idx) => {
-            const isSelected = idx === currentIndex;
-            const isCompleted = itemStatuses[idx] === 'completed';
-            return (
-              <button
-                key={item.chunkId || idx}
-                type="button"
-                className={`${styles.capsule} ${isSelected ? styles.capsuleActive : ''} ${
-                  isCompleted ? styles.capsuleCompleted : ''
-                }`}
-                onClick={() => {
-                  triggerHaptic('light');
-                  onGoToIndex(idx);
-                }}
-                aria-label={`Go to lesson chunk ${idx + 1}: ${item.chunkTitle || item.lessonTitle || ''}`}
-                aria-current={isSelected ? 'true' : undefined}
-              />
-            );
-          })}
-        </div>
+        {!hideMetadata && (
+          <div className={styles.capsulesRow} role="tablist" aria-label="Lesson progression">
+            {feedItems.map((item, idx) => {
+              const isSelected = idx === currentIndex;
+              const isCompleted = itemStatuses[idx] === 'completed';
+              return (
+                <button
+                  key={item.chunkId || idx}
+                  type="button"
+                  className={`${styles.capsule} ${isSelected ? styles.capsuleActive : ''} ${
+                    isCompleted ? styles.capsuleCompleted : ''
+                  }`}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    onGoToIndex(idx);
+                  }}
+                  aria-label={`Go to lesson chunk ${idx + 1}: ${item.chunkTitle || item.lessonTitle || ''}`}
+                  aria-current={isSelected ? 'true' : undefined}
+                />
+              );
+            })}
+          </div>
+        )}
         <ChannelSelector
           activeChannel={activeChannel}
           onChannelSelect={onChannelSelect}
@@ -192,28 +196,30 @@ export const PlayMobileHeader = React.memo(function PlayMobileHeader({
         />
       </div>
 
-      <div className={styles.metadataBlock}>
-        <h1 className={styles.lessonTitle}>{title}</h1>
-        <div className={styles.subtitleRow}>
-          <span className={styles.providerBadge}>
-            {renderProviderIcon(mediaSource)}
-            <span>{providerName}</span>
-          </span>
-          <span className={styles.dotSeparator}>•</span>
-          <span
-            className={styles.fitScoreBadge}
-            title={`Recommendation Fit: ${fitScores.channelFit}% channel match, ${fitScores.overallFit}% overall curriculum match`}
-          >
-            <span className={styles.fitScoreChannel}>{fitScores.channelFit}%</span>
-            <span className={styles.fitScoreSlash}>/</span>
-            <span className={styles.fitScoreOverall}>{fitScores.overallFit}%</span>
-          </span>
-          <span className={styles.dotSeparator}>•</span>
-          <span>
-            Chunk {currentChunk}/{totalChunks}
-          </span>
+      {!hideMetadata && (
+        <div className={styles.metadataBlock}>
+          <h1 className={styles.lessonTitle}>{title}</h1>
+          <div className={styles.subtitleRow}>
+            <span className={styles.providerBadge}>
+              {renderProviderIcon(mediaSource)}
+              <span>{providerName}</span>
+            </span>
+            <span className={styles.dotSeparator}>•</span>
+            <span
+              className={styles.fitScoreBadge}
+              title={`Recommendation Fit: ${fitScores.channelFit}% channel match, ${fitScores.overallFit}% overall curriculum match`}
+            >
+              <span className={styles.fitScoreChannel}>{fitScores.channelFit}%</span>
+              <span className={styles.fitScoreSlash}>/</span>
+              <span className={styles.fitScoreOverall}>{fitScores.overallFit}%</span>
+            </span>
+            <span className={styles.dotSeparator}>•</span>
+            <span>
+              Chunk {currentChunk}/{totalChunks}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 });
@@ -819,10 +825,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
     );
   }
 
-  const displayTitle =
-    playback.feedLoading && (!playback.lesson.title || playback.lesson.title === 'Loading...')
-      ? 'Syncing channel feed…'
-      : playback.lesson.title;
+  const hasActiveContent = Boolean(playback.activeItem && !playback.feedLoading && !playback.feedError);
 
   // Video Playback Layout
   return (
@@ -838,12 +841,13 @@ export function PlayMobile({ playback }: PlayMobileProps) {
         searchQuery={playback.searchQuery}
         onSearchQueryChange={handleSearchQueryChange}
         onPrefsUpdated={handlePrefsUpdated}
-        title={displayTitle}
+        title={playback.lesson.title}
         providerName={providerName}
         mediaSource={mediaSource}
         fitScores={fitScores}
         currentChunk={playback.lesson.currentChunk}
         totalChunks={playback.lesson.totalChunks}
+        hideMetadata={!hasActiveContent}
         ariaLabel="Playback Header"
       />
 
@@ -919,24 +923,26 @@ export function PlayMobile({ playback }: PlayMobileProps) {
       )}
 
       {/* ── Primary Dock Controls ───────────────────────────────────────────── */}
-      <PlayMobileDock
-        isPlaying={playback.isPlaying}
-        hasPrevious={playback.hasPrevious}
-        hasNext={playback.hasNext}
-        isChunkCompleted={isChunkCompleted}
-        completionPending={playback.completionPending}
-        completionError={playback.completionError}
-        muted={playback.muted}
-        isFullscreen={isFullscreen}
-        onTogglePlay={handleTogglePlayback}
-        onPreviousChunk={handlePreviousChunk}
-        onNextChunk={handleNextChunk}
-        onSkipSeconds={handleSkip}
-        onCompleteChunk={handleCompleteChunk}
-        onToggleMute={handleToggleMute}
-        onToggleFullscreen={handleToggleFullscreen}
-        onOpenTools={handleOpenTools}
-      />
+      {hasActiveContent && (
+        <PlayMobileDock
+          isPlaying={playback.isPlaying}
+          hasPrevious={playback.hasPrevious}
+          hasNext={playback.hasNext}
+          isChunkCompleted={isChunkCompleted}
+          completionPending={playback.completionPending}
+          completionError={playback.completionError}
+          muted={playback.muted}
+          isFullscreen={isFullscreen}
+          onTogglePlay={handleTogglePlayback}
+          onPreviousChunk={handlePreviousChunk}
+          onNextChunk={handleNextChunk}
+          onSkipSeconds={handleSkip}
+          onCompleteChunk={handleCompleteChunk}
+          onToggleMute={handleToggleMute}
+          onToggleFullscreen={handleToggleFullscreen}
+          onOpenTools={handleOpenTools}
+        />
+      )}
 
       {/* Toast feedback */}
       {playback.completionError && <button type="button" disabled={playback.completionPending} onClick={() => void playback.completeActiveChunk()}>Retry saving progress</button>}

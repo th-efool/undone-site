@@ -109,6 +109,16 @@ export function DiscoveryStageView({ workspace, dispatchAction }: DiscoveryStage
         const metaRes = await fetch(
           `/api/import/youtube/metadata?url=${encodeURIComponent(item.url)}`
         );
+        if (!metaRes.ok) {
+          const errData = await metaRes.json().catch(() => null);
+          if (metaRes.status === 422 || errData?.code === 'YOUTUBE_NOT_EMBEDDABLE') {
+            setError(
+              errData?.error ||
+                'None of the videos in this playlist allow embedded playback on YouTube. Please choose a different playlist.'
+            );
+            return;
+          }
+        }
         if (metaRes.ok) {
           const metaData = await metaRes.json();
           if (

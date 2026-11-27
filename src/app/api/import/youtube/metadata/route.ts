@@ -20,6 +20,17 @@ export const CACHE_HEADERS = {
   'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
 };
 
+export const NOT_EMBEDDABLE_MESSAGE =
+  'This YouTube video cannot be embedded (disabled by the uploader). Please replace it with an embeddable video.';
+
+function cacheHitResponse(payload: any) {
+  if (payload?._status === 422) {
+    const { _status: _ignored, ...rest } = payload;
+    return Response.json(rest, { status: 422, headers: CACHE_HEADERS });
+  }
+  return Response.json(payload, { headers: CACHE_HEADERS });
+}
+
 export function parseIsoDurationMs(duration: string | undefined): number {
   if (!duration) return 0;
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -109,7 +120,7 @@ export async function GET(request: NextRequest) {
       if (cached) {
         if (Date.now() - cached.cachedAt < YOUTUBE_METADATA_TTL_MS) {
           logger.info(`Cache hit for playlist "${playlistId}"`);
-          return Response.json(cached.payload, { headers: CACHE_HEADERS });
+          return cacheHitResponse(cached.payload);
         }
         youtubeMetadataCache.delete(cacheKey);
       }
@@ -150,12 +161,54 @@ export async function GET(request: NextRequest) {
             // Proceed with collected items
           }
 
+          const slicedVideos = videos.slice(0, 100);
+          const unembeddableIds = new Set<string>();
+          for (let i = 0; i < slicedVideos.length; i += 50) {
+            const batchIds = slicedVideos.slice(i, i + 50).map((v) => v.videoId);
+            if (!batchIds.length) continue;
+            try {
+              const statusRes = await fetch(
+                `${YT_BASE}/videos?part=status&id=${batchIds.join(',')}&key=${apiKey}`
+              );
+              if (statusRes?.ok) {
+                const statusData = await statusRes.json().catch(() => null);
+                if (Array.isArray(statusData?.items)) {
+                  for (const item of statusData.items) {
+                    if (item?.id && item?.status?.embeddable === false) {
+                      unembeddableIds.add(item.id);
+                    }
+                  }
+                }
+              }
+            } catch {
+              // Non-fatal if status check fails transiently
+            }
+          }
+
+          const embeddableVideos = slicedVideos.filter((v) => !unembeddableIds.has(v.videoId));
+          const skippedUnembeddableCount = slicedVideos.length - embeddableVideos.length;
+
+          if (slicedVideos.length > 0 && embeddableVideos.length === 0) {
+            const errBody = {
+              error:
+                'None of the videos in this playlist allow embedded playback on YouTube. Please choose a different playlist.',
+              code: 'YOUTUBE_NOT_EMBEDDABLE',
+              embeddable: false,
+              isPlaylist: true,
+              playlistId,
+              title: snippet.title ?? url,
+            };
+            setInCache(cacheKey, { ...errBody, _status: 422 });
+            return Response.json(errBody, { status: 422, headers: CACHE_HEADERS });
+          }
+
           const payload = {
             title: snippet.title ?? url,
             thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
             isPlaylist: true,
             playlistId,
-            videos: videos.slice(0, 100),
+            videos: embeddableVideos,
+            ...(skippedUnembeddableCount > 0 ? { skippedUnembeddableCount } : {}),
           };
           setInCache(cacheKey, payload);
           return Response.json(payload, { headers: CACHE_HEADERS });
@@ -170,16 +223,26 @@ export async function GET(request: NextRequest) {
       if (cached) {
         if (Date.now() - cached.cachedAt < YOUTUBE_METADATA_TTL_MS) {
           logger.info(`Cache hit for video "${videoId}"`);
-          return Response.json(cached.payload, { headers: CACHE_HEADERS });
+          return cacheHitResponse(cached.payload);
         }
         youtubeMetadataCache.delete(cacheKey);
       }
 
-      const res = await fetch(`${YT_BASE}/videos?part=snippet&id=${videoId}&key=${apiKey}`);
+      const res = await fetch(`${YT_BASE}/videos?part=snippet,status&id=${videoId}&key=${apiKey}`);
       if (res.ok) {
         const data = await res.json().catch(() => null);
         const item = data?.items?.[0];
         const snippet = item?.snippet;
+        if (item?.status?.embeddable === false) {
+          const errBody = {
+            error: NOT_EMBEDDABLE_MESSAGE,
+            code: 'YOUTUBE_NOT_EMBEDDABLE',
+            embeddable: false,
+            title: snippet?.title ?? url,
+          };
+          setInCache(cacheKey, { ...errBody, _status: 422 });
+          return Response.json(errBody, { status: 422, headers: CACHE_HEADERS });
+        }
         if (snippet) {
           const payload = {
             title: snippet.title ?? url,
