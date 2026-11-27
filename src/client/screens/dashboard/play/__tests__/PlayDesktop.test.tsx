@@ -51,7 +51,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
       platform: 'youtube',
       title: 'The Ultimate AI Foundations Masterclass',
       subtitle: '',
-      cohortTitle: '',
+      cohortTitle: 'AI Foundations',
       cohortId: '',
       seasonOrder: 1,
       seasonNumber: 1,
@@ -158,7 +158,8 @@ describe('PlayDesktop visual redesign composition', () => {
     expect(screen.getByText('00:00 - 04:00')).toBeDefined();
     // Episode text
     expect(screen.getByText('S1:E1')).toBeDefined();
-    expect(screen.getByText('Episode 1 of 5')).toBeDefined();
+    expect(screen.getByText('AI Foundations')).toBeDefined();
+    expect(screen.queryByText(/Episode 1 of 5/i)).toBeNull();
   });
 
   it('renders the floating learning tools rail with deferred placeholders and working bookmark', () => {

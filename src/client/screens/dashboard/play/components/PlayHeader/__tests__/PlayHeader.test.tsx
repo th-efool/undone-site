@@ -148,7 +148,8 @@ describe('PlayHeader component', () => {
     render(<PlayHeader playback={playback} />);
 
     expect(screen.getByText('S1:E8')).toBeDefined();
-    expect(screen.getByText('Episode 8 of 10')).toBeDefined();
+    expect(screen.getByText('AI Engineering 2026')).toBeDefined();
+    expect(screen.queryByText(/Episode 8 of 10/i)).toBeNull();
 
     // 1 of 4 completed = 25% course completion
     // circumference = 2 * PI * 18 ≈ 113.097

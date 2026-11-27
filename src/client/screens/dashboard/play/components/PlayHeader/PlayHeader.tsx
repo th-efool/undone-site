@@ -56,9 +56,7 @@ export function PlayHeader({ playback }: PlayHeaderProps) {
   const seasonNum = lesson?.seasonOrder || 1;
   const hasEpisode = Boolean(currentVideo && totalVideos && totalVideos > 0);
   const episodeCode = hasEpisode ? `S${seasonNum}:E${currentVideo}` : `S${seasonNum}`;
-  const episodeLabel = hasEpisode
-    ? `Episode ${currentVideo} of ${totalVideos}`
-    : (activeItem?.cohortTitle || (lesson as { topic?: string })?.topic || 'Lesson Unit');
+  const episodeLabel = activeItem?.cohortTitle || lesson?.cohortTitle || '';
 
   // Top capsule window (calibrated sliding window of up to 8 capsules to prevent layout overflow)
   const totalCapsules = Math.max(feedItems.length, isFieldLoading ? 4 : 1);
@@ -136,7 +134,10 @@ export function PlayHeader({ playback }: PlayHeaderProps) {
         <div className={styles.divider} aria-hidden="true" />
 
         {/* Right Section: Circular progress ring & Season/Episode values */}
-        <div className={styles.episodeBlock} aria-label={`Course Progress: ${episodeCode}, ${episodeLabel}`}>
+        <div
+          className={styles.episodeBlock}
+          aria-label={episodeLabel ? `Course Progress: ${episodeCode}, ${episodeLabel}` : `Course Progress: ${episodeCode}`}
+        >
           <div className={styles.progressRingContainer}>
             <svg className={styles.progressRingSvg} viewBox="0 0 44 44">
               <circle
@@ -163,7 +164,7 @@ export function PlayHeader({ playback }: PlayHeaderProps) {
 
           <div className={styles.episodeText}>
             <span className={styles.episodeCode}>{episodeCode}</span>
-            <span className={styles.episodeLabel}>{episodeLabel}</span>
+            {episodeLabel && <span className={styles.episodeLabel}>{episodeLabel}</span>}
           </div>
         </div>
       </div>
