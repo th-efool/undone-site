@@ -893,6 +893,7 @@ export function usePlayback() {
   const isPlayerReadyRef = useRef(false);
 
   useEffect(() => {
+    setYtApiError(null);
     if (!activeMediaSource.isYouTube || !activeMediaSource.videoId) {
       if (playerRef.current) { try { playerRef.current.destroy(); } catch {} playerRef.current = null; }
       isPlayerReadyRef.current = false;
@@ -982,7 +983,12 @@ export function usePlayback() {
           onError: (evt: any) => {
             console.warn('YouTube Player error event:', evt.data);
             setIsPlaying(false);
-            setYtApiError(`YouTube video unavailable (code ${evt.data}).`);
+            const code = evt.data;
+            if (code === 101 || code === 150) {
+              setYtApiError(`The video owner disabled embedded playback on YouTube (code ${code}).`);
+            } else {
+              setYtApiError(`YouTube video unavailable (code ${code}).`);
+            }
           },
         },
       });
